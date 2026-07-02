@@ -1,0 +1,12 @@
+.git
+node_modules
+**/node_modules
+**/dist
+coverage
+**/coverage
+*.log
+.DS_Store
+/polaris
+backend/internal/ui/dist/*
+Dockerfile
+docker-compose.yml

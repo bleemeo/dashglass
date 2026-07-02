@@ -1,0 +1,31 @@
+services:
+  polaris:
+    build: .
+    command:
+      - -prometheus-url=http://prometheus:9090
+      - -dashboards-dir=/dashboards
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dashboards:/dashboards
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/api/capabilities"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Demo Prometheus scraping itself, so dashboards have data out of the box.
+  prometheus:
+    image: prom/prometheus:v3.4.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+volumes:
+  prometheus-data:
