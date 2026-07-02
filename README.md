@@ -10,11 +10,15 @@ See [DESIGN.md](./DESIGN.md) for the full design document.
 
 - `packages/model` — dashboard data model: Zod schemas (Perses-derived),
   deterministic JSON/YAML/TOML serializers, schema migrations.
-- `packages/runtime` — plugin registries and dashboard rendering engine
-  (planned).
+- `packages/runtime` — plugin registries, query orchestrator and dashboard
+  rendering engine.
+- `packages/panels-builtin` — built-in panel plugins: time series, stat,
+  gauge, table (ECharts).
+- `packages/datasource-prometheus` — Prometheus data source over the
+  native HTTP API paths.
+- `packages/promql-editor` — CodeMirror PromQL editor with live
+  autocompletion.
 - `packages/ui` — Chakra theme and shared primitives (planned).
-- `packages/panels-builtin` — built-in panel plugins (planned).
-- `packages/datasource-prometheus` — Prometheus data source (planned).
 - `apps/polaris` — the open-source app shell (planned).
 - `backend/` — Go server: SPA hosting, Prometheus proxy, dashboard file
   management (CRUD + validation + fsnotify/SSE live reload).
