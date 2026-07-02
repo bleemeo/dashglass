@@ -53,3 +53,4 @@ export {
   type DashboardFormat,
 } from "./serialize/format";
 export { migrateDashboard } from "./migrate";
+export { parseDuration } from "./duration";

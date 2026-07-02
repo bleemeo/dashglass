@@ -1,0 +1,32 @@
+{
+  "name": "@polarisui/runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Polaris dashboard engine: plugin registries, rendering, query orchestration",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest --run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@polarisui/model": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "jsdom": "^27.4.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}
