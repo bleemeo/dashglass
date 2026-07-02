@@ -1,0 +1,23 @@
+{
+  "name": "@polarisui/model",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Polaris dashboard data model: schemas, serializers, migrations",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest --run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "smol-toml": "^1.4.2",
+    "yaml": "^2.8.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

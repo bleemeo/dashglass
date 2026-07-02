@@ -1,0 +1,10 @@
+{
+  "name": "polarisui",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Polaris - lightweight, Prometheus-native, GitOps-friendly dashboards",
+  "scripts": {
+    "test": "pnpm --recursive test",
+    "typecheck": "pnpm --recursive typecheck"
+  }
+}

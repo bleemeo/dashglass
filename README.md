@@ -1,0 +1,28 @@
+# Polaris
+
+Lightweight, Prometheus-native dashboards with first-class GitOps support:
+dashboards are edited in the UI and stored as JSON/YAML/TOML files you can
+version, review and deploy through git.
+
+See [DESIGN.md](./DESIGN.md) for the full design document.
+
+## Repository layout
+
+- `packages/model` — dashboard data model: Zod schemas (Perses-derived),
+  deterministic JSON/YAML/TOML serializers, schema migrations.
+- `packages/runtime` — plugin registries and dashboard rendering engine
+  (planned).
+- `packages/ui` — Chakra theme and shared primitives (planned).
+- `packages/panels-builtin` — built-in panel plugins (planned).
+- `packages/datasource-prometheus` — Prometheus data source (planned).
+- `apps/polaris` — the open-source app shell (planned).
+- `backend/` — Go server: SPA hosting, Prometheus proxy, dashboard file
+  management (planned).
+
+## Development
+
+```sh
+pnpm install
+pnpm test
+pnpm typecheck
+```
