@@ -36,7 +36,21 @@ Backend:
 ```sh
 cd backend
 go test ./...
-go run . -prometheus-url http://localhost:9090 -dashboards-dir ./dashboards
+go run . -prometheus-url http://localhost:9090 -dashboards-dir ../dashboards
+```
+
+App development (vite dev server on :3000, proxying /api to the backend
+on :8080):
+
+```sh
+pnpm --filter polaris dev
+```
+
+Full single-binary build (SPA embedded):
+
+```sh
+pnpm build-binary
+./polaris -prometheus-url http://localhost:9090 -dashboards-dir ./dashboards
 ```
 
 The dashboard JSON Schema used by the backend is generated from the Zod

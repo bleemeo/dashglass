@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: Dashboard
+metadata:
+  name: node-overview
+spec:
+  display:
+    name: Node overview
+    description: CPU, memory and load of a node (node_exporter)
+  variables:
+    - kind: ListVariable
+      spec:
+        name: instance
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            labelName: instance
+  panels:
+    cpu:
+      kind: Panel
+      spec:
+        display:
+          name: CPU usage
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            unit: percentunit
+            stack: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum by (mode) (rate(node_cpu_seconds_total{instance=~"$instance",mode!="idle"}[5m]))
+                  seriesNameFormat: "{{mode}}"
+    memory:
+      kind: Panel
+      spec:
+        display:
+          name: Memory available
+        plugin:
+          kind: StatChart
+          spec:
+            unit: bytes
+            sparkline: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: node_memory_MemAvailable_bytes{instance=~"$instance"}
+    load:
+      kind: Panel
+      spec:
+        display:
+          name: Load (1m)
+        plugin:
+          kind: GaugeChart
+          spec:
+            min: 0
+            max: 8
+            thresholds:
+              - value: 4
+                status: warning
+              - value: 6
+                status: critical
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: node_load1{instance=~"$instance"}
+    filesystems:
+      kind: Panel
+      spec:
+        display:
+          name: Filesystem usage
+        plugin:
+          kind: Table
+          spec:
+            unit: percentunit
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: 1 - node_filesystem_avail_bytes{instance=~"$instance"} / node_filesystem_size_bytes{instance=~"$instance"}
+  layouts:
+    - kind: Grid
+      spec:
+        items:
+          - x: 0
+            y: 0
+            width: 16
+            height: 8
+            content:
+              $ref: "#/spec/panels/cpu"
+          - x: 16
+            y: 0
+            width: 8
+            height: 4
+            content:
+              $ref: "#/spec/panels/memory"
+          - x: 16
+            y: 4
+            width: 8
+            height: 4
+            content:
+              $ref: "#/spec/panels/load"
+          - x: 0
+            y: 8
+            width: 24
+            height: 6
+            content:
+              $ref: "#/spec/panels/filesystems"
+  duration: 1h
+  refreshInterval: 30s

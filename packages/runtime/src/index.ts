@@ -55,6 +55,7 @@ export {
 export { PROMETHEUS_QUERY_KIND, usePanelData } from "./panel-data";
 export { PanelChrome, type PanelChromeProps } from "./components/PanelChrome";
 export {
+  DashboardGrid,
   DashboardRenderer,
   GRID_COLUMNS,
   GRID_GAP,

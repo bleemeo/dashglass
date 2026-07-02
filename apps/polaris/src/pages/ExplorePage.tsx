@@ -1,0 +1,94 @@
+import { useMemo, useState } from "react";
+
+import { Box, Button, Flex, Heading } from "@chakra-ui/react";
+
+import type { Panel, Duration } from "@polarisui/model";
+import { PromQLEditor } from "@polarisui/promql-editor";
+import {
+  PanelChrome,
+  TimeRangeProvider,
+  VariablesProvider,
+} from "@polarisui/runtime";
+
+import { TimeRangeControls } from "../components/TimeRangeControls";
+
+function explorePanel(query: string): Panel {
+  return {
+    kind: "Panel",
+    spec: {
+      display: { name: query },
+      plugin: { kind: "TimeSeriesChart" },
+      queries: [
+        {
+          kind: "TimeSeriesQuery",
+          spec: {
+            plugin: {
+              kind: "PrometheusTimeSeriesQuery",
+              spec: { query },
+            },
+          },
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Free PromQL + graph, to iterate on a query before putting it in a
+ * panel. Reuses the panel chrome so loading/error handling and the
+ * orchestrator path are exactly what a dashboard uses.
+ */
+export function ExplorePage() {
+  const [draft, setDraft] = useState("");
+  const [query, setQuery] = useState<string | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<Duration | "off">(
+    "off",
+  );
+  const panel = useMemo(() => (query ? explorePanel(query) : null), [query]);
+  const run = () => setQuery(draft.trim() || null);
+
+  return (
+    <TimeRangeProvider
+      refreshInterval={refreshInterval === "off" ? undefined : refreshInterval}
+    >
+      <VariablesProvider variables={[]}>
+        <Flex direction="column" gap={4} height="100%">
+          <Flex justifyContent="space-between" alignItems="center">
+            <Heading size="lg">Explore</Heading>
+            <TimeRangeControls
+              refreshInterval={refreshInterval}
+              onRefreshIntervalChange={setRefreshInterval}
+            />
+          </Flex>
+
+          <Flex gap={2} alignItems="flex-start">
+            <Box
+              flex={1}
+              borderWidth="1px"
+              borderRadius="md"
+              padding={1}
+              fontSize="sm"
+            >
+              <PromQLEditor
+                value={draft}
+                onChange={setDraft}
+                onExecute={run}
+                completeURL=""
+                placeholder="PromQL expression — Ctrl/Cmd-Enter to run"
+              />
+            </Box>
+            <Button size="sm" onClick={run}>
+              Run
+            </Button>
+          </Flex>
+
+          {panel ? (
+            <Box height="400px" borderWidth="1px" borderRadius="md" padding={2}>
+              <PanelChrome panelKey="explore" panel={panel} />
+            </Box>
+          ) : null}
+        </Flex>
+      </VariablesProvider>
+    </TimeRangeProvider>
+  );
+}

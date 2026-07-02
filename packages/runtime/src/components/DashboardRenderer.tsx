@@ -64,6 +64,22 @@ export interface DashboardRendererProps {
 }
 
 /**
+ * The dashboard grids alone: requires <RuntimeProvider>,
+ * <TimeRangeProvider> AND <VariablesProvider> above it. Use this instead
+ * of DashboardRenderer when the host renders its own variables toolbar
+ * inside the provider scope.
+ */
+export function DashboardGrid({ dashboard }: DashboardRendererProps) {
+  return (
+    <div className="polaris-dashboard">
+      {dashboard.spec.layouts.map((layout, index) => (
+        <GridSection key={index} layout={layout} dashboard={dashboard} />
+      ))}
+    </div>
+  );
+}
+
+/**
  * Renders a dashboard read-only: grids of panels fed by the query
  * orchestrator. Requires <RuntimeProvider> and <TimeRangeProvider> above it
  * (the time-range picker lives in the host app's toolbar); dashboard
@@ -75,11 +91,7 @@ export interface DashboardRendererProps {
 export function DashboardRenderer({ dashboard }: DashboardRendererProps) {
   return (
     <VariablesProvider variables={dashboard.spec.variables}>
-      <div className="polaris-dashboard">
-        {dashboard.spec.layouts.map((layout, index) => (
-          <GridSection key={index} layout={layout} dashboard={dashboard} />
-        ))}
-      </div>
+      <DashboardGrid dashboard={dashboard} />
     </VariablesProvider>
   );
 }

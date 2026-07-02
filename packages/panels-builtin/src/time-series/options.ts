@@ -51,9 +51,10 @@ export function buildTimeSeriesOption(
     backgroundColor: "transparent",
     grid: {
       left: 8,
-      right: 16,
+      right: legendPosition === "right" && showLegend ? 120 : 16,
       top: 12,
-      bottom: 8,
+      // Leave room for the bottom legend below the time axis labels.
+      bottom: legendPosition === "bottom" && showLegend ? 28 : 8,
       containLabel: true,
     },
     xAxis: {

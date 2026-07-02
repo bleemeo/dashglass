@@ -5,6 +5,7 @@
   "description": "Polaris - lightweight, Prometheus-native, GitOps-friendly dashboards",
   "scripts": {
     "test": "pnpm --recursive test",
-    "typecheck": "pnpm --recursive typecheck"
+    "typecheck": "pnpm --recursive typecheck",
+    "build-binary": "pnpm --filter polaris build && rm -rf backend/internal/ui/dist && cp -R apps/polaris/dist backend/internal/ui/dist && cd backend && go build -o ../polaris ."
   }
 }

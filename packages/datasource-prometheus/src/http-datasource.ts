@@ -35,7 +35,9 @@ export class HTTPPrometheusDataSource implements PrometheusDataSource {
   constructor(options: HTTPPrometheusDataSourceOptions) {
     this.baseURL = options.baseURL.replace(/\/$/, "");
     this.auth = options.auth ?? anonymousAuth;
-    this.fetchFn = options.fetchFn ?? fetch;
+    // Bound so calling this.fetchFn() doesn't rebind window.fetch's `this`
+    // to the datasource ("Illegal invocation").
+    this.fetchFn = options.fetchFn ?? fetch.bind(globalThis);
   }
 
   private async request(
