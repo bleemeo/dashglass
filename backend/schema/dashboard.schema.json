@@ -1,0 +1,459 @@
+{
+  "$id": "https://polaris.dev/schemas/dashboard/v1",
+  "title": "Polaris Dashboard",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "v1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Dashboard"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_.-]+$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "properties": {
+        "display": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "datasources": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_.-]+$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "display": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "default": {
+                "type": "boolean"
+              },
+              "plugin": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "spec": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "plugin"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "ListVariable"
+                  },
+                  "spec": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+                      },
+                      "display": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "defaultValue": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
+                      },
+                      "allowAllValue": {
+                        "type": "boolean"
+                      },
+                      "allowMultiple": {
+                        "type": "boolean"
+                      },
+                      "plugin": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "spec": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "plugin"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "kind",
+                  "spec"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "TextVariable"
+                  },
+                  "spec": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+                      },
+                      "display": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "value": {
+                        "type": "string"
+                      },
+                      "constant": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "kind",
+                  "spec"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "panels": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "Panel"
+              },
+              "spec": {
+                "type": "object",
+                "properties": {
+                  "display": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "plugin": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "spec": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "queries": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "spec": {
+                          "type": "object",
+                          "properties": {
+                            "plugin": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "spec": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {}
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "plugin"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "spec"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "plugin"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "kind",
+              "spec"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "layouts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "Grid"
+              },
+              "spec": {
+                "type": "object",
+                "properties": {
+                  "display": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "collapse": {
+                        "type": "object",
+                        "properties": {
+                          "open": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "open"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "title"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "y": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "width": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        },
+                        "height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        },
+                        "content": {
+                          "type": "object",
+                          "properties": {
+                            "$ref": {
+                              "type": "string",
+                              "pattern": "^#\\/spec\\/panels\\/[a-zA-Z0-9_-]+$"
+                            }
+                          },
+                          "required": [
+                            "$ref"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "width",
+                        "height",
+                        "content"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "items"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "kind",
+              "spec"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "duration": {
+          "type": "string",
+          "pattern": "^(\\d+(ms|s|m|h|d|w|y))+$"
+        },
+        "refreshInterval": {
+          "type": "string",
+          "pattern": "^(\\d+(ms|s|m|h|d|w|y))+$"
+        }
+      },
+      "required": [
+        "panels",
+        "layouts"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "additionalProperties": false
+}

@@ -17,7 +17,7 @@ See [DESIGN.md](./DESIGN.md) for the full design document.
 - `packages/datasource-prometheus` — Prometheus data source (planned).
 - `apps/polaris` — the open-source app shell (planned).
 - `backend/` — Go server: SPA hosting, Prometheus proxy, dashboard file
-  management (planned).
+  management (CRUD + validation + fsnotify/SSE live reload).
 
 ## Development
 
@@ -26,3 +26,15 @@ pnpm install
 pnpm test
 pnpm typecheck
 ```
+
+Backend:
+
+```sh
+cd backend
+go test ./...
+go run . -prometheus-url http://localhost:9090 -dashboards-dir ./dashboards
+```
+
+The dashboard JSON Schema used by the backend is generated from the Zod
+schemas (`pnpm generate-schema` in `packages/model`); regenerate it after
+changing the model.
