@@ -347,10 +347,9 @@ reveals what the contract is missing.
 
 ## 12. Open questions
 
-- **License**: Apache-2.0 maximizes adoption; AGPL protects against cloud
-  vendors re-hosting the product. Given the open-core + SaaS model: AGPL +
-  CLA, or Apache-2.0 if adoption is the priority. Must be decided before the
-  first public tag.
+- ~~**License**~~ — **decided (2026-07): Apache-2.0**, adoption is the
+  priority. `LICENSE` at the repo root; every package declares
+  `"license": "Apache-2.0"`.
 - **Project naming**: working name "Polaris" (repo `polarisui`); check for
   trademark/name collisions before going public.
 - Prior art: **Perses** (CNCF) shares the pitch and provided the data model;

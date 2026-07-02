@@ -1,6 +1,7 @@
 {
   "name": "@polarisui/promql-editor",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "private": true,
   "description": "PromQL CodeMirror editor: highlighting, linting, live autocompletion",
   "type": "module",

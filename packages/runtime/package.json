@@ -1,6 +1,7 @@
 {
   "name": "@polarisui/runtime",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "private": true,
   "description": "Polaris dashboard engine: plugin registries, rendering, query orchestration",
   "type": "module",

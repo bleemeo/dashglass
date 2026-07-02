@@ -56,3 +56,7 @@ pnpm build-binary
 The dashboard JSON Schema used by the backend is generated from the Zod
 schemas (`pnpm generate-schema` in `packages/model`); regenerate it after
 changing the model.
+
+## License
+
+Polaris is licensed under the [Apache License 2.0](LICENSE).
