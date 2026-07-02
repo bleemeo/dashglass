@@ -4,6 +4,24 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Polaris</title>
+    <script>
+      // No-flash color mode: apply the stored/OS preference before the app
+      // loads. Mirrors packages/ui applyColorMode(); keep the two in sync.
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem("polaris-color-mode");
+        } catch (e) {}
+        var dark =
+          stored === "dark" ||
+          (stored !== "light" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var root = document.documentElement;
+        root.classList.toggle("dark", dark);
+        root.dataset.theme = dark ? "dark" : "light";
+        root.style.colorScheme = dark ? "dark" : "light";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -2,6 +2,7 @@ import { Box, Flex, Heading, Link as ChakraLink, Text } from "@chakra-ui/react";
 import { Route, Routes, Link, useLocation } from "react-router";
 
 import { useRuntime } from "@polarisui/runtime";
+import { ColorModeButton } from "@polarisui/ui";
 
 import { useCapabilities, useDashboardEvents } from "./api/hooks";
 
@@ -44,10 +45,13 @@ function SideBar() {
         );
       })}
       <Box flex={1} />
-      <Text fontSize="xs" color="fg.muted">
-        {capabilities.data?.readonly ? "provisioned (read-only) · " : ""}
-        {capabilities.data?.version ?? ""}
-      </Text>
+      <Flex alignItems="center" justifyContent="space-between" gap={2}>
+        <Text fontSize="xs" color="fg.muted">
+          {capabilities.data?.readonly ? "provisioned (read-only) · " : ""}
+          {capabilities.data?.version ?? ""}
+        </Text>
+        <ColorModeButton />
+      </Flex>
     </Flex>
   );
 }
