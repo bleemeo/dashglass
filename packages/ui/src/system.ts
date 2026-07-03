@@ -114,6 +114,25 @@ const config = defineConfig({
       gap: "1",
       alignItems: "center",
     },
+    // PromQL editor (CodeMirror): input-like chrome around the editor; the
+    // inner theme (light/dark) comes from the host's resolved color mode.
+    ".polaris-promql-editor": {
+      width: "100%",
+      borderWidth: "1px",
+      borderColor: "border",
+      borderRadius: "sm",
+      overflow: "hidden",
+      "& .cm-editor": {
+        fontSize: "13px",
+        paddingBlock: "1",
+      },
+      "& .cm-editor.cm-focused": {
+        outline: "none",
+      },
+      _focusWithin: {
+        borderColor: "blue.500",
+      },
+    },
     // Markdown panel typography (the global reset strips element defaults).
     ".polaris-markdown": {
       padding: "3",

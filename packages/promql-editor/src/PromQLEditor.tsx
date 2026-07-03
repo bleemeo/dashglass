@@ -16,6 +16,8 @@ export interface PromQLEditorProps {
   fetchFn?: typeof fetch;
   readOnly?: boolean;
   placeholder?: string;
+  /** Editor color theme; pass the host's resolved color mode. */
+  theme?: "light" | "dark";
 }
 
 export function PromQLEditor({
@@ -26,6 +28,7 @@ export function PromQLEditor({
   fetchFn,
   readOnly,
   placeholder,
+  theme,
 }: PromQLEditorProps) {
   const extensions = useMemo(() => {
     const list = [
@@ -56,6 +59,7 @@ export function PromQLEditor({
       className="polaris-promql-editor"
       value={value}
       onChange={onChange}
+      theme={theme ?? "light"}
       extensions={extensions}
       readOnly={readOnly ?? false}
       placeholder={placeholder ?? "PromQL expression"}

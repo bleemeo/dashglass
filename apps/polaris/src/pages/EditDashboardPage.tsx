@@ -4,6 +4,7 @@ import { Button, Flex, Heading, Text, Textarea } from "@chakra-ui/react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { APIError } from "../api/client";
+import { usePageTitle } from "../hooks/usePageTitle";
 import {
   useCapabilities,
   useDashboardFile,
@@ -17,6 +18,7 @@ import {
  */
 export function EditDashboardPage() {
   const { name = "" } = useParams();
+  usePageTitle(name ? `${name} · code` : undefined);
   const navigate = useNavigate();
   const file = useDashboardFile(name);
   const save = useSaveDashboard(name);

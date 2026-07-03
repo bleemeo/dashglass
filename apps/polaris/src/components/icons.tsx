@@ -54,3 +54,32 @@ export function PlusIcon() {
     </svg>
   );
 }
+
+export function DashboardsIcon() {
+  return (
+    <svg {...common} aria-hidden>
+      <rect x="3" y="3" width="7" height="9" rx="1" />
+      <rect x="14" y="3" width="7" height="5" rx="1" />
+      <rect x="14" y="12" width="7" height="9" rx="1" />
+      <rect x="3" y="16" width="7" height="5" rx="1" />
+    </svg>
+  );
+}
+
+export function ExploreIcon() {
+  return (
+    <svg {...common} aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15.5 8.5-2 5-5 2 2-5 5-2z" />
+    </svg>
+  );
+}
+
+export function SidebarIcon() {
+  return (
+    <svg {...common} aria-hidden>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M9 4v16" />
+    </svg>
+  );
+}

@@ -12,6 +12,7 @@ import {
 } from "@polarisui/runtime";
 
 import { useDashboardFile } from "../api/hooks";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { TimeRangeControls } from "../components/TimeRangeControls";
 import { VariablesToolbar } from "../components/VariablesToolbar";
 import { CodeIcon, EditIcon } from "../components/icons";
@@ -20,6 +21,7 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
   const [refreshInterval, setRefreshInterval] = useState<Duration | "off">(
     dashboard.spec.refreshInterval ?? "off",
   );
+  usePageTitle(dashboard.spec.display?.name ?? name);
 
   return (
     <TimeRangeProvider

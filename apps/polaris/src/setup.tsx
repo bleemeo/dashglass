@@ -7,6 +7,7 @@ import {
 import { registerBuiltinPanels } from "@polarisui/panels-builtin";
 import { createRegistries } from "@polarisui/runtime";
 
+import { DashboardsIcon, ExploreIcon } from "./components/icons";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DashboardsPage } from "./pages/DashboardsPage";
 import { EditDashboardPage } from "./pages/EditDashboardPage";
@@ -34,13 +35,13 @@ export function createAppSetup() {
     kind: "dashboards",
     path: "/",
     element: <DashboardsPage />,
-    nav: { title: "Dashboards", order: 1 },
+    nav: { title: "Dashboards", icon: <DashboardsIcon />, order: 1 },
   });
   registries.pages.register({
     kind: "explore",
     path: "/explore",
     element: <ExplorePage />,
-    nav: { title: "Explore", order: 2 },
+    nav: { title: "Explore", icon: <ExploreIcon />, order: 2 },
   });
   registries.pages.register({
     kind: "dashboard-view",

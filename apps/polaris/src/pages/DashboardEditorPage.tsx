@@ -40,6 +40,7 @@ import {
 } from "../api/hooks";
 import { PanelEditorDrawer } from "../components/editor/PanelEditorDrawer";
 import { CodeIcon, PlusIcon } from "../components/icons";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 function newTimeSeriesPanel(): Panel {
   return {
@@ -191,6 +192,7 @@ function EditorView({
   const readonly = capabilities.data?.readonly ?? false;
 
   const [draft, setDraft] = useState<Dashboard>(initial);
+  usePageTitle(`${initial.spec.display?.name ?? name} · edit`);
   const [editing, setEditing] = useState<string | null>(null);
   const dirty = draft !== initial;
 

@@ -10,6 +10,7 @@ import {
 } from "@polarisui/runtime";
 
 import { LazyPromQLEditor } from "../components/LazyPromQLEditor";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { TimeRangeControls } from "../components/TimeRangeControls";
 
 function explorePanel(query: string): Panel {
@@ -39,6 +40,7 @@ function explorePanel(query: string): Panel {
  * orchestrator path are exactly what a dashboard uses.
  */
 export function ExplorePage() {
+  usePageTitle("Explore");
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState<string | null>(null);
   const [refreshInterval, setRefreshInterval] = useState<Duration | "off">(

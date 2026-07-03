@@ -11,8 +11,10 @@ import {
 } from "@chakra-ui/react";
 import { Link } from "react-router";
 
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { NewDashboardDialog } from "../components/NewDashboardDialog";
-import { PlusIcon } from "../components/icons";
+import { DashboardsIcon, PlusIcon } from "../components/icons";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 import {
   useCapabilities,
@@ -26,6 +28,8 @@ export function DashboardsPage() {
   const remove = useDeleteDashboard();
   const readonly = capabilities.data?.readonly ?? false;
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  usePageTitle("Dashboards");
 
   return (
     <Flex direction="column" gap={4}>
@@ -40,16 +44,46 @@ export function DashboardsPage() {
       {creating ? (
         <NewDashboardDialog onClose={() => setCreating(false)} />
       ) : null}
+      {deleting ? (
+        <ConfirmDialog
+          title="Delete dashboard"
+          message={`"${deleting}" will be removed from the dashboards directory. If it is under git, it can be restored from history.`}
+          loading={remove.isPending}
+          onConfirm={() => {
+            remove.mutate(deleting, { onSettled: () => setDeleting(null) });
+          }}
+          onClose={() => setDeleting(null)}
+        />
+      ) : null}
 
       {dashboards.isLoading ? <Text>Loading…</Text> : null}
       {dashboards.error ? (
         <Text color="fg.error">{String(dashboards.error)}</Text>
       ) : null}
       {dashboards.data?.length === 0 ? (
-        <Text color="fg.muted">
-          No dashboards yet. Create one, or drop a file in the dashboards
-          directory.
-        </Text>
+        <Flex
+          direction="column"
+          alignItems="center"
+          gap={3}
+          paddingY={16}
+          color="fg.muted"
+        >
+          <DashboardsIcon />
+          <Text>No dashboards yet.</Text>
+          {readonly ? (
+            <Text fontSize="sm">
+              Drop a file in the dashboards directory to get started.
+            </Text>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCreating(true)}
+            >
+              <PlusIcon /> Create your first dashboard
+            </Button>
+          )}
+        </Flex>
       ) : null}
 
       {dashboards.data?.length ? (
@@ -89,13 +123,7 @@ export function DashboardsPage() {
                       size="xs"
                       variant="ghost"
                       colorPalette="red"
-                      onClick={() => {
-                        if (
-                          window.confirm(`Delete dashboard "${dashboard.name}"?`)
-                        ) {
-                          remove.mutate(dashboard.name);
-                        }
-                      }}
+                      onClick={() => setDeleting(dashboard.name)}
                     >
                       Delete
                     </Button>
