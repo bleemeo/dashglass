@@ -1,3 +1,5 @@
+import { Suspense, lazy } from "react";
+
 import {
   HTTPPrometheusDataSource,
   registerPrometheusVariableSources,
@@ -5,11 +7,18 @@ import {
 import { registerBuiltinPanels } from "@polarisui/panels-builtin";
 import { createRegistries } from "@polarisui/runtime";
 
-import { DashboardEditorPage } from "./pages/DashboardEditorPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DashboardsPage } from "./pages/DashboardsPage";
 import { EditDashboardPage } from "./pages/EditDashboardPage";
 import { ExplorePage } from "./pages/ExplorePage";
+
+// The visual editor (react-grid-layout, panel forms) only loads when a
+// dashboard is actually edited.
+const DashboardEditorPage = lazy(() =>
+  import("./pages/DashboardEditorPage").then((module) => ({
+    default: module.DashboardEditorPage,
+  })),
+);
 
 /**
  * The assembly point of the open-core model: this app registers the
@@ -41,7 +50,11 @@ export function createAppSetup() {
   registries.pages.register({
     kind: "dashboard-edit",
     path: "/d/:name/edit",
-    element: <DashboardEditorPage />,
+    element: (
+      <Suspense fallback={null}>
+        <DashboardEditorPage />
+      </Suspense>
+    ),
   });
   registries.pages.register({
     kind: "dashboard-code",

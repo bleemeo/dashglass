@@ -15,8 +15,9 @@ import {
 } from "@chakra-ui/react";
 
 import type { Panel, Query } from "@polarisui/model";
-import { PromQLEditor } from "@polarisui/promql-editor";
 import { PROMETHEUS_QUERY_KIND, useRuntime } from "@polarisui/runtime";
+
+import { LazyPromQLEditor } from "../LazyPromQLEditor";
 
 function emptyQuery(): Query {
   return {
@@ -114,7 +115,7 @@ function QueryEditor({
           Remove
         </Button>
       </Flex>
-      <PromQLEditor
+      <LazyPromQLEditor
         value={promql}
         onChange={(value) => updateSpec({ query: value })}
         completeURL=""

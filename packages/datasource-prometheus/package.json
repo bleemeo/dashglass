@@ -5,6 +5,7 @@
   "private": true,
   "description": "PrometheusDataSource implementation targeting the native Prometheus HTTP API",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },

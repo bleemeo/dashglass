@@ -5,6 +5,7 @@
   "private": true,
   "description": "Polaris dashboard data model: schemas, serializers, migrations",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },

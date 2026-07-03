@@ -3,13 +3,13 @@ import { useMemo, useState } from "react";
 import { Box, Button, Flex, Heading } from "@chakra-ui/react";
 
 import type { Panel, Duration } from "@polarisui/model";
-import { PromQLEditor } from "@polarisui/promql-editor";
 import {
   PanelChrome,
   TimeRangeProvider,
   VariablesProvider,
 } from "@polarisui/runtime";
 
+import { LazyPromQLEditor } from "../components/LazyPromQLEditor";
 import { TimeRangeControls } from "../components/TimeRangeControls";
 
 function explorePanel(query: string): Panel {
@@ -69,7 +69,7 @@ export function ExplorePage() {
               padding={1}
               fontSize="sm"
             >
-              <PromQLEditor
+              <LazyPromQLEditor
                 value={draft}
                 onChange={setDraft}
                 onExecute={run}

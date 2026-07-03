@@ -5,6 +5,7 @@
   "private": true,
   "description": "PromQL CodeMirror editor: highlighting, linting, live autocompletion",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },

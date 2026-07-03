@@ -5,6 +5,7 @@
   "private": true,
   "description": "Shared Chakra theme, color mode (light/dark/system) and UI primitives",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },

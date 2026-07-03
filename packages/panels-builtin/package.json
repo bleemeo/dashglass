@@ -5,6 +5,9 @@
   "private": true,
   "description": "Built-in panel plugins: time series, stat, gauge, table",
   "type": "module",
+  "sideEffects": [
+    "src/echarts-setup.ts"
+  ],
   "exports": {
     ".": "./src/index.ts"
   },

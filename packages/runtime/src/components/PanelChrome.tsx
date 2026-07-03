@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { Suspense, type CSSProperties } from "react";
 
 import type { Panel } from "@polarisui/model";
 
@@ -54,12 +54,15 @@ export function PanelChrome({ panelKey, panel }: PanelChromeProps) {
   } else {
     const Component = plugin.component;
     body = (
-      <Component
-        spec={panel.spec.plugin.spec ?? {}}
-        display={panel.spec.display}
-        data={data}
-        timeRange={resolved}
-      />
+      // Panel components may be React.lazy chunks (code splitting).
+      <Suspense fallback={null}>
+        <Component
+          spec={panel.spec.plugin.spec ?? {}}
+          display={panel.spec.display}
+          data={data}
+          timeRange={resolved}
+        />
+      </Suspense>
     );
   }
 

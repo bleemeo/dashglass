@@ -1,39 +1,57 @@
+import { lazy } from "react";
+
 import type { PanelRegistry } from "@polarisui/runtime";
 
-import { GaugeChart } from "./gauge/GaugeChart";
 import { GaugeEditor } from "./gauge/editor";
-import { StatChart } from "./stat/StatChart";
 import { StatEditor } from "./stat/editor";
-import { TablePanel } from "./table/TablePanel";
 import { TableEditor } from "./table/editor";
-import { TimeSeriesChart } from "./time-series/TimeSeriesChart";
 import { TimeSeriesEditor } from "./time-series/editor";
 
-/** Registers the built-in panel kinds. */
+/**
+ * Registers the built-in panel kinds. Chart components are registered
+ * lazily so the app's main chunk stays free of ECharts; the runtime's
+ * PanelChrome provides the Suspense boundary.
+ */
 export function registerBuiltinPanels(panels: PanelRegistry): void {
   panels.register({
     kind: "TimeSeriesChart",
     displayName: "Time series",
-    component: TimeSeriesChart,
+    component: lazy(() =>
+      import("./time-series/TimeSeriesChart").then((module) => ({
+        default: module.TimeSeriesChart,
+      })),
+    ),
     editor: TimeSeriesEditor,
   });
   panels.register({
     kind: "StatChart",
     displayName: "Stat",
-    component: StatChart,
+    component: lazy(() =>
+      import("./stat/StatChart").then((module) => ({
+        default: module.StatChart,
+      })),
+    ),
     editor: StatEditor,
     defaultSpec: { sparkline: true },
   });
   panels.register({
     kind: "GaugeChart",
     displayName: "Gauge",
-    component: GaugeChart,
+    component: lazy(() =>
+      import("./gauge/GaugeChart").then((module) => ({
+        default: module.GaugeChart,
+      })),
+    ),
     editor: GaugeEditor,
   });
   panels.register({
     kind: "Table",
     displayName: "Table",
-    component: TablePanel,
+    component: lazy(() =>
+      import("./table/TablePanel").then((module) => ({
+        default: module.TablePanel,
+      })),
+    ),
     editor: TableEditor,
   });
 }
@@ -47,34 +65,30 @@ export {
   type ChartTheme,
 } from "./theme";
 export { formatValue, type Unit } from "./units";
-export { EChart, type EChartProps } from "./EChart";
-export {
-  TimeSeriesChart,
-} from "./time-series/TimeSeriesChart";
+// Chart components are deliberately NOT re-exported here: the root entry
+// must stay ECharts-free so the lazy registrations above actually split
+// the chart code out of the host's main chunk. Import a component from
+// its module (e.g. "@polarisui/panels-builtin/src/EChart") if you need it
+// eagerly; the pure option builders and spec schemas below are enough for
+// tests and theming.
 export {
   buildTimeSeriesOption,
   timeSeriesSpecSchema,
   type TimeSeriesSpec,
 } from "./time-series/options";
-export { StatChart, statSpecSchema, type StatSpec } from "./stat/StatChart";
+export { statSpecSchema, type StatSpec } from "./stat/StatChart";
 export {
   calculate,
   calculationSchema,
   type Calculation,
 } from "./stat/calculations";
-export { GaugeChart } from "./gauge/GaugeChart";
 export {
   buildGaugeOption,
   gaugeSpecSchema,
   gaugeStatus,
   type GaugeSpec,
 } from "./gauge/options";
-export {
-  TablePanel,
-  tableColumns,
-  tableSpecSchema,
-  type TableSpec,
-} from "./table/TablePanel";
+export { tableSpecSchema, type TableSpec } from "./table/TablePanel";
 export { TimeSeriesEditor } from "./time-series/editor";
 export { StatEditor } from "./stat/editor";
 export { GaugeEditor } from "./gauge/editor";

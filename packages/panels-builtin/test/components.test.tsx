@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import type { PanelData, TimeSeries } from "@polarisui/runtime";
 
-import { StatChart, TablePanel, tableColumns } from "../src";
+import { StatChart } from "../src/stat/StatChart";
+import { TablePanel, tableColumns } from "../src/table/TablePanel";
 
 const readyData = (series: PanelData["series"]): PanelData => ({
   state: "ready",

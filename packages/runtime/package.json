@@ -5,6 +5,7 @@
   "private": true,
   "description": "Polaris dashboard engine: plugin registries, rendering, query orchestration",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },
