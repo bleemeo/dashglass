@@ -25,6 +25,14 @@ export type TimeSeriesSpec = z.infer<typeof timeSeriesSpecSchema>;
 
 const PALETTE_SIZE = 8;
 
+/** "#rrggbb" → "rgba(r,g,b,alpha)". */
+function withAlpha(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 export function buildTimeSeriesOption(
   series: TimeSeries[],
   spec: TimeSeriesSpec,
@@ -48,6 +56,12 @@ export function buildTimeSeriesOption(
         dataZoom: {
           yAxisIndex: "none",
           icon: { zoom: "path://", back: "path://" },
+          // Highlighter-style selection instead of the default gray block.
+          brushStyle: {
+            color: withAlpha(seriesColor(theme, 0), 0.12),
+            borderColor: withAlpha(seriesColor(theme, 0), 0.6),
+            borderWidth: 1,
+          },
         },
       },
     },
