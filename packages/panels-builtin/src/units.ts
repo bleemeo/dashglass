@@ -1,13 +1,25 @@
+import { z } from "zod";
+
 /** Value units supported by the built-in panels. */
-export type Unit =
-  | "none"
-  | "short"
-  | "percent"
-  | "percentunit"
-  | "bytes"
-  | "bytesps"
-  | "seconds"
-  | "milliseconds";
+export const UNITS = [
+  "none",
+  "short",
+  "percent",
+  "percentunit",
+  "bytes",
+  "bytesps",
+  "bitsps",
+  "ops",
+  "seconds",
+  "milliseconds",
+  "hertz",
+  "celsius",
+] as const;
+
+/** The shared `unit` field of the built-in panel spec schemas. */
+export const unitSchema = z.enum(UNITS);
+
+export type Unit = (typeof UNITS)[number];
 
 function autoDecimals(value: number): number {
   const magnitude = Math.abs(value);
@@ -40,6 +52,8 @@ function scaled(
 
 const SI_SUFFIXES = ["", "k", "M", "G", "T", "P"];
 const BYTE_SUFFIXES = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+const BIT_SUFFIXES = ["b", "kb", "Mb", "Gb", "Tb", "Pb"];
+const HERTZ_SUFFIXES = ["Hz", "kHz", "MHz", "GHz", "THz"];
 
 function formatSeconds(seconds: number, decimals: number | undefined): string {
   const magnitude = Math.abs(seconds);
@@ -78,10 +92,19 @@ export function formatValue(
       return scaled(value, 1024, BYTE_SUFFIXES, decimals);
     case "bytesps":
       return `${scaled(value, 1024, BYTE_SUFFIXES, decimals)}/s`;
+    case "bitsps":
+      return `${scaled(value, 1000, BIT_SUFFIXES, decimals)}/s`;
+    case "ops":
+      // Generic per-second rate (operations, packets, requests, events…).
+      return `${scaled(value, 1000, SI_SUFFIXES, decimals)}/s`;
     case "seconds":
       return formatSeconds(value, decimals);
     case "milliseconds":
       return formatSeconds(value / 1000, decimals);
+    case "hertz":
+      return scaled(value, 1000, HERTZ_SUFFIXES, decimals);
+    case "celsius":
+      return `${toFixed(value, decimals)} °C`;
     case "none":
       return toFixed(value, decimals);
   }

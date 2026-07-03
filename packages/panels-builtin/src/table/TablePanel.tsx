@@ -6,22 +6,11 @@ import type { PanelProps, TimeSeries } from "@polarisui/runtime";
 import { NoData } from "../NoData";
 import { parseSpec } from "../spec";
 import { useChartTheme } from "../theme";
-import { formatValue } from "../units";
+import { formatValue, unitSchema } from "../units";
 import { calculate } from "../stat/calculations";
 
 export const tableSpecSchema = z.object({
-  unit: z
-    .enum([
-      "none",
-      "short",
-      "percent",
-      "percentunit",
-      "bytes",
-      "bytesps",
-      "seconds",
-      "milliseconds",
-    ])
-    .optional(),
+  unit: unitSchema.optional(),
 });
 
 export type TableSpec = z.infer<typeof tableSpecSchema>;

@@ -8,8 +8,21 @@ const UNIT_MAP: Record<string, string> = {
   decbytes: "bytes",
   binBps: "bytesps",
   Bps: "bytesps",
+  bps: "bitsps",
   s: "seconds",
   ms: "milliseconds",
+  hertz: "hertz",
+  celsius: "celsius",
+  // Grafana has one unit id per counted thing; Polaris formats them all as
+  // a generic per-second rate.
+  ops: "ops",
+  iops: "ops",
+  pps: "ops",
+  eps: "ops",
+  rps: "ops",
+  wps: "ops",
+  reqps: "ops",
+  cps: "ops",
 };
 
 export function mapUnit(

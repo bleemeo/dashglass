@@ -155,6 +155,35 @@ describe("rewriteExpression", () => {
   });
 });
 
+describe("unit mapping", () => {
+  it("maps rate and network units to the generic Polaris units", () => {
+    const converted = importGrafanaDashboard({
+      title: "Units",
+      panels: [
+        {
+          type: "timeseries",
+          title: "net",
+          gridPos: { x: 0, y: 0, w: 12, h: 8 },
+          fieldConfig: { defaults: { unit: "bps" } },
+        },
+        {
+          type: "timeseries",
+          title: "packets",
+          gridPos: { x: 12, y: 0, w: 12, h: 8 },
+          fieldConfig: { defaults: { unit: "pps" } },
+        },
+      ],
+    });
+    expect(converted.dashboard.spec.panels["net"]!.spec.plugin.spec).toEqual({
+      unit: "bitsps",
+    });
+    expect(
+      converted.dashboard.spec.panels["packets"]!.spec.plugin.spec,
+    ).toEqual({ unit: "ops" });
+    expect(converted.warnings).toHaveLength(0);
+  });
+});
+
 describe("parseLabelValues", () => {
   it("parses both arities and metric selectors with commas", () => {
     expect(parseLabelValues("label_values(instance)")).toEqual({

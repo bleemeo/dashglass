@@ -113,7 +113,7 @@ export function CheckboxField({
   );
 }
 
-/** The unit enum shared by the four built-in spec schemas. */
+/** Labels for the shared unit enum (units.ts unitSchema). */
 export const UNIT_OPTIONS = [
   ["", "default (none)"],
   ["short", "short (k/M/G)"],
@@ -121,8 +121,12 @@ export const UNIT_OPTIONS = [
   ["percentunit", "percent (0–1)"],
   ["bytes", "bytes"],
   ["bytesps", "bytes/s"],
+  ["bitsps", "bits/s"],
+  ["ops", "rate (…/s)"],
   ["seconds", "seconds"],
   ["milliseconds", "milliseconds"],
+  ["hertz", "hertz"],
+  ["celsius", "°C"],
 ] as const;
 
 /**

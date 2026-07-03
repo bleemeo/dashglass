@@ -6,21 +6,10 @@ import type { EChartsCoreOption } from "../echarts-setup";
 import { seriesColor, type ChartTheme } from "../theme";
 import { calculationSchema } from "../stat/calculations";
 import { calculate } from "../stat/calculations";
-import { formatValue, type Unit } from "../units";
+import { formatValue, type Unit, unitSchema } from "../units";
 
 export const barSpecSchema = z.object({
-  unit: z
-    .enum([
-      "none",
-      "short",
-      "percent",
-      "percentunit",
-      "bytes",
-      "bytesps",
-      "seconds",
-      "milliseconds",
-    ])
-    .optional(),
+  unit: unitSchema.optional(),
   /** How each series reduces to its bar value (default: last). */
   calculation: calculationSchema.optional(),
   /** Bar direction; horizontal reads best for top-N comparisons. */

@@ -2,21 +2,10 @@ import { z } from "zod";
 
 import type { EChartsCoreOption } from "../echarts-setup";
 import type { ChartTheme } from "../theme";
-import { formatValue, type Unit } from "../units";
+import { formatValue, type Unit, unitSchema } from "../units";
 
 export const gaugeSpecSchema = z.object({
-  unit: z
-    .enum([
-      "none",
-      "short",
-      "percent",
-      "percentunit",
-      "bytes",
-      "bytesps",
-      "seconds",
-      "milliseconds",
-    ])
-    .optional(),
+  unit: unitSchema.optional(),
   min: z.number().optional(),
   max: z.number().optional(),
   /**

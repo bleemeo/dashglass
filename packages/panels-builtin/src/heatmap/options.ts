@@ -4,22 +4,11 @@ import type { TimeSeries } from "@polarisui/runtime";
 
 import type { EChartsCoreOption } from "../echarts-setup";
 import type { ChartTheme } from "../theme";
-import { formatValue, type Unit } from "../units";
+import { formatValue, type Unit, unitSchema } from "../units";
 
 export const heatmapSpecSchema = z.object({
   /** Unit of the bucket boundaries (the `le` values), e.g. seconds. */
-  unit: z
-    .enum([
-      "none",
-      "short",
-      "percent",
-      "percentunit",
-      "bytes",
-      "bytesps",
-      "seconds",
-      "milliseconds",
-    ])
-    .optional(),
+  unit: unitSchema.optional(),
 });
 
 export type HeatmapSpec = z.infer<typeof heatmapSpecSchema>;

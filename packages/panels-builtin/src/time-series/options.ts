@@ -4,7 +4,7 @@ import type { TimeSeries } from "@polarisui/runtime";
 
 import type { EChartsCoreOption } from "../echarts-setup";
 import { seriesColor, type ChartTheme } from "../theme";
-import { formatValue, type Unit } from "../units";
+import { formatValue, type Unit, unitSchema } from "../units";
 
 export const timeSeriesSpecSchema = z.object({
   legend: z
@@ -16,18 +16,7 @@ export const timeSeriesSpecSchema = z.object({
   stack: z.boolean().optional(),
   /** Filled area under each line. */
   area: z.boolean().optional(),
-  unit: z
-    .enum([
-      "none",
-      "short",
-      "percent",
-      "percentunit",
-      "bytes",
-      "bytesps",
-      "seconds",
-      "milliseconds",
-    ])
-    .optional(),
+  unit: unitSchema.optional(),
   min: z.number().optional(),
   max: z.number().optional(),
 });

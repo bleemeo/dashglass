@@ -6,22 +6,11 @@ import type { PanelProps, TimeSeries } from "@polarisui/runtime";
 import { NoData } from "../NoData";
 import { parseSpec } from "../spec";
 import { seriesColor, useChartTheme, type ChartTheme } from "../theme";
-import { formatValue } from "../units";
+import { formatValue, unitSchema } from "../units";
 import { calculate, calculationSchema } from "./calculations";
 
 export const statSpecSchema = z.object({
-  unit: z
-    .enum([
-      "none",
-      "short",
-      "percent",
-      "percentunit",
-      "bytes",
-      "bytesps",
-      "seconds",
-      "milliseconds",
-    ])
-    .optional(),
+  unit: unitSchema.optional(),
   decimals: z.number().int().min(0).max(6).optional(),
   calculation: calculationSchema.optional(),
   sparkline: z.boolean().optional(),

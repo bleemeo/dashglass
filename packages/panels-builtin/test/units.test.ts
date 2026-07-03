@@ -38,6 +38,18 @@ describe("formatValue", () => {
     expect(formatValue(250, "milliseconds")).toBe("250 ms");
   });
 
+  it("formats bit and generic rates", () => {
+    expect(formatValue(1_250_000, "bitsps")).toBe("1.25 Mb/s");
+    expect(formatValue(950, "bitsps")).toBe("950 b/s");
+    expect(formatValue(12_300, "ops")).toBe("12.3 k/s");
+    expect(formatValue(42, "ops")).toBe("42/s");
+  });
+
+  it("formats frequencies and temperatures", () => {
+    expect(formatValue(3_400_000_000, "hertz")).toBe("3.40 GHz");
+    expect(formatValue(64.5, "celsius")).toBe("64.5 °C");
+  });
+
   it("renders missing values as a dash", () => {
     expect(formatValue(null)).toBe("-");
     expect(formatValue(Number.NaN)).toBe("-");
