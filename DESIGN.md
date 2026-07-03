@@ -26,8 +26,12 @@ backend they talk to.
 - Alerting, notification channels, incident management.
 - Non-Prometheus data sources (SQL, Loki, traces…) — the data source layer is
   an interface, but only Prometheus is implemented.
-- User management / RBAC in the OSS binary beyond simple auth (the SaaS
-  backend owns that concern on its side).
+- Fine-grained permissions beyond the built-in three-role model (§7.4):
+  no per-dashboard/folder ACLs, no teams, no organizations/multi-tenancy,
+  no SCIM, no audit log — that is the SaaS backend's concern. The OSS
+  binary ships users, three fixed roles and identity-provider mapping,
+  because self-hosted users rightfully expect that much; the line is
+  drawn at *fine-grained* and *multi-tenant*.
 - Runtime-loadable third-party plugins. Plugins are composed at build time;
   the registry design keeps runtime loading possible later.
 
@@ -242,7 +246,55 @@ the panel's existing `hasAgent`/`hasK8S`/`hasMonitor` feature-flag pattern
 into a server-driven mechanism — the same UI, fed differently, instead of a
 fork.
 
-## 8. State management: neither RTK Query nor TanStack Query in the shared contract
+### 7.4 Configuration & authentication
+
+**Configuration.** The binary reads an optional YAML file (`-config
+polaris.yaml`) with `${ENV_VAR}` expansion for secrets; precedence is
+`flags > environment > file > defaults`, and every flag keeps working
+without a file. Two kinds of state, two files:
+
+- `polaris.yaml` — static configuration written by a human (listen,
+  Prometheus URL, dashboards dir, auth providers). Anything defined here
+  is authoritative: the admin UI shows it read-only.
+- `auth.yaml` — server-managed state written atomically by the backend
+  (local users, role mappings edited from the UI, session secret). Never
+  hand-edited; the "provisioned or managed" split mirrors the dashboards
+  readonly mode.
+
+**Authentication.** Three fixed roles — `viewer` (read dashboards, query
+proxy), `editor` (+ write dashboards), `admin` (+ admin surface). One
+effective role per user, no cumulation. `-readonly` stays orthogonal and
+wins over roles for dashboard writes. Identity comes from, in delivery
+order:
+
+1. **Local users** — username + argon2id hash + role in `auth.yaml`.
+   Managed from the admin UI (and a `polaris user` break-glass CLI +
+   `POLARIS_BOOTSTRAP_ADMIN_PASSWORD` for automated deployments).
+   Bootstrap without CLI: while auth is disabled everyone is an
+   anonymous admin, so the admin UI is reachable and "create the first
+   user" enables authentication.
+2. **Trusted reverse proxy** — `user`/`groups` headers from Authelia,
+   Authentik, oauth2-proxy…; no Polaris session, headers are evaluated
+   per request.
+3. **Native OIDC** — authorization-code flow, groups claim; lands on the
+   same session cookie as local login.
+4. **Native LDAP** — deferred until demand shows up; most homelab LDAP
+   deployments already front it with an OIDC provider.
+
+External identities carry groups; groups map to roles with one shared
+structure per provider (`role_mapping: {admin: [...], editor: [...],
+viewer: ["*"]}`): the **highest matching role wins**, `"*"` matches any
+authenticated user, and **no match means 403** — being authenticated in a
+shared IdP grants nothing until a mapping says so. Local users have no
+groups; their role is direct.
+
+Sessions are signed cookies (HttpOnly, SameSite=Lax, HMAC secret
+generated into `auth.yaml`), plus a per-user session version bumped on
+password/role change so revocation is immediate despite stateless
+cookies. Login is throttled per IP. `capabilities.auth` advertises the
+mode so the same UI serves the SaaS through its own AuthProvider
+(§7 table) — this section is the OSS implementation of that contract,
+not a second system.
 
 `bleemeo-panel` is deeply RTK Query (Redux); the natural choice for a small
 OSS app is TanStack Query. Picking either for the *shared packages* would
