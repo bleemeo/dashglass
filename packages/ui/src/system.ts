@@ -55,6 +55,13 @@ const config = defineConfig({
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     },
+    // Panel title as a button (fullscreen view); inherits the title look.
+    ".polaris-panel-expand": {
+      font: "inherit",
+      color: "inherit",
+      cursor: "pointer",
+      _hover: { textDecoration: "underline" },
+    },
     ".polaris-panel-unknown, .polaris-panel-error": {
       padding: "3",
       fontSize: "sm",

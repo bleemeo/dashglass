@@ -60,10 +60,11 @@ func New(options Options) *Server {
 // Routes registers the API on a mux (the caller adds the SPA handler).
 func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/capabilities", s.capabilities)
+	// {name...}: dashboard names may contain one folder level ("infra/db").
 	mux.HandleFunc("GET /api/dashboards", s.listDashboards)
-	mux.HandleFunc("GET /api/dashboards/{name}", s.getDashboard)
-	mux.HandleFunc("PUT /api/dashboards/{name}", s.putDashboard)
-	mux.HandleFunc("DELETE /api/dashboards/{name}", s.deleteDashboard)
+	mux.HandleFunc("GET /api/dashboards/{name...}", s.getDashboard)
+	mux.HandleFunc("PUT /api/dashboards/{name...}", s.putDashboard)
+	mux.HandleFunc("DELETE /api/dashboards/{name...}", s.deleteDashboard)
 	mux.HandleFunc("GET /api/events", s.events)
 	mux.HandleFunc("GET /api/grafana-com/{id}", s.grafanaComDownload)
 	mux.HandleFunc("/api/v1/", s.prometheus)

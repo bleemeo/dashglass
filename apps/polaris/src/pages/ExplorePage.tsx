@@ -9,9 +9,11 @@ import {
   VariablesProvider,
 } from "@polarisui/runtime";
 
+import { AddToDashboardDialog } from "../components/AddToDashboardDialog";
 import { LazyPromQLEditor } from "../components/LazyPromQLEditor";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { TimeRangeControls } from "../components/TimeRangeControls";
+import { PlusIcon } from "../components/icons";
 
 function explorePanel(query: string): Panel {
   return {
@@ -46,6 +48,7 @@ export function ExplorePage() {
   const [refreshInterval, setRefreshInterval] = useState<Duration | "off">(
     "off",
   );
+  const [adding, setAdding] = useState(false);
   const panel = useMemo(() => (query ? explorePanel(query) : null), [query]);
   const run = () => setQuery(draft.trim() || null);
 
@@ -64,13 +67,7 @@ export function ExplorePage() {
           </Flex>
 
           <Flex gap={2} alignItems="flex-start">
-            <Box
-              flex={1}
-              borderWidth="1px"
-              borderRadius="md"
-              padding={1}
-              fontSize="sm"
-            >
+            <Box flex={1} fontSize="sm">
               <LazyPromQLEditor
                 value={draft}
                 onChange={setDraft}
@@ -82,8 +79,22 @@ export function ExplorePage() {
             <Button size="sm" onClick={run}>
               Run
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!query}
+              onClick={() => setAdding(true)}
+            >
+              <PlusIcon /> Add to dashboard
+            </Button>
           </Flex>
 
+          {adding && query ? (
+            <AddToDashboardDialog
+              query={query}
+              onClose={() => setAdding(false)}
+            />
+          ) : null}
           {panel ? (
             <Box height="400px" borderWidth="1px" borderRadius="md" padding={2}>
               <PanelChrome panelKey="explore" panel={panel} />

@@ -51,14 +51,30 @@ func (s *Store) Dir() string {
 	return s.dir
 }
 
-// checkName guards against path traversal and hidden files: a dashboard
-// name maps directly to a file name.
+// checkName guards against path traversal and hidden files. A dashboard
+// name maps directly to a file name, optionally inside ONE subdirectory
+// ("folder/name") — the folder is pure file organization, git-style;
+// metadata.name stays the base name.
 func checkName(name string) error {
-	if name == "" || strings.HasPrefix(name, ".") || strings.Contains(name, "..") ||
-		strings.ContainsAny(name, "/\\") {
-		return fmt.Errorf("invalid dashboard name %q", name)
+	segments := strings.Split(name, "/")
+	if len(segments) > 2 {
+		return fmt.Errorf("invalid dashboard name %q: at most one folder level", name)
+	}
+	for _, segment := range segments {
+		if segment == "" || strings.HasPrefix(segment, ".") ||
+			strings.Contains(segment, "..") || strings.ContainsAny(segment, `\`) {
+			return fmt.Errorf("invalid dashboard name %q", name)
+		}
 	}
 	return nil
+}
+
+// baseName returns the identity part of a dashboard name (metadata.name).
+func baseName(name string) string {
+	if index := strings.LastIndex(name, "/"); index >= 0 {
+		return name[index+1:]
+	}
+	return name
 }
 
 // resolve finds the file backing a dashboard name, trying each supported
@@ -77,25 +93,19 @@ func (s *Store) resolve(name string) (path string, format Format, err error) {
 	return "", "", ErrNotFound
 }
 
-// List scans the directory for dashboard files. Files that fail to decode
-// or validate are flagged Invalid rather than dropped.
+// List scans the directory (and one level of subdirectories, exposed as
+// folders in the name: "folder/name") for dashboard files. Files that
+// fail to decode or validate are flagged Invalid rather than dropped.
 func (s *Store) List() ([]Info, error) {
-	entries, err := os.ReadDir(s.dir)
-	if err != nil {
-		return nil, err
-	}
 	infos := []Info{}
-	for _, entry := range entries {
-		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-		format, ok := FormatForPath(entry.Name())
+	appendFile := func(prefix, fileName string) {
+		format, ok := FormatForPath(fileName)
 		if !ok {
-			continue
+			return
 		}
-		name := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+		name := prefix + strings.TrimSuffix(fileName, filepath.Ext(fileName))
 		info := Info{Name: name, Format: format}
-		content, err := os.ReadFile(filepath.Join(s.dir, entry.Name()))
+		content, err := os.ReadFile(filepath.Join(s.dir, prefix, fileName))
 		if err != nil {
 			info.Invalid = true
 		} else if doc, err := s.validate(content, format); err != nil {
@@ -104,6 +114,30 @@ func (s *Store) List() ([]Info, error) {
 			info.DisplayName, info.Description = displayOf(doc)
 		}
 		infos = append(infos, info)
+	}
+
+	entries, err := os.ReadDir(s.dir)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+		if !entry.IsDir() {
+			appendFile("", entry.Name())
+			continue
+		}
+		nested, err := os.ReadDir(filepath.Join(s.dir, entry.Name()))
+		if err != nil {
+			continue
+		}
+		for _, file := range nested {
+			if file.IsDir() || strings.HasPrefix(file.Name(), ".") {
+				continue
+			}
+			appendFile(entry.Name()+"/", file.Name())
+		}
 	}
 	sort.Slice(infos, func(i, j int) bool { return infos[i].Name < infos[j].Name })
 	return infos, nil
@@ -142,13 +176,16 @@ func (s *Store) Save(name string, content []byte, format Format) error {
 		return err
 	}
 	metadata, _ := doc["metadata"].(map[string]any)
-	if metadataName, _ := metadata["name"].(string); metadataName != name {
+	if metadataName, _ := metadata["name"].(string); metadataName != baseName(name) {
 		return &ValidationError{Issues: []string{fmt.Sprintf(
-			"/metadata/name: %q does not match dashboard name %q", metadataName, name)}}
+			"/metadata/name: %q does not match dashboard name %q", metadataName, baseName(name))}}
 	}
 
 	path := filepath.Join(s.dir, name+format.extension())
-	temp, err := os.CreateTemp(s.dir, "."+name+".tmp-*")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	temp, err := os.CreateTemp(filepath.Dir(path), "."+baseName(name)+".tmp-*")
 	if err != nil {
 		return err
 	}
@@ -174,11 +211,18 @@ func (s *Store) Save(name string, content []byte, format Format) error {
 	return nil
 }
 
-// Delete removes the file backing a dashboard name.
+// Delete removes the file backing a dashboard name (and its folder when
+// that leaves it empty).
 func (s *Store) Delete(name string) error {
 	path, _, err := s.resolve(name)
 	if err != nil {
 		return err
 	}
-	return os.Remove(path)
+	if err := os.Remove(path); err != nil {
+		return err
+	}
+	if parent := filepath.Dir(path); parent != filepath.Clean(s.dir) {
+		os.Remove(parent) // fails (kept) unless empty — intended
+	}
+	return nil
 }

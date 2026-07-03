@@ -77,6 +77,15 @@ export async function fetchGrafanaComDashboard(
   return response.json() as Promise<GrafanaComDashboard>;
 }
 
+/**
+ * Dashboard names may contain one folder level ("infra/db"): encode each
+ * path segment but keep the separator, matching the backend's wildcard
+ * route.
+ */
+function dashboardPath(name: string): string {
+  return name.split("/").map(encodeURIComponent).join("/");
+}
+
 export async function listDashboards(): Promise<DashboardInfo[]> {
   const response = await fetch("/api/dashboards");
   if (!response.ok) {
@@ -86,7 +95,7 @@ export async function listDashboards(): Promise<DashboardInfo[]> {
 }
 
 export async function getDashboardFile(name: string): Promise<DashboardFile> {
-  const response = await fetch(`/api/dashboards/${encodeURIComponent(name)}`);
+  const response = await fetch(`/api/dashboards/${dashboardPath(name)}`);
   if (!response.ok) {
     throw await errorFrom(response);
   }
@@ -100,7 +109,7 @@ export async function putDashboard(
   content: string,
   format: DashboardFile["format"],
 ): Promise<void> {
-  const response = await fetch(`/api/dashboards/${encodeURIComponent(name)}`, {
+  const response = await fetch(`/api/dashboards/${dashboardPath(name)}`, {
     method: "PUT",
     headers: { "Content-Type": CONTENT_TYPES[format] },
     body: content,
@@ -111,7 +120,7 @@ export async function putDashboard(
 }
 
 export async function deleteDashboard(name: string): Promise<void> {
-  const response = await fetch(`/api/dashboards/${encodeURIComponent(name)}`, {
+  const response = await fetch(`/api/dashboards/${dashboardPath(name)}`, {
     method: "DELETE",
   });
   if (!response.ok && response.status !== 404) {

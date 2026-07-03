@@ -75,6 +75,16 @@ func Watch(ctx context.Context, dir string, hub *Hub, logger *slog.Logger) error
 		watcher.Close()
 		return err
 	}
+	// Folders are one level deep: watch existing subdirectories too.
+	if entries, err := os.ReadDir(dir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
+				if err := watcher.Add(filepath.Join(dir, entry.Name())); err != nil {
+					logger.Warn("watching dashboards subdirectory", "error", err)
+				}
+			}
+		}
+	}
 
 	go func() {
 		defer watcher.Close()
@@ -94,7 +104,12 @@ func Watch(ctx context.Context, dir string, hub *Hub, logger *slog.Logger) error
 			if strings.HasPrefix(base, ".") {
 				return
 			}
-			name := strings.TrimSuffix(base, filepath.Ext(base))
+			// Event names carry the folder, like the store ("folder/name").
+			name := base
+			if rel, err := filepath.Rel(dir, path); err == nil {
+				name = filepath.ToSlash(rel)
+			}
+			name = strings.TrimSuffix(name, filepath.Ext(name))
 			event := Event{Type: "updated", Name: name, Format: format}
 			if _, err := os.Stat(path); err != nil {
 				event = Event{Type: "deleted", Name: name}
@@ -119,6 +134,17 @@ func Watch(ctx context.Context, dir string, hub *Hub, logger *slog.Logger) error
 					continue
 				}
 				path := event.Name
+				// A new folder must be watched for the files that follow.
+				if event.Op&fsnotify.Create != 0 {
+					if info, err := os.Stat(path); err == nil && info.IsDir() {
+						if !strings.HasPrefix(filepath.Base(path), ".") {
+							if err := watcher.Add(path); err != nil {
+								logger.Warn("watching new dashboards subdirectory", "error", err)
+							}
+						}
+						continue
+					}
+				}
 				mu.Lock()
 				if timer, ok := pending[path]; ok {
 					timer.Reset(debounceDelay)

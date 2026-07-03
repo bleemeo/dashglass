@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { echarts, type EChartsCoreOption } from "./echarts-setup";
+import { useChartGroup } from "./group";
 
 export interface EChartProps {
   option: EChartsCoreOption;
@@ -23,11 +24,14 @@ interface DataZoomEvent {
 export function EChart({ option, onZoomSelect, onDoubleClick }: EChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof echarts.init> | null>(null);
+  const group = useChartGroup();
   // Handlers live in refs so chart init doesn't depend on their identity.
   const zoomRef = useRef(onZoomSelect);
   zoomRef.current = onZoomSelect;
   const doubleClickRef = useRef(onDoubleClick);
   doubleClickRef.current = onDoubleClick;
+  const optionRef = useRef(option);
+  optionRef.current = option;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -36,6 +40,14 @@ export function EChart({ option, onZoomSelect, onDoubleClick }: EChartProps) {
     }
     const chart = echarts.init(container);
     chartRef.current = chart;
+    if (group) {
+      // Shared crosshair: charts of the same group sync their axis pointer.
+      chart.group = group;
+      echarts.connect(group);
+    }
+    // Apply the current option straight away: on a group-triggered re-init
+    // the option effect below won't fire (option identity is unchanged).
+    chart.setOption(optionRef.current, { notMerge: true });
     chart.on("datazoom", (event) => {
       const range = (event as DataZoomEvent).batch?.[0];
       if (
@@ -55,7 +67,8 @@ export function EChart({ option, onZoomSelect, onDoubleClick }: EChartProps) {
       chart.dispose();
       chartRef.current = null;
     };
-  }, []);
+    // Re-init when the group changes (rare: dashboards are keyed).
+  }, [group]);
 
   useEffect(() => {
     const chart = chartRef.current;

@@ -134,12 +134,48 @@ export function DashboardsPage() {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {dashboards.data.map((dashboard) => (
+            {[...dashboards.data]
+              .sort((a, b) => {
+                // Root dashboards first, then folders alphabetically.
+                const folderA = a.name.includes("/") ? a.name.split("/")[0]! : "";
+                const folderB = b.name.includes("/") ? b.name.split("/")[0]! : "";
+                return folderA === folderB
+                  ? a.name.localeCompare(b.name)
+                  : folderA.localeCompare(folderB);
+              })
+              .flatMap((dashboard, index, sorted) => {
+                const folder = dashboard.name.includes("/")
+                  ? dashboard.name.split("/")[0]!
+                  : "";
+                const previous = index > 0 ? sorted[index - 1]! : null;
+                const previousFolder = previous?.name.includes("/")
+                  ? previous.name.split("/")[0]!
+                  : "";
+                const rows = [];
+                if (folder !== "" && folder !== previousFolder) {
+                  rows.push(
+                    <Table.Row key={`folder-${folder}`}>
+                      <Table.Cell colSpan={4} paddingTop={4}>
+                        <Text
+                          fontSize="xs"
+                          fontWeight="semibold"
+                          textTransform="uppercase"
+                          letterSpacing="wide"
+                          color="fg.muted"
+                        >
+                          {folder}/
+                        </Text>
+                      </Table.Cell>
+                    </Table.Row>,
+                  );
+                }
+                rows.push(
               <Table.Row key={dashboard.name}>
-                <Table.Cell>
+                <Table.Cell paddingLeft={folder !== "" ? 6 : undefined}>
                   <ChakraLink asChild fontWeight="medium">
                     <Link to={`/d/${encodeURIComponent(dashboard.name)}`}>
-                      {dashboard.displayName || dashboard.name}
+                      {dashboard.displayName ||
+                        dashboard.name.split("/").at(-1)}
                     </Link>
                   </ChakraLink>
                   {dashboard.invalid ? (
@@ -166,8 +202,10 @@ export function DashboardsPage() {
                     </Button>
                   )}
                 </Table.Cell>
-              </Table.Row>
-            ))}
+              </Table.Row>,
+                );
+                return rows;
+              })}
           </Table.Body>
         </Table.Root>
       ) : null}

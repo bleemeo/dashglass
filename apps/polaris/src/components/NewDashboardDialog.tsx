@@ -29,14 +29,22 @@ import {
 import { useCapabilities } from "../api/hooks";
 import { toaster } from "./toaster";
 
+/** Slug per path segment: one "/" is allowed (folder/name). */
 function slugify(text: string): string {
   return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
+    .split("/")
+    .slice(0, 2)
+    .map((segment) =>
+      segment
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60),
+    )
+    .filter((segment) => segment !== "")
+    .join("/");
 }
 
 /** Extracts the dashboard id from a grafana.com URL, or a plain id. */
@@ -176,10 +184,12 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
       setError("A title is required.");
       return;
     }
+    // With a folder ("infra/db"), metadata.name stays the base name.
+    const metadataName = effectiveName.split("/").at(-1)!;
     if (imported) {
       const dashboard: Dashboard = {
         ...imported,
-        metadata: { name: effectiveName },
+        metadata: { name: metadataName },
         spec: {
           ...imported.spec,
           display: {
@@ -195,7 +205,7 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
     }
     try {
       const dashboard = blankDashboard(
-        effectiveName,
+        metadataName,
         effectiveTitle.trim(),
         effectiveDescription.trim(),
       );

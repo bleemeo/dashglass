@@ -8,7 +8,7 @@ import {
   Link as ChakraLink,
   Text,
 } from "@chakra-ui/react";
-import { Route, Routes, Link, useLocation } from "react-router";
+import { Route, Routes, Link, useLocation, useSearchParams } from "react-router";
 
 import { useRuntime } from "@polarisui/runtime";
 import { ColorModeButton } from "@polarisui/ui";
@@ -148,6 +148,9 @@ function NotFoundPage() {
 export function App() {
   const { registries } = useRuntime();
   const [collapsed, setCollapsed] = useState(readCollapsed);
+  const [searchParams] = useSearchParams();
+  // Kiosk mode (?kiosk): chrome-less rendering for wall screens.
+  const kiosk = searchParams.has("kiosk");
   useDashboardEvents();
 
   const toggle = () => {
@@ -163,8 +166,8 @@ export function App() {
 
   return (
     <Flex height="100vh" alignItems="stretch">
-      <SideBar collapsed={collapsed} onToggle={toggle} />
-      <Box flex={1} overflow="auto" padding={6}>
+      {kiosk ? null : <SideBar collapsed={collapsed} onToggle={toggle} />}
+      <Box flex={1} overflow="auto" padding={kiosk ? 4 : 6}>
         <Routes>
           {registries.pages.list().map((page) => (
             <Route key={page.kind} path={page.path} element={page.element} />

@@ -25,9 +25,11 @@ const gridStyle: CSSProperties = {
 function GridSection({
   layout,
   dashboard,
+  onPanelExpand,
 }: {
   layout: GridLayout;
   dashboard: Dashboard;
+  onPanelExpand?: ((panelKey: string) => void) | undefined;
 }) {
   const title = layout.spec.display?.title;
   return (
@@ -50,7 +52,13 @@ function GridSection({
                 minWidth: 0,
               }}
             >
-              <PanelChrome panelKey={panelKey} panel={panel} />
+              <PanelChrome
+                panelKey={panelKey}
+                panel={panel}
+                onExpand={
+                  onPanelExpand ? () => onPanelExpand(panelKey) : undefined
+                }
+              />
             </div>
           );
         })}
@@ -61,6 +69,8 @@ function GridSection({
 
 export interface DashboardRendererProps {
   dashboard: Dashboard;
+  /** When set, panel titles become buttons (e.g. fullscreen view). */
+  onPanelExpand?: ((panelKey: string) => void) | undefined;
 }
 
 /**
@@ -69,11 +79,19 @@ export interface DashboardRendererProps {
  * of DashboardRenderer when the host renders its own variables toolbar
  * inside the provider scope.
  */
-export function DashboardGrid({ dashboard }: DashboardRendererProps) {
+export function DashboardGrid({
+  dashboard,
+  onPanelExpand,
+}: DashboardRendererProps) {
   return (
     <div className="polaris-dashboard">
       {dashboard.spec.layouts.map((layout, index) => (
-        <GridSection key={index} layout={layout} dashboard={dashboard} />
+        <GridSection
+          key={index}
+          layout={layout}
+          dashboard={dashboard}
+          onPanelExpand={onPanelExpand}
+        />
       ))}
     </div>
   );

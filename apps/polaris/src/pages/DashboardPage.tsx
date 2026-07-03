@@ -1,11 +1,20 @@
 import { useMemo, useState } from "react";
 
-import { Button, Flex, Heading, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  CloseButton,
+  Flex,
+  Heading,
+  Text,
+} from "@chakra-ui/react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { parseDashboard, type Dashboard, type Duration } from "@polarisui/model";
+import { ChartGroupProvider } from "@polarisui/panels-builtin";
 import {
   DashboardGrid,
+  PanelChrome,
   TimeRangeProvider,
   VariablesProvider,
   defaultTimeRange,
@@ -25,7 +34,7 @@ import { CodeIcon, EditIcon } from "../components/icons";
 
 function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string }) {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [refreshInterval, setRefreshInterval] = useState<Duration | "off">(
     dashboard.spec.refreshInterval ?? "off",
   );
@@ -40,6 +49,37 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
     variables: variablesFromParams(searchParams),
   }));
 
+  const kiosk = searchParams.has("kiosk");
+  const viewedKey = searchParams.get("viewPanel");
+  const viewedPanel = viewedKey ? dashboard.spec.panels[viewedKey] : undefined;
+  const setViewedPanel = (panelKey: string | null) => {
+    setSearchParams(
+      (params) => {
+        if (panelKey === null) {
+          params.delete("viewPanel");
+        } else {
+          params.set("viewPanel", panelKey);
+        }
+        return params;
+      },
+      { replace: true },
+    );
+  };
+  // Esc leaves fullscreen first, then kiosk.
+  useKeyShortcut("Escape", () => {
+    if (viewedKey) {
+      setViewedPanel(null);
+    } else if (kiosk) {
+      setSearchParams(
+        (params) => {
+          params.delete("kiosk");
+          return params;
+        },
+        { replace: true },
+      );
+    }
+  });
+
   return (
     <TimeRangeProvider
       initialRange={urlState.range ?? defaultTimeRange(dashboard)}
@@ -50,31 +90,80 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
         initialValues={urlState.variables}
       >
         <URLStateSync />
-        <Flex direction="column" gap={4} height="100%">
-          <Flex justifyContent="space-between" alignItems="center" wrap="wrap" gap={2}>
-            <Heading size="lg">
-              {dashboard.spec.display?.name ?? dashboard.metadata.name}
-            </Heading>
-            <Flex gap={2} alignItems="center">
-              <TimeRangeControls
-                refreshInterval={refreshInterval}
-                onRefreshIntervalChange={setRefreshInterval}
-              />
-              <Button size="sm" variant="outline" asChild>
-                <Link to={`/d/${encodeURIComponent(name)}/edit`}>
-                  <EditIcon /> Edit
-                </Link>
-              </Button>
-              <Button size="sm" variant="ghost" asChild>
-                <Link to={`/d/${encodeURIComponent(name)}/code`}>
-                  <CodeIcon /> Code
-                </Link>
-              </Button>
+        <ChartGroupProvider value={`dashboard-${name}`}>
+          <Flex direction="column" gap={4} height="100%">
+            <Flex
+              justifyContent="space-between"
+              alignItems="center"
+              wrap="wrap"
+              gap={2}
+            >
+              <Heading size="lg">
+                {dashboard.spec.display?.name ?? dashboard.metadata.name}
+                {viewedPanel ? (
+                  <Text as="span" fontSize="sm" color="fg.muted">
+                    {" "}
+                    / {viewedPanel.spec.display?.name ?? viewedKey}
+                  </Text>
+                ) : null}
+              </Heading>
+              {kiosk ? null : (
+                <Flex gap={2} alignItems="center">
+                  <TimeRangeControls
+                    refreshInterval={refreshInterval}
+                    onRefreshIntervalChange={setRefreshInterval}
+                  />
+                  {viewedPanel ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      title="Esc"
+                      onClick={() => setViewedPanel(null)}
+                    >
+                      Back to dashboard
+                    </Button>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to={`/d/${encodeURIComponent(name)}/edit`}>
+                          <EditIcon /> Edit
+                        </Link>
+                      </Button>
+                      <Button size="sm" variant="ghost" asChild>
+                        <Link to={`/d/${encodeURIComponent(name)}/code`}>
+                          <CodeIcon /> Code
+                        </Link>
+                      </Button>
+                    </>
+                  )}
+                </Flex>
+              )}
             </Flex>
+            {kiosk ? null : (
+              <VariablesToolbar variables={dashboard.spec.variables ?? []} />
+            )}
+            {viewedKey && viewedPanel ? (
+              <Box flex={1} minHeight={0} position="relative">
+                <PanelChrome panelKey={viewedKey} panel={viewedPanel} />
+                <CloseButton
+                  size="sm"
+                  variant="subtle"
+                  position="absolute"
+                  top={1}
+                  right={1}
+                  aria-label="Close fullscreen"
+                  title="Close fullscreen (Esc)"
+                  onClick={() => setViewedPanel(null)}
+                />
+              </Box>
+            ) : (
+              <DashboardGrid
+                dashboard={dashboard}
+                onPanelExpand={setViewedPanel}
+              />
+            )}
           </Flex>
-          <VariablesToolbar variables={dashboard.spec.variables ?? []} />
-          <DashboardGrid dashboard={dashboard} />
-        </Flex>
+        </ChartGroupProvider>
       </VariablesProvider>
     </TimeRangeProvider>
   );

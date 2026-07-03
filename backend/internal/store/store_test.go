@@ -155,13 +155,45 @@ func TestSaveMigratesLegacyDocuments(t *testing.T) {
 }
 
 func TestCheckNameRejectsTraversal(t *testing.T) {
-	for _, name := range []string{"", "..", "a/b", `a\b`, ".hidden", "a..b"} {
+	for _, name := range []string{
+		"", "..", `a\b`, ".hidden", "a..b",
+		"a/b/c", "/a", "a/", "a//b", ".hidden/x", "x/.hidden", "a/..",
+	} {
 		if err := checkName(name); err == nil {
 			t.Errorf("checkName(%q) should fail", name)
 		}
 	}
-	if err := checkName("node-overview.prod"); err != nil {
-		t.Errorf("checkName(node-overview.prod): %v", err)
+	for _, name := range []string{"node-overview.prod", "infra/node-overview"} {
+		if err := checkName(name); err != nil {
+			t.Errorf("checkName(%q): %v", name, err)
+		}
+	}
+}
+
+func TestFolderSaveGetListDelete(t *testing.T) {
+	s := newTestStore(t)
+
+	// metadata.name stays the base name; the folder is file organization.
+	if err := s.Save("infra/node-overview", []byte(validYAML), FormatYAML); err != nil {
+		t.Fatalf("Save in folder: %v", err)
+	}
+	if _, _, err := s.Get("infra/node-overview"); err != nil {
+		t.Fatalf("Get in folder: %v", err)
+	}
+	infos, err := s.List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(infos) != 1 || infos[0].Name != "infra/node-overview" {
+		t.Fatalf("List = %+v, want the folder-qualified name", infos)
+	}
+
+	if err := s.Delete("infra/node-overview"); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	// The emptied folder is removed with its last dashboard.
+	if _, err := os.Stat(filepath.Join(s.Dir(), "infra")); !os.IsNotExist(err) {
+		t.Errorf("empty folder should have been removed, stat err = %v", err)
 	}
 }
 

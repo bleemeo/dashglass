@@ -99,6 +99,7 @@ export {
   type ChartTheme,
 } from "./theme";
 export { formatValue, type Unit } from "./units";
+export { ChartGroupProvider, useChartGroup } from "./group";
 // Chart components are deliberately NOT re-exported here: the root entry
 // must stay ECharts-free so the lazy registrations above actually split
 // the chart code out of the host's main chunk. Import a component from

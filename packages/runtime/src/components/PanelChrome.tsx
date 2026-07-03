@@ -23,9 +23,11 @@ const bodyStyle: CSSProperties = { flex: 1, minHeight: 0, position: "relative" }
 export interface PanelChromeProps {
   panelKey: string;
   panel: Panel;
+  /** When set, the panel title becomes a button (e.g. expand fullscreen). */
+  onExpand?: (() => void) | undefined;
 }
 
-export function PanelChrome({ panelKey, panel }: PanelChromeProps) {
+export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
   const { registries } = useRuntime();
   const { resolved, setRange } = useTimeRange();
   const data = usePanelData(panel);
@@ -78,7 +80,20 @@ export function PanelChrome({ panelKey, panel }: PanelChromeProps) {
       data-panel-key={panelKey}
     >
       <header className="polaris-panel-header">
-        <h3 className="polaris-panel-title">{title}</h3>
+        <h3 className="polaris-panel-title">
+          {onExpand ? (
+            <button
+              type="button"
+              className="polaris-panel-expand"
+              title="View fullscreen"
+              onClick={onExpand}
+            >
+              {title}
+            </button>
+          ) : (
+            title
+          )}
+        </h3>
       </header>
       <div className="polaris-panel-body" style={bodyStyle}>
         {body}
