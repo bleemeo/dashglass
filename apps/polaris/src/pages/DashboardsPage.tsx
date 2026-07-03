@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import {
   Badge,
   Button,
@@ -9,6 +11,7 @@ import {
 } from "@chakra-ui/react";
 import { Link, useNavigate } from "react-router";
 
+import { ImportGrafanaDialog } from "../components/ImportGrafanaDialog";
 import { PlusIcon } from "../components/icons";
 
 import {
@@ -98,13 +101,28 @@ export function DashboardsPage() {
   const capabilities = useCapabilities();
   const remove = useDeleteDashboard();
   const readonly = capabilities.data?.readonly ?? false;
+  const [importing, setImporting] = useState(false);
 
   return (
     <Flex direction="column" gap={4}>
       <Flex justifyContent="space-between" alignItems="center">
         <Heading size="lg">Dashboards</Heading>
-        {readonly ? null : <NewDashboardButton />}
+        {readonly ? null : (
+          <Flex gap={2}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setImporting(true)}
+            >
+              Import from Grafana
+            </Button>
+            <NewDashboardButton />
+          </Flex>
+        )}
       </Flex>
+      {importing ? (
+        <ImportGrafanaDialog onClose={() => setImporting(false)} />
+      ) : null}
 
       {dashboards.isLoading ? <Text>Loading…</Text> : null}
       {dashboards.error ? (

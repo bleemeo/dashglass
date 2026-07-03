@@ -16,6 +16,7 @@
     "@chakra-ui/react": "^3.36.0",
     "@emotion/react": "^11.14.0",
     "@polarisui/datasource-prometheus": "workspace:*",
+    "@polarisui/grafana-import": "workspace:*",
     "@polarisui/model": "workspace:*",
     "@polarisui/panels-builtin": "workspace:*",
     "@polarisui/promql-editor": "workspace:*",

@@ -1,0 +1,166 @@
+{
+  "title": "Node Exporter — Overview",
+  "uid": "abc123",
+  "schemaVersion": 39,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "datasource",
+        "query": "prometheus"
+      },
+      {
+        "type": "query",
+        "name": "instance",
+        "label": "Instance",
+        "query": "label_values(node_uname_info{job=\"node\"}, instance)",
+        "multi": true,
+        "includeAll": true,
+        "current": { "value": "$__all" }
+      },
+      {
+        "type": "query",
+        "name": "job",
+        "query": { "query": "label_values(job)" },
+        "current": { "value": "node" }
+      },
+      {
+        "type": "query",
+        "name": "weird",
+        "query": "query_result(up)"
+      },
+      {
+        "type": "custom",
+        "name": "percentile",
+        "query": "50,90,99"
+      },
+      {
+        "type": "constant",
+        "name": "cluster",
+        "query": "production"
+      },
+      {
+        "type": "textbox",
+        "name": "filter",
+        "current": { "value": "eth0" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "text",
+      "title": "About",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "options": { "mode": "markdown", "content": "# Node overview\nImported from Grafana." }
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU usage",
+      "description": "Per mode",
+      "gridPos": { "x": 6, "y": 0, "w": 12, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1,
+          "custom": { "stacking": { "mode": "normal" }, "fillOpacity": 10 }
+        }
+      },
+      "options": { "legend": { "showLegend": true, "placement": "right" } },
+      "targets": [
+        {
+          "expr": "sum by (mode) (rate(node_cpu_seconds_total{instance=~\"[[instance]]\",job=\"${job:regex}\"}[$__rate_interval]))",
+          "legendFormat": "{{mode}}",
+          "refId": "A"
+        },
+        { "expr": "up", "hide": true, "refId": "B" }
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "Load",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 16,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 8 },
+              { "color": "red", "value": 12 }
+            ]
+          }
+        }
+      },
+      "targets": [{ "expr": "node_load1{instance=~\"$instance\"}" }]
+    },
+    {
+      "type": "row",
+      "title": "Memory",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 1 }
+    },
+    {
+      "type": "stat",
+      "title": "Memory available",
+      "gridPos": { "x": 0, "y": 9, "w": 6, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "bytes", "decimals": 1 } },
+      "options": {
+        "reduceOptions": { "calcs": ["mean"] },
+        "graphMode": "area"
+      },
+      "targets": [{ "expr": "node_memory_MemAvailable_bytes" }]
+    },
+    {
+      "type": "singlestat",
+      "title": "Uptime",
+      "gridPos": { "x": 6, "y": 9, "w": 6, "h": 6 },
+      "format": "s",
+      "valueName": "current",
+      "sparkline": { "show": true },
+      "targets": [{ "expr": "time() - node_boot_time_seconds" }]
+    },
+    {
+      "type": "piechart",
+      "title": "Filesystem breakdown",
+      "gridPos": { "x": 12, "y": 9, "w": 6, "h": 6 },
+      "options": { "pieType": "donut" },
+      "targets": [{ "expr": "node_filesystem_size_bytes" }]
+    },
+    {
+      "type": "row",
+      "title": "Details",
+      "collapsed": true,
+      "gridPos": { "x": 0, "y": 15, "w": 24, "h": 1 },
+      "panels": [
+        {
+          "type": "graph",
+          "title": "Network traffic",
+          "gridPos": { "x": 0, "y": 16, "w": 12, "h": 7 },
+          "stack": true,
+          "fill": 3,
+          "legend": { "show": false },
+          "yaxes": [{ "format": "Bps" }, { "format": "short" }],
+          "targets": [
+            { "expr": "rate(node_network_receive_bytes_total{device=\"$filter\"}[5m])" }
+          ]
+        },
+        {
+          "type": "bargauge",
+          "title": "Disk usage by mount",
+          "gridPos": { "x": 12, "y": 16, "w": 12, "h": 7 },
+          "fieldConfig": { "defaults": { "unit": "percentunit" } },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [
+            {
+              "expr": "1 - node_filesystem_avail_bytes / node_filesystem_size_bytes",
+              "legendFormat": "{{mountpoint}}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

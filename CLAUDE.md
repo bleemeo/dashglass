@@ -25,6 +25,9 @@ pnpm monorepo (TypeScript, React 19, strict tsconfig) + a Go backend:
   controls). Chart theme tokens live here (`ChartThemeProvider`).
 - `packages/promql-editor` — CodeMirror PromQL editor
   (`@prometheus-io/codemirror-promql`).
+- `packages/grafana-import` — best-effort Grafana JSON → Polaris dashboard
+  converter (walker + one migration entry per panel kind; unknown kinds
+  imported as-is and rendered as unknown panels).
 - `packages/ui` — Chakra system (`polarisSystem`, styles the runtime's
   `polaris-*` class names via semantic tokens) + color mode
   (`ColorModeProvider`, light/dark/system, `.dark` root class).
@@ -126,9 +129,11 @@ Apache-2.0 license (LICENSE, §12 resolved), `packages/ui` (theme +
 light/dark/system color mode), the form-based dashboard editor
 (`/d/:name/edit`; as-code editor moved to `/d/:name/code`; pure document
 edit ops in `packages/model/src/edit.ts`), bundle code-splitting
-(initial load 195 kB gzip), and Docker packaging (Dockerfile + compose
-with a demo Prometheus).
+(initial load 195 kB gzip), Docker packaging (Dockerfile + compose with
+a demo Prometheus), the three extra panel kinds (BarChart, HeatmapChart,
+Markdown), and the Grafana importer (packages/grafana-import + "Import
+from Grafana" in the app).
 
-Not started: Grafana importer, git-log dashboard history, annotations,
+Not started: git-log dashboard history, annotations,
 simple auth in the OSS binary, the bleemeo-panel embedding POC (DESIGN.md
 §9), and the public-naming check ("Polaris" trademark, §12).
