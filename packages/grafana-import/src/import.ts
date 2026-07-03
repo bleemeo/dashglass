@@ -242,7 +242,10 @@ export function importGrafanaDashboard(
     kind: "Dashboard",
     metadata: { name: slugify(title, "imported-dashboard") },
     spec: {
-      display: { name: title },
+      display: {
+        name: title,
+        ...(grafana.description ? { description: grafana.description } : {}),
+      },
       ...(variables.length > 0 ? { variables } : {}),
       panels,
       layouts,

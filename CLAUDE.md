@@ -37,7 +37,9 @@ pnpm monorepo (TypeScript, React 19, strict tsconfig) + a Go backend:
   (`/d/:name/code`).
 - `backend/` — Go single binary: embedded SPA, dashboards-directory CRUD
   (validating), read-only allowlisted Prometheus proxy on native
-  `/api/v1/*` paths, fsnotify → SSE, `/api/capabilities`.
+  `/api/v1/*` paths, fsnotify → SSE, `/api/capabilities`, and the
+  grafana.com download proxy (`/api/grafana-com/{id}`, numeric-id-only to
+  rule out SSRF, `-disable-grafana-com` for air-gapped installs).
 - `dashboards/` — sample dashboard files used in dev.
 
 ## Commands

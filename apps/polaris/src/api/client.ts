@@ -17,6 +17,14 @@ export interface Capabilities {
   readonly: boolean;
   formats: string[];
   prometheus: boolean;
+  features?: { grafanaCom?: boolean };
+}
+
+export interface GrafanaComDashboard {
+  dashboard: unknown;
+  name?: string;
+  description?: string;
+  revision?: number;
 }
 
 export interface DashboardFile {
@@ -56,6 +64,17 @@ export async function fetchCapabilities(): Promise<Capabilities> {
     throw await errorFrom(response);
   }
   return response.json() as Promise<Capabilities>;
+}
+
+/** Downloads a marketplace dashboard through the backend's pinned proxy. */
+export async function fetchGrafanaComDashboard(
+  id: string,
+): Promise<GrafanaComDashboard> {
+  const response = await fetch(`/api/grafana-com/${encodeURIComponent(id)}`);
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<GrafanaComDashboard>;
 }
 
 export async function listDashboards(): Promise<DashboardInfo[]> {

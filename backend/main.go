@@ -29,16 +29,18 @@ func main() {
 	prometheusURL := flag.String("prometheus-url", "", "Prometheus base URL (credentials as URL userinfo stay server-side)")
 	dashboardsDir := flag.String("dashboards-dir", "./dashboards", "directory holding dashboard files")
 	readonly := flag.Bool("readonly", false, "provisioned mode: dashboards are managed by git only, the API refuses writes")
+	disableGrafanaCom := flag.Bool("disable-grafana-com", false,
+		"disable the grafana.com dashboard import proxy (the only outbound internet call)")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	if err := run(*listen, *prometheusURL, *dashboardsDir, *readonly, logger); err != nil {
+	if err := run(*listen, *prometheusURL, *dashboardsDir, *readonly, *disableGrafanaCom, logger); err != nil {
 		logger.Error("fatal", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(listen, prometheusURL, dashboardsDir string, readonly bool, logger *slog.Logger) error {
+func run(listen, prometheusURL, dashboardsDir string, readonly, disableGrafanaCom bool, logger *slog.Logger) error {
 	dashboardStore, err := store.New(dashboardsDir)
 	if err != nil {
 		return err
@@ -62,6 +64,11 @@ func run(listen, prometheusURL, dashboardsDir string, readonly bool, logger *slo
 		return fmt.Errorf("watching dashboards directory: %w", err)
 	}
 
+	grafanaComURL := "https://grafana.com"
+	if disableGrafanaCom {
+		grafanaComURL = ""
+	}
+
 	mux := http.NewServeMux()
 	api.New(api.Options{
 		Store:         dashboardStore,
@@ -69,6 +76,7 @@ func run(listen, prometheusURL, dashboardsDir string, readonly bool, logger *slo
 		PrometheusURL: target,
 		Readonly:      readonly,
 		Version:       version,
+		GrafanaComURL: grafanaComURL,
 	}).Routes(mux)
 	mux.Handle("/", ui.Handler())
 

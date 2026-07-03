@@ -59,6 +59,7 @@ export interface GrafanaTemplateVar {
 
 export interface GrafanaDashboard {
   title?: string;
+  description?: string;
   uid?: string;
   time?: { from?: string };
   refresh?: string | false;

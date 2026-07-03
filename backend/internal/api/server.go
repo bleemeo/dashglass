@@ -21,11 +21,12 @@ import (
 const maxDashboardSize = 2 << 20
 
 type Server struct {
-	store    *store.Store
-	hub      *watch.Hub
-	readonly bool
-	version  string
-	proxy    http.Handler
+	store      *store.Store
+	hub        *watch.Hub
+	readonly   bool
+	version    string
+	proxy      http.Handler
+	grafanaCom *grafanaComClient
 }
 
 type Options struct {
@@ -34,6 +35,10 @@ type Options struct {
 	PrometheusURL *url.URL // nil disables the proxy (503)
 	Readonly      bool
 	Version       string
+	// Base URL of the grafana.com API ("https://grafana.com" in
+	// production, an httptest server in tests); empty disables the
+	// marketplace import proxy.
+	GrafanaComURL string
 }
 
 func New(options Options) *Server {
@@ -46,6 +51,9 @@ func New(options Options) *Server {
 	if options.PrometheusURL != nil {
 		server.proxy = newPrometheusProxy(options.PrometheusURL)
 	}
+	if options.GrafanaComURL != "" {
+		server.grafanaCom = newGrafanaComClient(options.GrafanaComURL)
+	}
 	return server
 }
 
@@ -57,6 +65,7 @@ func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/dashboards/{name}", s.putDashboard)
 	mux.HandleFunc("DELETE /api/dashboards/{name}", s.deleteDashboard)
 	mux.HandleFunc("GET /api/events", s.events)
+	mux.HandleFunc("GET /api/grafana-com/{id}", s.grafanaComDownload)
 	mux.HandleFunc("/api/v1/", s.prometheus)
 }
 
@@ -83,7 +92,7 @@ func (s *Server) capabilities(writer http.ResponseWriter, _ *http.Request) {
 		"formats":    store.Formats,
 		"auth":       map[string]any{"kind": "none"},
 		"prometheus": s.proxy != nil,
-		"features":   map[string]any{},
+		"features":   map[string]any{"grafanaCom": s.grafanaCom != nil},
 	})
 }
 

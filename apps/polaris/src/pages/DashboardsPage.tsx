@@ -9,119 +9,36 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 
-import { ImportGrafanaDialog } from "../components/ImportGrafanaDialog";
+import { NewDashboardDialog } from "../components/NewDashboardDialog";
 import { PlusIcon } from "../components/icons";
 
 import {
   useCapabilities,
   useDashboards,
   useDeleteDashboard,
-  useSaveDashboard,
 } from "../api/hooks";
-
-const STARTER = (name: string) => `apiVersion: v1
-kind: Dashboard
-metadata:
-  name: ${name}
-spec:
-  display:
-    name: ${name}
-  panels:
-    example:
-      kind: Panel
-      spec:
-        display:
-          name: Example
-        plugin:
-          kind: TimeSeriesChart
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: up
-  layouts:
-    - kind: Grid
-      spec:
-        items:
-          - x: 0
-            y: 0
-            width: 12
-            height: 8
-            content:
-              $ref: "#/spec/panels/example"
-  duration: 1h
-`;
-
-function NewDashboardButton() {
-  const navigate = useNavigate();
-  // The mutation name is picked at click time, so the hook targets a
-  // placeholder and the click handler calls the API directly through it.
-  const save = useSaveDashboard("");
-
-  const create = () => {
-    const name = window
-      .prompt("Dashboard name (letters, digits, '-', '_'):")
-      ?.trim();
-    if (!name) {
-      return;
-    }
-    fetch(`/api/dashboards/${encodeURIComponent(name)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/yaml" },
-      body: STARTER(name),
-    }).then((response) => {
-      if (response.ok) {
-        save.reset();
-        navigate(`/d/${encodeURIComponent(name)}`);
-      } else {
-        void response
-          .json()
-          .then((body: { error?: string; issues?: string[] }) =>
-            window.alert(
-              [body.error, ...(body.issues ?? [])].filter(Boolean).join("\n"),
-            ),
-          );
-      }
-    });
-  };
-
-  return (
-    <Button size="sm" onClick={create}>
-      <PlusIcon /> New dashboard
-    </Button>
-  );
-}
 
 export function DashboardsPage() {
   const dashboards = useDashboards();
   const capabilities = useCapabilities();
   const remove = useDeleteDashboard();
   const readonly = capabilities.data?.readonly ?? false;
-  const [importing, setImporting] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   return (
     <Flex direction="column" gap={4}>
       <Flex justifyContent="space-between" alignItems="center">
         <Heading size="lg">Dashboards</Heading>
         {readonly ? null : (
-          <Flex gap={2}>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setImporting(true)}
-            >
-              Import from Grafana
-            </Button>
-            <NewDashboardButton />
-          </Flex>
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <PlusIcon /> New dashboard
+          </Button>
         )}
       </Flex>
-      {importing ? (
-        <ImportGrafanaDialog onClose={() => setImporting(false)} />
+      {creating ? (
+        <NewDashboardDialog onClose={() => setCreating(false)} />
       ) : null}
 
       {dashboards.isLoading ? <Text>Loading…</Text> : null}
