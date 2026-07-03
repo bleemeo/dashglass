@@ -3,12 +3,12 @@ import { useMemo, useState } from "react";
 import {
   Button,
   CloseButton,
+  Collapsible,
   Dialog,
   Field,
   Flex,
   Input,
   Portal,
-  Tabs,
   Text,
   Textarea,
 } from "@chakra-ui/react";
@@ -67,60 +67,6 @@ function blankDashboard(name: string, title: string, description: string): Dashb
   });
 }
 
-interface DisplayFieldsProps {
-  title: string;
-  description: string;
-  name: string;
-  onTitle: (value: string) => void;
-  onDescription: (value: string) => void;
-  onName: (value: string) => void;
-}
-
-function DisplayFields({
-  title,
-  description,
-  name,
-  onTitle,
-  onDescription,
-  onName,
-}: DisplayFieldsProps) {
-  return (
-    <>
-      <Field.Root required>
-        <Field.Label>
-          Title <Field.RequiredIndicator />
-        </Field.Label>
-        <Input
-          size="sm"
-          placeholder="Node overview"
-          value={title}
-          onChange={(event) => onTitle(event.target.value)}
-        />
-      </Field.Root>
-      <Field.Root>
-        <Field.Label>Description</Field.Label>
-        <Input
-          size="sm"
-          value={description}
-          onChange={(event) => onDescription(event.target.value)}
-        />
-      </Field.Root>
-      <Field.Root>
-        <Field.Label>File name</Field.Label>
-        <Input
-          size="sm"
-          fontFamily="mono"
-          value={name}
-          onChange={(event) => onName(event.target.value)}
-        />
-        <Field.HelperText>
-          The dashboard's identifier in the dashboards directory.
-        </Field.HelperText>
-      </Field.Root>
-    </>
-  );
-}
-
 type Preview =
   | { state: "empty" }
   | { state: "error"; message: string }
@@ -141,9 +87,11 @@ function convert(json: string): Preview {
 }
 
 /**
- * Dashboard creation: start blank, or import from Grafana (marketplace id
- * or URL through the backend proxy, a JSON export file, or pasted JSON).
- * Title/description/file-name are editable in both paths before saving.
+ * Dashboard creation: one form (title, description, file name) with an
+ * optional fold-out "Import from Grafana" section. When the section holds
+ * a converted dashboard the primary action imports it (with the form's
+ * display fields applied); otherwise it creates a blank dashboard and
+ * lands in the visual editor.
  */
 export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
@@ -163,10 +111,9 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const preview = useMemo(() => convert(json), [json]);
-
-  // Import path: prefill display fields from the conversion unless the
-  // user already touched them.
   const imported = preview.state === "ready" ? preview.dashboard : null;
+
+  // The import prefills the display fields until the user touches them.
   const effectiveTitle =
     displayEdited || !imported
       ? title
@@ -190,15 +137,6 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
     try {
       const result = await fetchGrafanaComDashboard(id);
       setJson(JSON.stringify(result.dashboard));
-      if (!displayEdited) {
-        if (result.name) {
-          setTitle(result.name);
-        }
-        if (result.description) {
-          setDescription(result.description.trim().split("\n")[0] ?? "");
-        }
-        setDisplayEdited(true);
-      }
     } catch (fetchError) {
       setError(String(fetchError));
     } finally {
@@ -228,9 +166,26 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const createBlank = () => {
+  const create = () => {
     if (effectiveTitle.trim() === "" || effectiveName === "") {
       setError("A title is required.");
+      return;
+    }
+    if (imported) {
+      const dashboard: Dashboard = {
+        ...imported,
+        metadata: { name: effectiveName },
+        spec: {
+          ...imported.spec,
+          display: {
+            name: effectiveTitle.trim(),
+            ...(effectiveDescription.trim() !== ""
+              ? { description: effectiveDescription.trim() }
+              : {}),
+          },
+        },
+      };
+      void save(dashboard, `/d/${encodeURIComponent(effectiveName)}`);
       return;
     }
     try {
@@ -245,52 +200,12 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const importGrafana = () => {
-    if (!imported || effectiveName === "") {
-      return;
-    }
-    const dashboard: Dashboard = {
-      ...imported,
-      metadata: { name: effectiveName },
-      spec: {
-        ...imported.spec,
-        display: {
-          ...(effectiveTitle.trim() !== "" ? { name: effectiveTitle.trim() } : {}),
-          ...(effectiveDescription.trim() !== ""
-            ? { description: effectiveDescription.trim() }
-            : {}),
-        },
-      },
-    };
-    void save(dashboard, `/d/${encodeURIComponent(effectiveName)}`);
-  };
-
   const pickFile = (file: File | undefined) => {
     if (!file) {
       return;
     }
     void file.text().then(setJson);
   };
-
-  const displayFields = (
-    <DisplayFields
-      title={effectiveTitle}
-      description={effectiveDescription}
-      name={effectiveName}
-      onTitle={(value) => {
-        setTitle(value);
-        setDisplayEdited(true);
-      }}
-      onDescription={(value) => {
-        setDescription(value);
-        setDisplayEdited(true);
-      }}
-      onName={(value) => {
-        setName(slugify(value) === value ? value : slugify(value));
-        setNameEdited(true);
-      }}
-    />
-  );
 
   return (
     <Dialog.Root
@@ -310,142 +225,179 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
               <Dialog.Title>New dashboard</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
-              <Tabs.Root defaultValue="blank" size="sm">
-                <Tabs.List marginBottom={4}>
-                  <Tabs.Trigger value="blank">Blank</Tabs.Trigger>
-                  <Tabs.Trigger value="grafana">
-                    Import from Grafana
-                  </Tabs.Trigger>
-                </Tabs.List>
+              <Flex direction="column" gap={3}>
+                <Field.Root required>
+                  <Field.Label>
+                    Title <Field.RequiredIndicator />
+                  </Field.Label>
+                  <Input
+                    size="sm"
+                    placeholder="Node overview"
+                    value={effectiveTitle}
+                    onChange={(event) => {
+                      setTitle(event.target.value);
+                      setDisplayEdited(true);
+                    }}
+                  />
+                </Field.Root>
+                <Field.Root>
+                  <Field.Label>Description</Field.Label>
+                  <Input
+                    size="sm"
+                    value={effectiveDescription}
+                    onChange={(event) => {
+                      setDescription(event.target.value);
+                      setDisplayEdited(true);
+                    }}
+                  />
+                </Field.Root>
+                <Field.Root>
+                  <Field.Label>File name</Field.Label>
+                  <Input
+                    size="sm"
+                    fontFamily="mono"
+                    value={effectiveName}
+                    onChange={(event) => {
+                      setName(slugify(event.target.value));
+                      setNameEdited(true);
+                    }}
+                  />
+                  <Field.HelperText>
+                    The dashboard's identifier in the dashboards directory.
+                  </Field.HelperText>
+                </Field.Root>
 
-                <Tabs.Content value="blank">
-                  <Flex direction="column" gap={3}>
-                    {displayFields}
-                    <Button
-                      size="sm"
-                      alignSelf="flex-end"
-                      loading={saving}
-                      disabled={effectiveTitle.trim() === ""}
-                      onClick={createBlank}
-                    >
-                      Create and edit
+                <Collapsible.Root>
+                  <Collapsible.Trigger asChild>
+                    <Button size="xs" variant="ghost" alignSelf="flex-start">
+                      ▸ Import from Grafana (optional)
                     </Button>
-                  </Flex>
-                </Tabs.Content>
-
-                <Tabs.Content value="grafana">
-                  <Flex direction="column" gap={3}>
-                    {grafanaCom ? (
-                      <Field.Root>
-                        <Field.Label>From grafana.com</Field.Label>
-                        <Flex gap={2} width="100%">
-                          <Input
-                            size="sm"
-                            placeholder="https://grafana.com/grafana/dashboards/1860… or 1860"
-                            value={marketplaceRef}
-                            onChange={(event) =>
-                              setMarketplaceRef(event.target.value)
-                            }
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") {
-                                void loadFromMarketplace();
+                  </Collapsible.Trigger>
+                  <Collapsible.Content>
+                    <Flex
+                      direction="column"
+                      gap={3}
+                      marginTop={2}
+                      padding={3}
+                      borderWidth="1px"
+                      borderRadius="md"
+                    >
+                      {grafanaCom ? (
+                        <Field.Root>
+                          <Field.Label>From grafana.com</Field.Label>
+                          <Flex gap={2} width="100%">
+                            <Input
+                              size="sm"
+                              placeholder="https://grafana.com/grafana/dashboards/1860… or 1860"
+                              value={marketplaceRef}
+                              onChange={(event) =>
+                                setMarketplaceRef(event.target.value)
                               }
-                            }}
-                          />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            loading={loading}
-                            onClick={() => void loadFromMarketplace()}
-                          >
-                            Load
-                          </Button>
-                        </Flex>
-                      </Field.Root>
-                    ) : null}
-                    <Field.Root>
-                      <Field.Label>
-                        …or a JSON export (Share → Export in Grafana)
-                      </Field.Label>
-                      <Input
-                        type="file"
-                        accept=".json,application/json"
-                        size="sm"
-                        paddingTop={1}
-                        onChange={(event) => pickFile(event.target.files?.[0])}
-                      />
-                      <Textarea
-                        fontFamily="mono"
-                        fontSize="xs"
-                        rows={5}
-                        placeholder='…or paste it: {"title": "...", "panels": [...]}'
-                        value={json}
-                        onChange={(event) => setJson(event.target.value)}
-                      />
-                    </Field.Root>
-
-                    {preview.state === "error" ? (
-                      <Text fontSize="sm" color="fg.error">
-                        {preview.message}
-                      </Text>
-                    ) : null}
-
-                    {preview.state === "ready" ? (
-                      <>
-                        <Text fontSize="sm">
-                          {Object.keys(preview.dashboard.spec.panels).length}{" "}
-                          panels, {preview.dashboard.spec.layouts.length}{" "}
-                          sections,{" "}
-                          {preview.dashboard.spec.variables?.length ?? 0}{" "}
-                          variables.
-                        </Text>
-                        {preview.warnings.length > 0 ? (
-                          <Flex
-                            direction="column"
-                            gap={1}
-                            maxHeight="120px"
-                            overflowY="auto"
-                            borderWidth="1px"
-                            borderRadius="md"
-                            padding={2}
-                          >
-                            <Text fontSize="xs" fontWeight="medium">
-                              Imported with approximations:
-                            </Text>
-                            {preview.warnings.map((warning, index) => (
-                              <Text key={index} fontSize="xs" color="fg.muted">
-                                • {warning}
-                              </Text>
-                            ))}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  void loadFromMarketplace();
+                                }
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              loading={loading}
+                              onClick={() => void loadFromMarketplace()}
+                            >
+                              Load
+                            </Button>
                           </Flex>
-                        ) : null}
-                        {displayFields}
-                        <Button
+                        </Field.Root>
+                      ) : null}
+                      <Field.Root>
+                        <Field.Label>
+                          …or a JSON export (Share → Export in Grafana)
+                        </Field.Label>
+                        <Input
+                          type="file"
+                          accept=".json,application/json"
                           size="sm"
-                          alignSelf="flex-end"
-                          loading={saving}
-                          disabled={effectiveName === ""}
-                          onClick={importGrafana}
-                        >
-                          Import
-                        </Button>
-                      </>
-                    ) : null}
-                  </Flex>
-                </Tabs.Content>
-              </Tabs.Root>
+                          paddingTop={1}
+                          onChange={(event) =>
+                            pickFile(event.target.files?.[0])
+                          }
+                        />
+                        <Textarea
+                          fontFamily="mono"
+                          fontSize="xs"
+                          rows={4}
+                          placeholder='…or paste it: {"title": "...", "panels": [...]}'
+                          value={json}
+                          onChange={(event) => setJson(event.target.value)}
+                        />
+                      </Field.Root>
 
-              {error ? (
-                <Text
-                  fontSize="sm"
-                  color="fg.error"
-                  whiteSpace="pre-wrap"
-                  marginTop={3}
-                >
-                  {error}
-                </Text>
-              ) : null}
+                      {preview.state === "error" ? (
+                        <Text fontSize="sm" color="fg.error">
+                          {preview.message}
+                        </Text>
+                      ) : null}
+                      {preview.state === "ready" ? (
+                        <>
+                          <Text fontSize="sm">
+                            Ready to import:{" "}
+                            {Object.keys(preview.dashboard.spec.panels).length}{" "}
+                            panels, {preview.dashboard.spec.layouts.length}{" "}
+                            sections,{" "}
+                            {preview.dashboard.spec.variables?.length ?? 0}{" "}
+                            variables.
+                          </Text>
+                          {preview.warnings.length > 0 ? (
+                            <Flex
+                              direction="column"
+                              gap={1}
+                              maxHeight="120px"
+                              overflowY="auto"
+                              borderWidth="1px"
+                              borderRadius="md"
+                              padding={2}
+                            >
+                              <Text fontSize="xs" fontWeight="medium">
+                                Imported with approximations:
+                              </Text>
+                              {preview.warnings.map((warning, index) => (
+                                <Text
+                                  key={index}
+                                  fontSize="xs"
+                                  color="fg.muted"
+                                >
+                                  • {warning}
+                                </Text>
+                              ))}
+                            </Flex>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </Flex>
+                  </Collapsible.Content>
+                </Collapsible.Root>
+
+                {error ? (
+                  <Text fontSize="sm" color="fg.error" whiteSpace="pre-wrap">
+                    {error}
+                  </Text>
+                ) : null}
+              </Flex>
             </Dialog.Body>
+            <Dialog.Footer>
+              <Button size="sm" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                loading={saving}
+                disabled={effectiveTitle.trim() === ""}
+                onClick={create}
+              >
+                {imported ? "Import" : "Create and edit"}
+              </Button>
+            </Dialog.Footer>
             <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
