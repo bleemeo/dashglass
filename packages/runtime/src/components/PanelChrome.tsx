@@ -27,7 +27,7 @@ export interface PanelChromeProps {
 
 export function PanelChrome({ panelKey, panel }: PanelChromeProps) {
   const { registries } = useRuntime();
-  const { resolved } = useTimeRange();
+  const { resolved, setRange } = useTimeRange();
   const data = usePanelData(panel);
 
   const kind = panel.spec.plugin.kind;
@@ -64,6 +64,7 @@ export function PanelChrome({ panelKey, panel }: PanelChromeProps) {
           display={panel.spec.display}
           data={data}
           timeRange={resolved}
+          onZoom={setRange}
         />
       </Suspense>
     );

@@ -38,6 +38,19 @@ export function buildTimeSeriesOption(
   return {
     animation: false,
     backgroundColor: "transparent",
+    // Invisible-but-instantiated toolbox (show:false would skip creating
+    // the feature): registers drag-to-select zoom, which <EChart> keeps
+    // active so brushing a span lets the host zoom the time range.
+    toolbox: {
+      show: true,
+      itemSize: 0,
+      feature: {
+        dataZoom: {
+          yAxisIndex: "none",
+          icon: { zoom: "path://", back: "path://" },
+        },
+      },
+    },
     grid: {
       left: 8,
       right: legendPosition === "right" && showLegend ? 120 : 16,

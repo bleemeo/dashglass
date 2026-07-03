@@ -5,8 +5,10 @@
  */
 import { BarChart, GaugeChart, HeatmapChart, LineChart } from "echarts/charts";
 import {
+  DataZoomComponent,
   GridComponent,
   LegendComponent,
+  ToolboxComponent,
   TooltipComponent,
   VisualMapComponent,
 } from "echarts/components";
@@ -22,6 +24,9 @@ echarts.use([
   TooltipComponent,
   LegendComponent,
   VisualMapComponent,
+  // Brush-select zoom on time series (hidden toolbox + dataZoom).
+  ToolboxComponent,
+  DataZoomComponent,
   CanvasRenderer,
 ]);
 

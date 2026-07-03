@@ -49,6 +49,11 @@ export interface PanelProps<Spec = Record<string, unknown>> {
   display?: Display | undefined;
   data: PanelData;
   timeRange: AbsoluteTimeRange;
+  /**
+   * Set by the host when the panel may drive the shared time range
+   * (brush-select to zoom in, double-click to zoom out).
+   */
+  onZoom?: ((range: AbsoluteTimeRange) => void) | undefined;
 }
 
 /**
