@@ -1,0 +1,425 @@
+apiVersion: v1
+kind: Dashboard
+metadata:
+  name: node-glouton
+spec:
+  display:
+    name: Node overview (Glouton)
+    description: System metrics from the Bleemeo Glouton agent — all gauges, no rate() needed
+  variables:
+    - kind: ListVariable
+      spec:
+        name: instance
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            labelName: instance
+            matchers:
+              - cpu_used
+  panels:
+    cpu-breakdown:
+      kind: Panel
+      spec:
+        display:
+          name: CPU usage by mode
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            min: 0
+            stack: true
+            unit: percent
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: '{__name__=~"cpu_(user|system|wait|nice|steal|softirq|guest)",instance=~"$instance"}'
+                  seriesNameFormat: "{{__name__}}"
+    cpu-gauge:
+      kind: Panel
+      spec:
+        display:
+          name: CPU
+        plugin:
+          kind: GaugeChart
+          spec:
+            max: 100
+            min: 0
+            thresholds:
+              - value: 80
+                status: warning
+              - value: 90
+                status: critical
+            unit: percent
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: cpu_used{instance=~"$instance"}
+    disk-io:
+      kind: Panel
+      spec:
+        display:
+          name: Disk IO
+          description: Glouton pre-computes per-second rates
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            unit: bytesps
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: io_read_bytes{instance=~"$instance"}
+                  seriesNameFormat: "{{item}} read"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: io_write_bytes{instance=~"$instance"}
+                  seriesNameFormat: "{{item}} write"
+    disk-usage:
+      kind: Panel
+      spec:
+        display:
+          name: Disk usage
+        plugin:
+          kind: BarChart
+          spec:
+            unit: percent
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: disk_used_perc{instance=~"$instance"}
+                  seriesNameFormat: "{{item}}"
+    io-utilization:
+      kind: Panel
+      spec:
+        display:
+          name: IO utilization
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            min: 0
+            unit: percent
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: io_utilization{instance=~"$instance"}
+                  seriesNameFormat: "{{item}}"
+    load-history:
+      kind: Panel
+      spec:
+        display:
+          name: Load average
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: system_load1{instance=~"$instance"}
+                  seriesNameFormat: 1m
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: system_load5{instance=~"$instance"}
+                  seriesNameFormat: 5m
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: system_load15{instance=~"$instance"}
+                  seriesNameFormat: 15m
+    load1:
+      kind: Panel
+      spec:
+        display:
+          name: Load (1m)
+        plugin:
+          kind: StatChart
+          spec:
+            decimals: 2
+            sparkline: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: system_load1{instance=~"$instance"}
+    mem-gauge:
+      kind: Panel
+      spec:
+        display:
+          name: Memory
+        plugin:
+          kind: GaugeChart
+          spec:
+            max: 100
+            min: 0
+            thresholds:
+              - value: 80
+                status: warning
+              - value: 90
+                status: critical
+            unit: percent
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: mem_used_perc{instance=~"$instance"}
+    memory:
+      kind: Panel
+      spec:
+        display:
+          name: Memory
+          description: Used + available stacks to usable RAM
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            min: 0
+            stack: true
+            unit: bytes
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: mem_used{instance=~"$instance"}
+                  seriesNameFormat: used
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: mem_available{instance=~"$instance"}
+                  seriesNameFormat: available
+    net-packets:
+      kind: Panel
+      spec:
+        display:
+          name: Network packets
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            unit: ops
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: net_packets_recv{instance=~"$instance",item!="lo"}
+                  seriesNameFormat: "{{item}} rx"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: net_packets_sent{instance=~"$instance",item!="lo"}
+                  seriesNameFormat: "{{item}} tx"
+    net-traffic:
+      kind: Panel
+      spec:
+        display:
+          name: Network traffic
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            unit: bitsps
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: net_bits_recv{instance=~"$instance",item!="lo"}
+                  seriesNameFormat: "{{item}} rx"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: net_bits_sent{instance=~"$instance",item!="lo"}
+                  seriesNameFormat: "{{item}} tx"
+    processes:
+      kind: Panel
+      spec:
+        display:
+          name: Processes
+        plugin:
+          kind: StatChart
+          spec: {}
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: process_total{instance=~"$instance"}
+    uptime:
+      kind: Panel
+      spec:
+        display:
+          name: Uptime
+        plugin:
+          kind: StatChart
+          spec:
+            unit: seconds
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: uptime{instance=~"$instance"}
+    users:
+      kind: Panel
+      spec:
+        display:
+          name: Users logged
+        plugin:
+          kind: StatChart
+          spec: {}
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: users_logged{instance=~"$instance"}
+  layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Overview
+        items:
+          - x: 0
+            y: 0
+            width: 4
+            height: 6
+            content:
+              $ref: "#/spec/panels/uptime"
+          - x: 4
+            y: 0
+            width: 5
+            height: 6
+            content:
+              $ref: "#/spec/panels/cpu-gauge"
+          - x: 9
+            y: 0
+            width: 5
+            height: 6
+            content:
+              $ref: "#/spec/panels/mem-gauge"
+          - x: 14
+            y: 0
+            width: 4
+            height: 6
+            content:
+              $ref: "#/spec/panels/load1"
+          - x: 18
+            y: 0
+            width: 3
+            height: 6
+            content:
+              $ref: "#/spec/panels/processes"
+          - x: 21
+            y: 0
+            width: 3
+            height: 6
+            content:
+              $ref: "#/spec/panels/users"
+    - kind: Grid
+      spec:
+        display:
+          title: CPU
+        items:
+          - x: 0
+            y: 0
+            width: 16
+            height: 8
+            content:
+              $ref: "#/spec/panels/cpu-breakdown"
+          - x: 16
+            y: 0
+            width: 8
+            height: 8
+            content:
+              $ref: "#/spec/panels/load-history"
+    - kind: Grid
+      spec:
+        display:
+          title: Memory
+        items:
+          - x: 0
+            y: 0
+            width: 24
+            height: 7
+            content:
+              $ref: "#/spec/panels/memory"
+    - kind: Grid
+      spec:
+        display:
+          title: Disk
+        items:
+          - x: 0
+            y: 0
+            width: 8
+            height: 8
+            content:
+              $ref: "#/spec/panels/disk-usage"
+          - x: 8
+            y: 0
+            width: 8
+            height: 8
+            content:
+              $ref: "#/spec/panels/io-utilization"
+          - x: 16
+            y: 0
+            width: 8
+            height: 8
+            content:
+              $ref: "#/spec/panels/disk-io"
+    - kind: Grid
+      spec:
+        display:
+          title: Network
+        items:
+          - x: 0
+            y: 0
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/net-traffic"
+          - x: 12
+            y: 0
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/net-packets"
+  duration: 1h
+  refreshInterval: 30s

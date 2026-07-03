@@ -5,3 +5,8 @@ scrape_configs:
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]
+  # Glouton (Bleemeo agent) on the host, when one is running — feeds the
+  # node-glouton sample dashboard; harmless "down" target otherwise.
+  - job_name: glouton
+    static_configs:
+      - targets: ["host.docker.internal:8015"]
