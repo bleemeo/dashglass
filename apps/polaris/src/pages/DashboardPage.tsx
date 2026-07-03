@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { Button, Flex, Heading, Text } from "@chakra-ui/react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { parseDashboard, type Dashboard, type Duration } from "@polarisui/model";
 import {
@@ -13,15 +13,20 @@ import {
 
 import { useDashboardFile } from "../api/hooks";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { useKeyShortcut } from "../hooks/useShortcuts";
 import { TimeRangeControls } from "../components/TimeRangeControls";
 import { VariablesToolbar } from "../components/VariablesToolbar";
 import { CodeIcon, EditIcon } from "../components/icons";
 
 function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string }) {
+  const navigate = useNavigate();
   const [refreshInterval, setRefreshInterval] = useState<Duration | "off">(
     dashboard.spec.refreshInterval ?? "off",
   );
   usePageTitle(dashboard.spec.display?.name ?? name);
+  useKeyShortcut("e", () =>
+    void navigate(`/d/${encodeURIComponent(name)}/edit`),
+  );
 
   return (
     <TimeRangeProvider

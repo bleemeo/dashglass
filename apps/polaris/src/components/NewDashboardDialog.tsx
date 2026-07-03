@@ -27,6 +27,7 @@ import {
   putDashboard,
 } from "../api/client";
 import { useCapabilities } from "../api/hooks";
+import { toaster } from "./toaster";
 
 function slugify(text: string): string {
   return text
@@ -153,6 +154,10 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
         stringifyDashboard(dashboard, "yaml"),
         "yaml",
       );
+      toaster.create({
+        title: imported ? "Dashboard imported" : "Dashboard created",
+        type: "success",
+      });
       onClose();
       void navigate(destination);
     } catch (saveError) {

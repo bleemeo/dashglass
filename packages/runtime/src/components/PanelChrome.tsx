@@ -43,6 +43,9 @@ export function PanelChrome({ panelKey, panel }: PanelChromeProps) {
         Unknown panel kind “{kind}” — no plugin registered.
       </p>
     );
+  } else if (data.state === "loading" && data.series.length === 0) {
+    // First load only: refreshes keep the previous series on screen.
+    body = <div className="polaris-panel-loading" aria-busy="true" />;
   } else if (data.state === "error") {
     body = (
       <div className="polaris-panel-error" role="alert">

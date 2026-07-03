@@ -14,6 +14,7 @@ import { RuntimeProvider } from "@polarisui/runtime";
 import { ColorModeProvider, polarisSystem, useColorMode } from "@polarisui/ui";
 
 import { App } from "./App";
+import { Toaster } from "./components/toaster";
 import { createAppSetup } from "./setup";
 
 const { registries, datasource } = createAppSetup();
@@ -43,6 +44,7 @@ createRoot(document.getElementById("root")!).render(
               <BrowserRouter>
                 <App />
               </BrowserRouter>
+              <Toaster />
             </RuntimeProvider>
           </QueryClientProvider>
         </ChartThemeBridge>

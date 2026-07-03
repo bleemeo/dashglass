@@ -15,6 +15,7 @@ import { ColorModeButton } from "@polarisui/ui";
 
 import { useCapabilities, useDashboardEvents } from "./api/hooks";
 import { SidebarIcon } from "./components/icons";
+import { usePageTitle } from "./hooks/usePageTitle";
 
 const SIDEBAR_KEY = "polaris-sidebar-collapsed";
 
@@ -123,6 +124,27 @@ function SideBar({
   );
 }
 
+function NotFoundPage() {
+  usePageTitle("Not found");
+  return (
+    <Flex
+      direction="column"
+      alignItems="center"
+      justifyContent="center"
+      height="100%"
+      gap={3}
+      color="fg.muted"
+    >
+      <Text fontSize="4xl">✦</Text>
+      <Heading size="md">Page not found</Heading>
+      <Text fontSize="sm">This page doesn't exist (anymore).</Text>
+      <ChakraLink asChild color="blue.600" _dark={{ color: "blue.400" }}>
+        <Link to="/">Back to dashboards</Link>
+      </ChakraLink>
+    </Flex>
+  );
+}
+
 export function App() {
   const { registries } = useRuntime();
   const [collapsed, setCollapsed] = useState(readCollapsed);
@@ -147,7 +169,7 @@ export function App() {
           {registries.pages.list().map((page) => (
             <Route key={page.kind} path={page.path} element={page.element} />
           ))}
-          <Route path="*" element={<Text>Page not found.</Text>} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Box>
     </Flex>

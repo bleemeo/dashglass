@@ -11,9 +11,11 @@ import {
 } from "@chakra-ui/react";
 import { Link } from "react-router";
 
+import { getDashboardFile, putDashboard } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { NewDashboardDialog } from "../components/NewDashboardDialog";
 import { DashboardsIcon, PlusIcon } from "../components/icons";
+import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 import {
@@ -47,10 +49,45 @@ export function DashboardsPage() {
       {deleting ? (
         <ConfirmDialog
           title="Delete dashboard"
-          message={`"${deleting}" will be removed from the dashboards directory. If it is under git, it can be restored from history.`}
+          message={`"${deleting}" will be removed from the dashboards directory.`}
           loading={remove.isPending}
           onConfirm={() => {
-            remove.mutate(deleting, { onSettled: () => setDeleting(null) });
+            const name = deleting;
+            // Keep the content around so the toast can offer Undo.
+            void getDashboardFile(name)
+              .catch(() => null)
+              .then((backup) =>
+                remove.mutate(name, {
+                  onSettled: () => setDeleting(null),
+                  onSuccess: () => {
+                    toaster.create({
+                      title: `"${name}" deleted`,
+                      type: "info",
+                      duration: 8000,
+                      ...(backup
+                        ? {
+                            action: {
+                              label: "Undo",
+                              onClick: () => {
+                                void putDashboard(
+                                  name,
+                                  backup.content,
+                                  backup.format,
+                                ).catch((error: unknown) =>
+                                  toaster.create({
+                                    title: "Could not restore",
+                                    description: String(error),
+                                    type: "error",
+                                  }),
+                                );
+                              },
+                            },
+                          }
+                        : {}),
+                    });
+                  },
+                }),
+              );
           }}
           onClose={() => setDeleting(null)}
         />

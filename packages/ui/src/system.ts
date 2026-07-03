@@ -17,6 +17,12 @@ const config = defineConfig({
         },
       },
     },
+    keyframes: {
+      "polaris-pulse": {
+        "0%, 100%": { opacity: 0.5 },
+        "50%": { opacity: 1 },
+      },
+    },
   },
   globalCss: {
     ".polaris-dashboard": {
@@ -58,6 +64,14 @@ const config = defineConfig({
     },
     ".polaris-panel-error": {
       color: "fg.error",
+    },
+    // First-load placeholder (PanelChrome); refreshes keep prior data.
+    ".polaris-panel-loading": {
+      position: "absolute",
+      inset: "3",
+      borderRadius: "sm",
+      backgroundColor: "bg.muted",
+      animation: "polaris-pulse 1.6s ease-in-out infinite",
     },
     // Plugin option editors (panels-builtin editor/controls.tsx) are
     // structure-only, like the panel chrome; this is their identity.

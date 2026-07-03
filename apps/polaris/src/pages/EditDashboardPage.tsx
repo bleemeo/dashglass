@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 
 import { Button, Flex, Heading, Text, Textarea } from "@chakra-ui/react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
 import { APIError } from "../api/client";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
+import {
+  useSaveShortcut,
+  useUnsavedChangesWarning,
+} from "../hooks/useShortcuts";
 import {
   useCapabilities,
   useDashboardFile,
@@ -26,11 +32,30 @@ export function EditDashboardPage() {
   const readonly = capabilities.data?.readonly ?? false;
 
   const [content, setContent] = useState<string | null>(null);
+  const [confirmBack, setConfirmBack] = useState(false);
   useEffect(() => {
     if (file.data && content === null) {
       setContent(file.data.content);
     }
   }, [file.data, content]);
+
+  const dirty = content !== null && content !== (file.data?.content ?? null);
+  const doSave = () => {
+    if (readonly || content === null || !file.data || save.isPending) {
+      return;
+    }
+    save.mutate(
+      { content, format: file.data.format },
+      {
+        onSuccess: () => {
+          toaster.create({ title: "Dashboard saved", type: "success" });
+          void navigate(`/d/${encodeURIComponent(name)}`);
+        },
+      },
+    );
+  };
+  useSaveShortcut(doSave);
+  useUnsavedChangesWarning(dirty);
 
   if (file.isLoading) {
     return <Text>Loading…</Text>;
@@ -52,29 +77,39 @@ export function EditDashboardPage() {
           </Text>
         </Heading>
         <Flex gap={2}>
-          <Button size="sm" variant="outline" asChild>
-            <Link to={`/d/${encodeURIComponent(name)}`}>Back</Link>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              if (dirty) {
+                setConfirmBack(true);
+              } else {
+                void navigate(`/d/${encodeURIComponent(name)}`);
+              }
+            }}
+          >
+            Back
           </Button>
           <Button
             size="sm"
-            disabled={readonly || content === null}
+            disabled={readonly || content === null || !dirty}
             loading={save.isPending}
-            onClick={() => {
-              if (content !== null && file.data) {
-                save.mutate(
-                  { content, format: file.data.format },
-                  {
-                    onSuccess: () =>
-                      navigate(`/d/${encodeURIComponent(name)}`),
-                  },
-                );
-              }
-            }}
+            title="⌘S"
+            onClick={doSave}
           >
             Save
           </Button>
         </Flex>
       </Flex>
+      {confirmBack ? (
+        <ConfirmDialog
+          title="Unsaved changes"
+          message="This file has unsaved changes. Discard them?"
+          confirmLabel="Discard"
+          onConfirm={() => void navigate(`/d/${encodeURIComponent(name)}`)}
+          onClose={() => setConfirmBack(false)}
+        />
+      ) : null}
 
       {readonly ? (
         <Text fontSize="sm" color="fg.muted">

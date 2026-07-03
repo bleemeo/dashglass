@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Panel } from "@polarisui/model";
 
 import { useRuntime, useTimeRange, useVariables } from "./context";
-import { stepForRange, toTimeSeries } from "./datasource";
+import { stepForRange, toTimeSeries, type TimeSeries } from "./datasource";
 import { interpolate, type VariableValues } from "./interpolate";
 import type { QueryState, RangeQuerySpec } from "./orchestrator";
 import type { PanelData } from "./registries";
@@ -94,9 +94,17 @@ export function usePanelData(panel: Panel): PanelData {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- queries is captured by subscriptionKey
   }, [orchestrator, subscriptionKey, variablesLoading]);
 
+  // Last complete result: shown while a refresh or range change reloads,
+  // so charts update in place instead of flashing empty.
+  const lastReady = useRef<TimeSeries[] | null>(null);
+
   return useMemo<PanelData>(() => {
     if (variablesLoading || states.some((state) => state.status === "loading")) {
-      return { state: "loading", series: [], errors: [] };
+      return {
+        state: "loading",
+        series: lastReady.current ?? [],
+        errors: [],
+      };
     }
     const series = states.flatMap((state, index) =>
       state.status === "ready"
@@ -106,6 +114,9 @@ export function usePanelData(panel: Panel): PanelData {
     const errors = states.flatMap((state) =>
       state.status === "error" ? [state.error] : [],
     );
+    if (errors.length === 0) {
+      lastReady.current = series;
+    }
     return {
       state: errors.length > 0 ? "error" : "ready",
       series,
