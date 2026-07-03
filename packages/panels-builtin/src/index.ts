@@ -1,20 +1,41 @@
 import type { PanelRegistry } from "@polarisui/runtime";
 
 import { GaugeChart } from "./gauge/GaugeChart";
+import { GaugeEditor } from "./gauge/editor";
 import { StatChart } from "./stat/StatChart";
+import { StatEditor } from "./stat/editor";
 import { TablePanel } from "./table/TablePanel";
+import { TableEditor } from "./table/editor";
 import { TimeSeriesChart } from "./time-series/TimeSeriesChart";
+import { TimeSeriesEditor } from "./time-series/editor";
 
 /** Registers the built-in panel kinds. */
 export function registerBuiltinPanels(panels: PanelRegistry): void {
-  panels.register({ kind: "TimeSeriesChart", component: TimeSeriesChart });
+  panels.register({
+    kind: "TimeSeriesChart",
+    displayName: "Time series",
+    component: TimeSeriesChart,
+    editor: TimeSeriesEditor,
+  });
   panels.register({
     kind: "StatChart",
+    displayName: "Stat",
     component: StatChart,
+    editor: StatEditor,
     defaultSpec: { sparkline: true },
   });
-  panels.register({ kind: "GaugeChart", component: GaugeChart });
-  panels.register({ kind: "Table", component: TablePanel });
+  panels.register({
+    kind: "GaugeChart",
+    displayName: "Gauge",
+    component: GaugeChart,
+    editor: GaugeEditor,
+  });
+  panels.register({
+    kind: "Table",
+    displayName: "Table",
+    component: TablePanel,
+    editor: TableEditor,
+  });
 }
 
 export {
@@ -54,3 +75,15 @@ export {
   tableSpecSchema,
   type TableSpec,
 } from "./table/TablePanel";
+export { TimeSeriesEditor } from "./time-series/editor";
+export { StatEditor } from "./stat/editor";
+export { GaugeEditor } from "./gauge/editor";
+export { TableEditor } from "./table/editor";
+export {
+  CheckboxField,
+  Field,
+  NumberField,
+  SelectField,
+  UNIT_OPTIONS,
+  withSpecValue,
+} from "./editor/controls";

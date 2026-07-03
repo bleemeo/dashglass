@@ -39,6 +39,9 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
               <Button size="xs" variant="outline" asChild>
                 <Link to={`/d/${encodeURIComponent(name)}/edit`}>Edit</Link>
               </Button>
+              <Button size="xs" variant="ghost" asChild>
+                <Link to={`/d/${encodeURIComponent(name)}/code`}>Code</Link>
+              </Button>
             </Flex>
           </Flex>
           <VariablesToolbar variables={dashboard.spec.variables ?? []} />
@@ -78,7 +81,7 @@ export function DashboardPage() {
           {parsed.error}
         </Text>
         <Button size="sm" alignSelf="flex-start" asChild>
-          <Link to={`/d/${encodeURIComponent(name)}/edit`}>Edit the file</Link>
+          <Link to={`/d/${encodeURIComponent(name)}/code`}>Edit the file</Link>
         </Button>
       </Flex>
     );

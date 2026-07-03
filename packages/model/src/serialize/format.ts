@@ -56,7 +56,10 @@ export function stringifyDashboard(
     case "json":
       return `${JSON.stringify(canonical, null, 2)}\n`;
     case "yaml":
-      return stringifyYaml(canonical);
+      // No line wrapping: a long PromQL expression must stay on one line,
+      // otherwise editing a neighbouring field rewraps it and pollutes the
+      // git diff (the one-field-edit → one-line-diff rule).
+      return stringifyYaml(canonical, { lineWidth: 0 });
     case "toml":
       return stringifyToml(canonical) + "\n";
   }

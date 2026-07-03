@@ -52,5 +52,14 @@ export {
   stringifyDashboard,
   type DashboardFormat,
 } from "./serialize/format";
+export {
+  addLayout,
+  addPanel,
+  removePanelAt,
+  setLayoutTitle,
+  uniquePanelKey,
+  updateLayoutItems,
+  updatePanel,
+} from "./edit";
 export { migrateDashboard } from "./migrate";
 export { parseDuration } from "./duration";

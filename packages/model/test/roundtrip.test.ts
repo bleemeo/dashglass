@@ -107,4 +107,15 @@ spec:
     expect(changed).toHaveLength(1);
     expect(changed[0]).toContain("CPU usage");
   });
+
+  it("keeps long PromQL expressions on a single YAML line", () => {
+    const edited = nodeOverviewDashboard();
+    const longQuery = `sum by (instance, mode) (rate(node_cpu_seconds_total{instance=~"$instance",mode!="idle",job="node-exporter-with-a-long-name"}[5m]))`;
+    edited.spec.panels["cpu"]!.spec.queries![0]!.spec.plugin.spec = {
+      query: longQuery,
+    };
+
+    const lines = stringifyDashboard(edited, "yaml").split("\n");
+    expect(lines.some((line) => line.includes(longQuery))).toBe(true);
+  });
 });

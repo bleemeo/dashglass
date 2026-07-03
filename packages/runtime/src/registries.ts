@@ -51,9 +51,22 @@ export interface PanelProps<Spec = Record<string, unknown>> {
   timeRange: AbsoluteTimeRange;
 }
 
+/**
+ * Props of a plugin's options form. The editor mutates nothing: it reports
+ * the full next spec through onChange and the host owns the draft state.
+ */
+export interface PanelSpecEditorProps<Spec = Record<string, unknown>> {
+  spec: Spec;
+  onChange: (spec: Spec) => void;
+}
+
 export interface PanelPlugin<Spec = Record<string, unknown>> {
   kind: string;
   component: ComponentType<PanelProps<Spec>>;
+  /** Human label for the editor's kind picker; falls back to `kind`. */
+  displayName?: string;
+  /** Kind-specific options form shown by the panel editor. */
+  editor?: ComponentType<PanelSpecEditorProps<Spec>>;
   /** Spec used when adding a new panel of this kind from the editor. */
   defaultSpec?: Spec;
 }

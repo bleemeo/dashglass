@@ -5,6 +5,7 @@ import {
 import { registerBuiltinPanels } from "@polarisui/panels-builtin";
 import { createRegistries } from "@polarisui/runtime";
 
+import { DashboardEditorPage } from "./pages/DashboardEditorPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DashboardsPage } from "./pages/DashboardsPage";
 import { EditDashboardPage } from "./pages/EditDashboardPage";
@@ -40,6 +41,11 @@ export function createAppSetup() {
   registries.pages.register({
     kind: "dashboard-edit",
     path: "/d/:name/edit",
+    element: <DashboardEditorPage />,
+  });
+  registries.pages.register({
+    kind: "dashboard-code",
+    path: "/d/:name/code",
     element: <EditDashboardPage />,
   });
 

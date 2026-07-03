@@ -33,6 +33,7 @@ export {
   type PanelData,
   type PanelPlugin,
   type PanelProps,
+  type PanelSpecEditorProps,
   type Registries,
   type VariableSourceContext,
   type VariableSourcePlugin,

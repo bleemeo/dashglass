@@ -59,6 +59,81 @@ const config = defineConfig({
     ".polaris-panel-error": {
       color: "fg.error",
     },
+    // Plugin option editors (panels-builtin editor/controls.tsx) are
+    // structure-only, like the panel chrome; this is their identity.
+    ".polaris-fields": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "3",
+    },
+    ".polaris-field": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "1",
+    },
+    ".polaris-field-inline": {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: "2",
+    },
+    ".polaris-field-label": {
+      fontSize: "sm",
+      fontWeight: "medium",
+      color: "fg",
+    },
+    ".polaris-field-input": {
+      fontSize: "sm",
+      paddingX: "2",
+      paddingY: "1",
+      borderWidth: "1px",
+      borderColor: "border",
+      borderRadius: "sm",
+      backgroundColor: "bg",
+      color: "fg",
+    },
+    ".polaris-field-button": {
+      fontSize: "xs",
+      paddingX: "2",
+      paddingY: "1",
+      borderWidth: "1px",
+      borderColor: "border",
+      borderRadius: "sm",
+      backgroundColor: "bg.subtle",
+      color: "fg",
+      cursor: "pointer",
+      alignSelf: "flex-start",
+      _hover: { backgroundColor: "bg.muted" },
+    },
+    ".polaris-threshold-rows": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "1",
+    },
+    ".polaris-threshold-row": {
+      display: "flex",
+      gap: "1",
+      alignItems: "center",
+    },
+    // Dashboard editor grid: hover-revealed panel actions and a themed
+    // react-grid-layout drop placeholder.
+    ".polaris-editor-item": {
+      position: "relative",
+      height: "100%",
+    },
+    ".polaris-editor-item .polaris-editor-actions": {
+      opacity: 0,
+      transition: "opacity 0.15s",
+    },
+    ".polaris-editor-item:hover .polaris-editor-actions": {
+      opacity: 1,
+    },
+    ".polaris-editor-item .polaris-panel-header": {
+      cursor: "grab",
+    },
+    ".react-grid-item.react-grid-placeholder": {
+      backgroundColor: "blue.500/30",
+      borderRadius: "md",
+    },
   },
 });
 

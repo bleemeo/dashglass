@@ -23,8 +23,8 @@ spec:
         plugin:
           kind: TimeSeriesChart
           spec:
-            unit: percentunit
             stack: true
+            unit: percentunit
         queries:
           - kind: TimeSeriesQuery
             spec:
@@ -33,45 +33,6 @@ spec:
                 spec:
                   query: sum by (mode) (rate(node_cpu_seconds_total{instance=~"$instance",mode!="idle"}[5m]))
                   seriesNameFormat: "{{mode}}"
-    memory:
-      kind: Panel
-      spec:
-        display:
-          name: Memory available
-        plugin:
-          kind: StatChart
-          spec:
-            unit: bytes
-            sparkline: true
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: node_memory_MemAvailable_bytes{instance=~"$instance"}
-    load:
-      kind: Panel
-      spec:
-        display:
-          name: Load (1m)
-        plugin:
-          kind: GaugeChart
-          spec:
-            min: 0
-            max: 8
-            thresholds:
-              - value: 4
-                status: warning
-              - value: 6
-                status: critical
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: node_load1{instance=~"$instance"}
     filesystems:
       kind: Panel
       spec:
@@ -88,6 +49,45 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: 1 - node_filesystem_avail_bytes{instance=~"$instance"} / node_filesystem_size_bytes{instance=~"$instance"}
+    load:
+      kind: Panel
+      spec:
+        display:
+          name: Load (1m)
+        plugin:
+          kind: GaugeChart
+          spec:
+            max: 8
+            min: 0
+            thresholds:
+              - value: 4
+                status: warning
+              - value: 6
+                status: critical
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: node_load1{instance=~"$instance"}
+    memory:
+      kind: Panel
+      spec:
+        display:
+          name: Memory available
+        plugin:
+          kind: StatChart
+          spec:
+            sparkline: true
+            unit: bytes
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: node_memory_MemAvailable_bytes{instance=~"$instance"}
   layouts:
     - kind: Grid
       spec:
