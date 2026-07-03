@@ -1,0 +1,29 @@
+# Example Polaris configuration (pass with -config polaris.yaml).
+# Every value is optional and also settable by flag or environment
+# variable; precedence is flags > environment > file > defaults.
+# ${VAR} references expand from the environment, so secrets never live
+# in this file. See DESIGN.md §7.4.
+
+listen: ":8080"
+
+prometheus:
+  url: ${PROMETHEUS_URL}
+
+dashboards:
+  dir: ./dashboards
+  # Provisioned mode: dashboards are managed by git only, the API
+  # refuses writes (wins over any user role).
+  readonly: false
+
+grafana_com:
+  # Disable the only outbound internet call (marketplace import) for
+  # air-gapped installs.
+  disable: false
+
+auth:
+  # Server-managed state (local users, session secret). Created on first
+  # use; never edit by hand. Manage users from the admin UI, or the
+  # `polaris user` CLI. Authentication turns on as soon as one user
+  # exists — until then everyone is an anonymous admin so you can create
+  # the first account from the UI.
+  file: ./auth.yaml

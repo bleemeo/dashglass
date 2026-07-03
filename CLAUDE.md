@@ -49,6 +49,7 @@ pnpm test                    # all workspace tests (vitest)
 pnpm typecheck               # all packages + app (tsc)
 cd backend && go test ./...  # backend tests
 ./polaris lint [paths...]    # validate dashboard files (CI); default ./dashboards
+./polaris user add <name> [role]  # break-glass local user (admin UI is primary)
 pnpm --filter polaris dev    # vite on :3000, proxies /api to :8080
 pnpm build-binary            # app build → embed → ./polaris binary
 ```
@@ -137,6 +138,7 @@ a demo Prometheus), the three extra panel kinds (BarChart, HeatmapChart,
 Markdown), and the Grafana importer (packages/grafana-import + "Import
 from Grafana" in the app).
 
-Not started: git-log dashboard history, annotations,
-simple auth in the OSS binary, the bleemeo-panel embedding POC (DESIGN.md
-§9), and the public-naming check ("Polaris" trademark, §12).
+Not started: git-log dashboard history, annotations, the bleemeo-panel
+embedding POC (DESIGN.md §9), and the public-naming check ("Polaris"
+trademark, §12). Auth (DESIGN.md §7.4): local users + 3 roles + admin UI
+done (phase 1); reverse-proxy headers, native OIDC and LDAP not started.

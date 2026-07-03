@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/bleemeo/polarisui/backend/internal/auth"
 	"github.com/bleemeo/polarisui/backend/internal/store"
 	"github.com/bleemeo/polarisui/backend/internal/watch"
 )
@@ -27,6 +28,9 @@ type Server struct {
 	version    string
 	proxy      http.Handler
 	grafanaCom *grafanaComClient
+	auth       *auth.Store
+	throttle   *auth.Throttle
+	settings   []Setting
 }
 
 type Options struct {
@@ -39,6 +43,11 @@ type Options struct {
 	// production, an httptest server in tests); empty disables the
 	// marketplace import proxy.
 	GrafanaComURL string
+	// Auth is the server-managed user store; nil keeps the historic
+	// anonymous-admin behavior with no way to enable authentication.
+	Auth *auth.Store
+	// Settings is the effective configuration shown by the admin UI.
+	Settings []Setting
 }
 
 func New(options Options) *Server {
@@ -47,6 +56,9 @@ func New(options Options) *Server {
 		hub:      options.Hub,
 		readonly: options.Readonly,
 		version:  options.Version,
+		auth:     options.Auth,
+		throttle: auth.NewThrottle(),
+		settings: options.Settings,
 	}
 	if options.PrometheusURL != nil {
 		server.proxy = newPrometheusProxy(options.PrometheusURL)
@@ -58,16 +70,26 @@ func New(options Options) *Server {
 }
 
 // Routes registers the API on a mux (the caller adds the SPA handler).
+// Reads need viewer, dashboard writes need editor, /api/admin needs admin;
+// capabilities and the auth endpoints stay public (pre-login).
 func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/capabilities", s.capabilities)
+	mux.HandleFunc("POST /api/auth/login", s.authLogin)
+	mux.HandleFunc("POST /api/auth/logout", s.authLogout)
+	mux.HandleFunc("GET /api/auth/me", s.authMe)
 	// {name...}: dashboard names may contain one folder level ("infra/db").
-	mux.HandleFunc("GET /api/dashboards", s.listDashboards)
-	mux.HandleFunc("GET /api/dashboards/{name...}", s.getDashboard)
-	mux.HandleFunc("PUT /api/dashboards/{name...}", s.putDashboard)
-	mux.HandleFunc("DELETE /api/dashboards/{name...}", s.deleteDashboard)
-	mux.HandleFunc("GET /api/events", s.events)
-	mux.HandleFunc("GET /api/grafana-com/{id}", s.grafanaComDownload)
-	mux.HandleFunc("/api/v1/", s.prometheus)
+	mux.HandleFunc("GET /api/dashboards", s.requireRole(auth.RoleViewer, s.listDashboards))
+	mux.HandleFunc("GET /api/dashboards/{name...}", s.requireRole(auth.RoleViewer, s.getDashboard))
+	mux.HandleFunc("PUT /api/dashboards/{name...}", s.requireRole(auth.RoleEditor, s.putDashboard))
+	mux.HandleFunc("DELETE /api/dashboards/{name...}", s.requireRole(auth.RoleEditor, s.deleteDashboard))
+	mux.HandleFunc("GET /api/events", s.requireRole(auth.RoleViewer, s.events))
+	mux.HandleFunc("GET /api/grafana-com/{id}", s.requireRole(auth.RoleEditor, s.grafanaComDownload))
+	mux.HandleFunc("/api/v1/", s.requireRole(auth.RoleViewer, s.prometheus))
+	mux.HandleFunc("GET /api/admin/users", s.requireRole(auth.RoleAdmin, s.adminListUsers))
+	mux.HandleFunc("POST /api/admin/users", s.requireRole(auth.RoleAdmin, s.adminCreateUser))
+	mux.HandleFunc("PATCH /api/admin/users/{username}", s.requireRole(auth.RoleAdmin, s.adminUpdateUser))
+	mux.HandleFunc("DELETE /api/admin/users/{username}", s.requireRole(auth.RoleAdmin, s.adminDeleteUser))
+	mux.HandleFunc("GET /api/admin/config", s.requireRole(auth.RoleAdmin, s.adminConfig))
 }
 
 func writeJSON(writer http.ResponseWriter, status int, value any) {
@@ -87,11 +109,15 @@ func writeError(writer http.ResponseWriter, status int, message string, issues .
 // capabilities tells the UI what this backend supports; the SaaS backend
 // returns a richer profile through the same endpoint (DESIGN.md §7.3).
 func (s *Server) capabilities(writer http.ResponseWriter, _ *http.Request) {
+	authKind := "none"
+	if s.auth != nil && s.auth.Enabled() {
+		authKind = "builtin"
+	}
 	writeJSON(writer, http.StatusOK, map[string]any{
 		"version":    s.version,
 		"readonly":   s.readonly,
 		"formats":    store.Formats,
-		"auth":       map[string]any{"kind": "none"},
+		"auth":       map[string]any{"kind": authKind},
 		"prometheus": s.proxy != nil,
 		"features":   map[string]any{"grafanaCom": s.grafanaCom != nil},
 	})

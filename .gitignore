@@ -12,3 +12,6 @@ coverage/
 !backend/internal/ui/dist/
 backend/internal/ui/dist/*
 !backend/internal/ui/dist/index.html
+
+# Server-managed auth state (local users, session secret) — never commit.
+/auth.yaml

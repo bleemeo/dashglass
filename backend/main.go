@@ -1,5 +1,5 @@
 // Polaris backend: serves the embedded SPA, proxies Prometheus and manages
-// the dashboards directory (see DESIGN.md §4).
+// the dashboards directory (see DESIGN.md §4 and §7.4).
 package main
 
 import (
@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/bleemeo/polarisui/backend/internal/api"
+	"github.com/bleemeo/polarisui/backend/internal/auth"
+	"github.com/bleemeo/polarisui/backend/internal/config"
 	"github.com/bleemeo/polarisui/backend/internal/store"
 	"github.com/bleemeo/polarisui/backend/internal/ui"
 	"github.com/bleemeo/polarisui/backend/internal/watch"
@@ -24,41 +26,117 @@ import (
 // version is set at build time with -ldflags "-X main.version=...".
 var version = "dev"
 
+// setting tracks one effective value and where it came from
+// (flags > environment > file > defaults, DESIGN.md §7.4).
+type setting struct {
+	value  string
+	source string
+}
+
 func main() {
-	// Subcommands come before flags: `polaris lint [files-or-dirs...]`.
-	if len(os.Args) > 1 && os.Args[1] == "lint" {
-		os.Exit(runLint(os.Args[2:], os.Stdout, os.Stderr))
+	// Subcommands come before flags.
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "lint":
+			os.Exit(runLint(os.Args[2:], os.Stdout, os.Stderr))
+		case "user":
+			os.Exit(runUser(os.Args[2:], os.Stdout, os.Stderr))
+		}
 	}
 
-	listen := flag.String("listen", ":8080", "listen address")
+	configPath := flag.String("config", "", "path to polaris.yaml (optional)")
+	listen := flag.String("listen", "", "listen address")
 	prometheusURL := flag.String("prometheus-url", "", "Prometheus base URL (credentials as URL userinfo stay server-side)")
-	dashboardsDir := flag.String("dashboards-dir", "./dashboards", "directory holding dashboard files")
+	dashboardsDir := flag.String("dashboards-dir", "", "directory holding dashboard files")
 	readonly := flag.Bool("readonly", false, "provisioned mode: dashboards are managed by git only, the API refuses writes")
 	disableGrafanaCom := flag.Bool("disable-grafana-com", false,
 		"disable the grafana.com dashboard import proxy (the only outbound internet call)")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	if err := run(*listen, *prometheusURL, *dashboardsDir, *readonly, *disableGrafanaCom, logger); err != nil {
+
+	if *configPath == "" {
+		*configPath = os.Getenv("POLARIS_CONFIG")
+	}
+	cfg, err := config.Load(*configPath)
+	if err != nil {
+		logger.Error("fatal", "error", err)
+		os.Exit(1)
+	}
+	defaults := config.Defaults()
+
+	// Effective settings with provenance, for the admin configuration view.
+	resolve := func(key, fileValue, defaultValue, envName string, flagValue string, flagSet bool) setting {
+		result := setting{value: defaultValue, source: "default"}
+		if fileValue != defaultValue {
+			result = setting{value: fileValue, source: "file"}
+		}
+		if envValue := os.Getenv(envName); envValue != "" {
+			result = setting{value: envValue, source: "env"}
+		}
+		if flagSet {
+			result = setting{value: flagValue, source: "flag"}
+		}
+		return result
+	}
+	flagsSet := map[string]bool{}
+	flag.Visit(func(f *flag.Flag) { flagsSet[f.Name] = true })
+	boolString := func(b bool) string {
+		if b {
+			return "true"
+		}
+		return "false"
+	}
+
+	settings := map[string]setting{
+		"listen": resolve("listen", cfg.Listen, defaults.Listen,
+			"POLARIS_LISTEN", *listen, flagsSet["listen"]),
+		"prometheus.url": resolve("prometheus.url", cfg.Prometheus.URL, "",
+			"POLARIS_PROMETHEUS_URL", *prometheusURL, flagsSet["prometheus-url"]),
+		"dashboards.dir": resolve("dashboards.dir", cfg.Dashboards.Dir, defaults.Dashboards.Dir,
+			"POLARIS_DASHBOARDS_DIR", *dashboardsDir, flagsSet["dashboards-dir"]),
+		"dashboards.readonly": resolve("dashboards.readonly",
+			boolString(cfg.Dashboards.Readonly), "false",
+			"POLARIS_READONLY", boolString(*readonly), flagsSet["readonly"]),
+		"grafana_com.disable": resolve("grafana_com.disable",
+			boolString(cfg.GrafanaCom.Disable), "false",
+			"POLARIS_DISABLE_GRAFANA_COM", boolString(*disableGrafanaCom), flagsSet["disable-grafana-com"]),
+		"auth.file": resolve("auth.file", cfg.Auth.File, defaults.Auth.File,
+			"POLARIS_AUTH_FILE", "", false),
+	}
+
+	if err := run(settings, logger); err != nil {
 		logger.Error("fatal", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(listen, prometheusURL, dashboardsDir string, readonly, disableGrafanaCom bool, logger *slog.Logger) error {
-	dashboardStore, err := store.New(dashboardsDir)
+func run(settings map[string]setting, logger *slog.Logger) error {
+	dashboardStore, err := store.New(settings["dashboards.dir"].value)
 	if err != nil {
 		return err
 	}
 
 	var target *url.URL
-	if prometheusURL != "" {
+	if prometheusURL := settings["prometheus.url"].value; prometheusURL != "" {
 		target, err = url.Parse(prometheusURL)
 		if err != nil || target.Scheme == "" || target.Host == "" {
-			return fmt.Errorf("invalid -prometheus-url %q", prometheusURL)
+			return fmt.Errorf("invalid Prometheus URL %q", prometheusURL)
 		}
 	} else {
-		logger.Warn("no -prometheus-url configured, metric queries will fail")
+		logger.Warn("no Prometheus URL configured, metric queries will fail")
+	}
+
+	authStore, err := auth.NewStore(settings["auth.file"].value)
+	if err != nil {
+		return err
+	}
+	// Automated deployments can seed an admin without the UI or CLI.
+	if password := os.Getenv("POLARIS_BOOTSTRAP_ADMIN_PASSWORD"); password != "" && !authStore.Enabled() {
+		if err := authStore.Create("admin", password, auth.RoleAdmin); err != nil {
+			return fmt.Errorf("bootstrapping admin user: %w", err)
+		}
+		logger.Info("bootstrapped the admin user from POLARIS_BOOTSTRAP_ADMIN_PASSWORD")
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -69,9 +147,22 @@ func run(listen, prometheusURL, dashboardsDir string, readonly, disableGrafanaCo
 		return fmt.Errorf("watching dashboards directory: %w", err)
 	}
 
+	readonly := settings["dashboards.readonly"].value == "true"
 	grafanaComURL := "https://grafana.com"
-	if disableGrafanaCom {
+	if settings["grafana_com.disable"].value == "true" {
 		grafanaComURL = ""
+	}
+
+	apiSettings := make([]api.Setting, 0, len(settings))
+	for _, key := range []string{
+		"listen", "prometheus.url", "dashboards.dir", "dashboards.readonly",
+		"grafana_com.disable", "auth.file",
+	} {
+		apiSettings = append(apiSettings, api.Setting{
+			Key:    key,
+			Value:  settings[key].value,
+			Source: settings[key].source,
+		})
 	}
 
 	mux := http.NewServeMux()
@@ -82,9 +173,12 @@ func run(listen, prometheusURL, dashboardsDir string, readonly, disableGrafanaCo
 		Readonly:      readonly,
 		Version:       version,
 		GrafanaComURL: grafanaComURL,
+		Auth:          authStore,
+		Settings:      apiSettings,
 	}).Routes(mux)
 	mux.Handle("/", ui.Handler())
 
+	listen := settings["listen"].value
 	server := &http.Server{
 		Addr:              listen,
 		Handler:           mux,
@@ -101,7 +195,8 @@ func run(listen, prometheusURL, dashboardsDir string, readonly, disableGrafanaCo
 
 	logger.Info("polaris backend listening",
 		"address", listen, "dashboards", dashboardStore.Dir(),
-		"prometheus", prometheusURL, "readonly", readonly, "version", version)
+		"prometheus", settings["prometheus.url"].value,
+		"readonly", readonly, "auth", authStore.Enabled(), "version", version)
 	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
