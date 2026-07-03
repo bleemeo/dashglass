@@ -17,6 +17,123 @@ spec:
             matchers:
               - cpu_used
   panels:
+    container-cpu:
+      kind: Panel
+      spec:
+        display:
+          name: Container CPU
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            min: 0
+            unit: percent
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: container_cpu_used{instance=~"$instance"}
+                  seriesNameFormat: "{{item}}"
+    container-health:
+      kind: Panel
+      spec:
+        display:
+          name: Container health
+          description: 0 ok · 1 warning · 2 critical
+        plugin:
+          kind: Table
+          spec: {}
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: container_health_status{instance=~"$instance"}
+                  seriesNameFormat: "{{item}}"
+    container-io:
+      kind: Panel
+      spec:
+        display:
+          name: Container disk IO
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            unit: bytesps
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: container_io_read_bytes{instance=~"$instance"}
+                  seriesNameFormat: "{{item}} read"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: container_io_write_bytes{instance=~"$instance"}
+                  seriesNameFormat: "{{item}} write"
+    container-mem:
+      kind: Panel
+      spec:
+        display:
+          name: Container memory
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            min: 0
+            unit: percent
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: container_mem_used_perc{instance=~"$instance"}
+                  seriesNameFormat: "{{item}}"
+    container-net:
+      kind: Panel
+      spec:
+        display:
+          name: Container network
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            unit: bitsps
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: container_net_bits_recv{instance=~"$instance"}
+                  seriesNameFormat: "{{item}} rx"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: container_net_bits_sent{instance=~"$instance"}
+                  seriesNameFormat: "{{item}} tx"
+    containers-count:
+      kind: Panel
+      spec:
+        display:
+          name: Containers by state
+        plugin:
+          kind: BarChart
+          spec: {}
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: containers_count{instance=~"$instance"}
+                  seriesNameFormat: "{{item}}"
     cpu-breakdown:
       kind: Panel
       spec:
@@ -100,6 +217,24 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: disk_used_perc{instance=~"$instance"}
+                  seriesNameFormat: "{{item}}"
+    inodes:
+      kind: Panel
+      spec:
+        display:
+          name: Inodes used
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            min: 0
+            unit: percent
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: 100 * disk_inodes_used{instance=~"$instance"} / disk_inodes_total{instance=~"$instance"}
                   seriesNameFormat: "{{item}}"
     io-utilization:
       kind: Panel
@@ -217,6 +352,44 @@ spec:
                 spec:
                   query: mem_available{instance=~"$instance"}
                   seriesNameFormat: available
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: mem_buffered{instance=~"$instance"}
+                  seriesNameFormat: buffered
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: mem_cached{instance=~"$instance"}
+                  seriesNameFormat: cached
+    net-errors:
+      kind: Panel
+      spec:
+        display:
+          name: Network errors
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            unit: ops
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: net_err_in{instance=~"$instance",item!="lo"}
+                  seriesNameFormat: "{{item}} in"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: net_err_out{instance=~"$instance",item!="lo"}
+                  seriesNameFormat: "{{item}} out"
     net-packets:
       kind: Panel
       spec:
@@ -265,6 +438,52 @@ spec:
                 spec:
                   query: net_bits_sent{instance=~"$instance",item!="lo"}
                   seriesNameFormat: "{{item}} tx"
+    process-states:
+      kind: Panel
+      spec:
+        display:
+          name: Processes by state
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            min: 0
+            stack: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: process_status_running{instance=~"$instance"}
+                  seriesNameFormat: running
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: process_status_sleeping{instance=~"$instance"}
+                  seriesNameFormat: sleeping
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: process_status_blocked{instance=~"$instance"}
+                  seriesNameFormat: blocked
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: process_status_stopped{instance=~"$instance"}
+                  seriesNameFormat: stopped
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: process_status_zombies{instance=~"$instance"}
+                  seriesNameFormat: zombies
     processes:
       kind: Panel
       spec:
@@ -280,6 +499,22 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: process_total{instance=~"$instance"}
+    threads:
+      kind: Panel
+      spec:
+        display:
+          name: Threads
+        plugin:
+          kind: StatChart
+          spec:
+            sparkline: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: process_total_threads{instance=~"$instance"}
     uptime:
       kind: Panel
       spec:
@@ -388,22 +623,28 @@ spec:
         items:
           - x: 0
             y: 0
-            width: 8
+            width: 6
             height: 8
             content:
               $ref: "#/spec/panels/disk-usage"
-          - x: 8
+          - x: 6
             y: 0
-            width: 8
+            width: 6
             height: 8
             content:
               $ref: "#/spec/panels/io-utilization"
-          - x: 16
+          - x: 12
             y: 0
-            width: 8
+            width: 6
             height: 8
             content:
               $ref: "#/spec/panels/disk-io"
+          - x: 18
+            y: 0
+            width: 6
+            height: 8
+            content:
+              $ref: "#/spec/panels/inodes"
     - kind: Grid
       spec:
         display:
@@ -411,15 +652,79 @@ spec:
         items:
           - x: 0
             y: 0
-            width: 12
+            width: 8
             height: 8
             content:
               $ref: "#/spec/panels/net-traffic"
-          - x: 12
+          - x: 8
             y: 0
-            width: 12
+            width: 8
             height: 8
             content:
               $ref: "#/spec/panels/net-packets"
+          - x: 16
+            y: 0
+            width: 8
+            height: 8
+            content:
+              $ref: "#/spec/panels/net-errors"
+    - kind: Grid
+      spec:
+        display:
+          title: Processes
+        items:
+          - x: 0
+            y: 0
+            width: 18
+            height: 7
+            content:
+              $ref: "#/spec/panels/process-states"
+          - x: 18
+            y: 0
+            width: 6
+            height: 7
+            content:
+              $ref: "#/spec/panels/threads"
+    - kind: Grid
+      spec:
+        display:
+          title: Containers
+        items:
+          - x: 0
+            y: 0
+            width: 6
+            height: 8
+            content:
+              $ref: "#/spec/panels/containers-count"
+          - x: 6
+            y: 0
+            width: 9
+            height: 8
+            content:
+              $ref: "#/spec/panels/container-cpu"
+          - x: 15
+            y: 0
+            width: 9
+            height: 8
+            content:
+              $ref: "#/spec/panels/container-mem"
+          - x: 0
+            y: 8
+            width: 9
+            height: 8
+            content:
+              $ref: "#/spec/panels/container-net"
+          - x: 9
+            y: 8
+            width: 9
+            height: 8
+            content:
+              $ref: "#/spec/panels/container-io"
+          - x: 18
+            y: 8
+            width: 6
+            height: 8
+            content:
+              $ref: "#/spec/panels/container-health"
   duration: 1h
   refreshInterval: 30s
