@@ -96,6 +96,13 @@ session's scratchpad).
   (`--virtual-time-budget` hangs).
 - jsonschema/v6 (Go): `ErrorKind.LocalizedString` needs a non-nil
   `message.Printer`.
+- **Kill leftover `./polaris` processes when a served UI looks stale.** A
+  binary from a previous session can hold `127.0.0.1:8080` (IPv4) while
+  docker compose only gets the IPv6 side — the browser then reaches the
+  old process and curl/localhost may reach the new one. `lsof -nP
+  -iTCP:8080 -sTCP:LISTEN` shows the split; also check for a stray
+  `fake-prom` node process. Restart the compose stack after killing so
+  it rebinds IPv4.
 - To screenshot both color modes, drive headless Chrome over CDP
   (`--remote-debugging-port`) and call `Emulation.setEmulatedMedia` with a
   `prefers-color-scheme` feature — there is no CLI flag for light, and the
