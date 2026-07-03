@@ -26,7 +26,12 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /polaris .
 FROM alpine:3.22
 RUN adduser -D -H -u 1000 polaris
 COPY --from=go-builder /polaris /usr/local/bin/polaris
+# /data holds server-managed state (auth.yaml); owned by the non-root user
+# and its own volume so it persists and stays writable.
+RUN mkdir -p /data && chown polaris /data
 USER polaris
 EXPOSE 8080
 VOLUME /dashboards
+VOLUME /data
+ENV POLARIS_AUTH_FILE=/data/auth.yaml
 ENTRYPOINT ["polaris", "-dashboards-dir", "/dashboards"]

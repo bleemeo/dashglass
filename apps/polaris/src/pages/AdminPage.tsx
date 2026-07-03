@@ -368,7 +368,7 @@ function ConfigTab() {
               <Table.Cell fontFamily="mono" fontSize="xs">
                 {setting.key}
               </Table.Cell>
-              <Table.Cell fontFamily="mono" fontSize="xs">
+              <Table.Cell fontFamily="mono" fontSize="xs" wordBreak="break-all">
                 {setting.value === "" ? "—" : setting.value}
               </Table.Cell>
               <Table.Cell>

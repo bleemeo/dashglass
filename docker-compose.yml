@@ -8,6 +8,7 @@ services:
       - "8080:8080"
     volumes:
       - ./dashboards:/dashboards
+      - polaris-data:/data
     depends_on:
       - prometheus
     healthcheck:
@@ -29,3 +30,4 @@ services:
 
 volumes:
   prometheus-data:
+  polaris-data:

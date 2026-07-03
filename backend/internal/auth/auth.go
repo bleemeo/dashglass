@@ -60,9 +60,10 @@ type fileContent struct {
 // Store owns auth.yaml: server-managed, written atomically, never
 // hand-edited (DESIGN.md §7.4).
 type Store struct {
-	mu    sync.RWMutex
-	path  string
-	state fileContent
+	mu     sync.RWMutex
+	path   string
+	state  fileContent
+	secret []byte // decoded session secret, cached after first use
 }
 
 // ErrNotFound is returned for unknown usernames.
@@ -96,9 +97,21 @@ func (s *Store) Enabled() bool {
 }
 
 // SessionSecret returns the HMAC secret, generating it on first call.
+// Called on every authenticated request, so the common path is a cheap
+// read lock over the cached decoded secret.
 func (s *Store) SessionSecret() ([]byte, error) {
+	s.mu.RLock()
+	if s.secret != nil {
+		defer s.mu.RUnlock()
+		return s.secret, nil
+	}
+	s.mu.RUnlock()
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.secret != nil { // another goroutine won the race
+		return s.secret, nil
+	}
 	if s.state.SessionSecret == "" {
 		raw := make([]byte, 32)
 		if _, err := rand.Read(raw); err != nil {
@@ -111,7 +124,12 @@ func (s *Store) SessionSecret() ([]byte, error) {
 			}
 		}
 	}
-	return hex.DecodeString(s.state.SessionSecret)
+	decoded, err := hex.DecodeString(s.state.SessionSecret)
+	if err != nil {
+		return nil, err
+	}
+	s.secret = decoded
+	return s.secret, nil
 }
 
 // Users lists the local accounts, sorted by name.
