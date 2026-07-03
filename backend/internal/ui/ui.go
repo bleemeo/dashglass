@@ -25,10 +25,20 @@ func Handler() http.Handler {
 		path := strings.TrimPrefix(request.URL.Path, "/")
 		if path != "" {
 			if _, err := fs.Stat(root, path); err == nil {
+				// Vite content-hashes everything under assets/, so those
+				// files can be cached forever; anything else (favicons…)
+				// must be revalidated, like index.html below, so browsers
+				// never keep serving a previous binary's UI.
+				if strings.HasPrefix(path, "assets/") {
+					writer.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+				} else {
+					writer.Header().Set("Cache-Control", "no-cache")
+				}
 				fileServer.ServeHTTP(writer, request)
 				return
 			}
 		}
+		writer.Header().Set("Cache-Control", "no-cache")
 		http.ServeFileFS(writer, request, root, "index.html")
 	})
 }
