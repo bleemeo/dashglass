@@ -9,6 +9,8 @@ import (
 	"regexp"
 
 	"github.com/goccy/go-yaml"
+
+	"github.com/bleemeo/polarisui/backend/internal/auth"
 )
 
 type Config struct {
@@ -26,6 +28,8 @@ type Config struct {
 	Auth struct {
 		// Server-managed state (users, mappings, session secret).
 		File string `yaml:"file"`
+		// Trusted reverse-proxy authentication (DESIGN.md §7.4 phase 2).
+		Proxy auth.ProxyConfig `yaml:"proxy"`
 	} `yaml:"auth"`
 }
 

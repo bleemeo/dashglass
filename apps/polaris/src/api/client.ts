@@ -17,7 +17,7 @@ export interface Capabilities {
   readonly: boolean;
   formats: string[];
   prometheus: boolean;
-  auth?: { kind: "none" | "builtin" };
+  auth?: { kind: "none" | "builtin" | "proxy" };
   features?: { grafanaCom?: boolean };
 }
 
@@ -28,6 +28,8 @@ export interface AuthMe {
   authenticated: boolean;
   username?: string;
   role?: Role;
+  /** True when a reverse proxy is the identity source (no local login). */
+  proxy?: boolean;
 }
 
 export interface AdminUser {
@@ -40,6 +42,12 @@ export interface ConfigSetting {
   value: string;
   source: "default" | "file" | "env" | "flag";
   secret?: boolean;
+}
+
+export interface AdminConfig {
+  settings: ConfigSetting[];
+  /** Present in proxy mode: read-only group → role mapping. */
+  roleMapping?: { admin?: string[]; editor?: string[]; viewer?: string[] };
 }
 
 export interface GrafanaComDashboard {
@@ -166,12 +174,12 @@ export async function adminDeleteUser(username: string): Promise<void> {
   }
 }
 
-export async function adminConfig(): Promise<ConfigSetting[]> {
+export async function adminConfig(): Promise<AdminConfig> {
   const response = await fetch("/api/admin/config");
   if (!response.ok) {
     throw await errorFrom(response);
   }
-  return response.json() as Promise<ConfigSetting[]>;
+  return response.json() as Promise<AdminConfig>;
 }
 
 export async function fetchCapabilities(): Promise<Capabilities> {

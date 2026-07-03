@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Button,
@@ -12,12 +12,22 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 
 import { APIError, login } from "../api/client";
+import { usePermissions } from "../api/hooks";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 export function LoginPage() {
   usePageTitle("Sign in");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { proxy, authenticated } = usePermissions();
+  // Once identified, leave the login page. In proxy mode the identity
+  // comes from headers, so an authenticated proxy user is redirected;
+  // an unauthenticated one gets a note (below) instead of a bounce loop.
+  useEffect(() => {
+    if (authenticated) {
+      void navigate("/", { replace: true });
+    }
+  }, [authenticated, navigate]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +58,26 @@ export function LoginPage() {
       gap={6}
     >
       <Heading size="xl">✦ Polaris</Heading>
+      {proxy ? (
+        <Flex
+          direction="column"
+          gap={2}
+          width="360px"
+          padding={6}
+          borderWidth="1px"
+          borderRadius="md"
+          backgroundColor="bg.panel"
+        >
+          <Text fontSize="sm" fontWeight="medium">
+            Authentication is handled by a reverse proxy
+          </Text>
+          <Text fontSize="sm" color="fg.muted">
+            You reached Polaris without an identity from the proxy. Access
+            it through your authenticating proxy, or check that it forwards
+            the identity headers.
+          </Text>
+        </Flex>
+      ) : (
       <Flex
         as="form"
         direction="column"
@@ -96,6 +126,7 @@ export function LoginPage() {
           Sign in
         </Button>
       </Flex>
+      )}
     </Flex>
   );
 }

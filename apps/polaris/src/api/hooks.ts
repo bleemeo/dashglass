@@ -46,6 +46,8 @@ export function usePermissions() {
     loading: capabilities.isLoading || me.isLoading,
     authEnabled: me.data?.authEnabled ?? false,
     authenticated: me.data?.authenticated ?? false,
+    // Reverse-proxy mode: no local login, users are external.
+    proxy: me.data?.proxy ?? false,
     username: me.data?.username,
     role,
     canEdit: !readonly && (role === "editor" || role === "admin"),

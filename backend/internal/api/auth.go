@@ -13,8 +13,13 @@ import (
 // possible (the admin UI is reachable to create the first user).
 var anonymous = auth.User{Username: "anonymous", Role: auth.RoleAdmin}
 
-// authenticate resolves the request identity.
+// authenticate resolves the request identity. A configured reverse proxy
+// is the identity source and takes precedence over local sessions; the
+// headers are evaluated per request (no Polaris session in that mode).
 func (s *Server) authenticate(r *http.Request) (auth.User, error) {
+	if s.proxyAuth != nil {
+		return s.proxyAuth.Identify(r)
+	}
 	if s.auth == nil || !s.auth.Enabled() {
 		return anonymous, nil
 	}
@@ -43,6 +48,11 @@ func (s *Server) requireRole(required auth.Role, handler http.HandlerFunc) http.
 }
 
 func (s *Server) authLogin(writer http.ResponseWriter, request *http.Request) {
+	if s.proxyAuth != nil {
+		writeError(writer, http.StatusBadRequest,
+			"authentication is handled by a reverse proxy; local login is disabled")
+		return
+	}
 	if s.auth == nil || !s.auth.Enabled() {
 		writeError(writer, http.StatusBadRequest, "authentication is not enabled")
 		return
@@ -90,12 +100,14 @@ func (s *Server) authLogout(writer http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) authMe(writer http.ResponseWriter, request *http.Request) {
-	enabled := s.auth != nil && s.auth.Enabled()
+	enabled := s.proxyAuth != nil || (s.auth != nil && s.auth.Enabled())
 	user, err := s.authenticate(request)
 	if err != nil {
 		writeJSON(writer, http.StatusOK, map[string]any{
 			"authEnabled":   enabled,
 			"authenticated": false,
+			// Tells the UI not to offer a local login form.
+			"proxy": s.proxyAuth != nil,
 		})
 		return
 	}
@@ -104,6 +116,7 @@ func (s *Server) authMe(writer http.ResponseWriter, request *http.Request) {
 		"authenticated": true,
 		"username":      user.Username,
 		"role":          user.Role,
+		"proxy":         s.proxyAuth != nil,
 	})
 }
 
@@ -223,5 +236,16 @@ func (s *Server) adminConfig(writer http.ResponseWriter, _ *http.Request) {
 		}
 		settings = append(settings, setting)
 	}
-	writeJSON(writer, http.StatusOK, settings)
+	response := map[string]any{"settings": settings}
+	// In proxy mode, surface the (read-only) role mapping so an admin can
+	// see how identity-provider groups become roles.
+	if s.proxyAuth != nil {
+		mapping := s.proxyAuth.Mapping()
+		response["roleMapping"] = map[string][]string{
+			"admin":  mapping.Admin,
+			"editor": mapping.Editor,
+			"viewer": mapping.Viewer,
+		}
+	}
+	writeJSON(writer, http.StatusOK, response)
 }

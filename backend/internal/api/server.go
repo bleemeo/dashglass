@@ -29,6 +29,7 @@ type Server struct {
 	proxy      http.Handler
 	grafanaCom *grafanaComClient
 	auth       *auth.Store
+	proxyAuth  *auth.ProxyAuthenticator
 	throttle   *auth.Throttle
 	settings   []Setting
 }
@@ -46,6 +47,9 @@ type Options struct {
 	// Auth is the server-managed user store; nil keeps the historic
 	// anonymous-admin behavior with no way to enable authentication.
 	Auth *auth.Store
+	// ProxyAuth, when set, makes trusted reverse-proxy headers the
+	// identity source (takes precedence over local sessions).
+	ProxyAuth *auth.ProxyAuthenticator
 	// Settings is the effective configuration shown by the admin UI.
 	Settings []Setting
 }
@@ -55,10 +59,11 @@ func New(options Options) *Server {
 		store:    options.Store,
 		hub:      options.Hub,
 		readonly: options.Readonly,
-		version:  options.Version,
-		auth:     options.Auth,
-		throttle: auth.NewThrottle(),
-		settings: options.Settings,
+		version:   options.Version,
+		auth:      options.Auth,
+		proxyAuth: options.ProxyAuth,
+		throttle:  auth.NewThrottle(),
+		settings:  options.Settings,
 	}
 	if options.PrometheusURL != nil {
 		server.proxy = newPrometheusProxy(options.PrometheusURL)
@@ -110,7 +115,10 @@ func writeError(writer http.ResponseWriter, status int, message string, issues .
 // returns a richer profile through the same endpoint (DESIGN.md §7.3).
 func (s *Server) capabilities(writer http.ResponseWriter, _ *http.Request) {
 	authKind := "none"
-	if s.auth != nil && s.auth.Enabled() {
+	switch {
+	case s.proxyAuth != nil:
+		authKind = "proxy"
+	case s.auth != nil && s.auth.Enabled():
 		authKind = "builtin"
 	}
 	writeJSON(writer, http.StatusOK, map[string]any{

@@ -141,4 +141,5 @@ from Grafana" in the app).
 Not started: git-log dashboard history, annotations, the bleemeo-panel
 embedding POC (DESIGN.md §9), and the public-naming check ("Polaris"
 trademark, §12). Auth (DESIGN.md §7.4): local users + 3 roles + admin UI
-done (phase 1); reverse-proxy headers, native OIDC and LDAP not started.
+done (phase 1); reverse-proxy headers done (phase 2); native OIDC and
+LDAP not started.

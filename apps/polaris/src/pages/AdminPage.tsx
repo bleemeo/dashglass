@@ -171,10 +171,36 @@ function UserDialog({
   );
 }
 
+function ProxyUsersNote() {
+  return (
+    <Flex
+      direction="column"
+      gap={1}
+      padding={3}
+      borderWidth="1px"
+      borderRadius="md"
+    >
+      <Text fontSize="sm" fontWeight="medium">
+        Authentication is handled by a reverse proxy
+      </Text>
+      <Text fontSize="sm" color="fg.muted">
+        Users and their groups come from your identity provider; roles are
+        assigned by the group mapping (see the Configuration tab). There
+        are no local accounts to manage here.
+      </Text>
+    </Flex>
+  );
+}
+
 function UsersTab() {
   const queryClient = useQueryClient();
-  const { authEnabled, username: currentUser } = usePermissions();
-  const users = useQuery({ queryKey: ["admin", "users"], queryFn: adminListUsers });
+  const { authEnabled, proxy, username: currentUser } = usePermissions();
+  // Proxy mode has no local accounts; skip the users query entirely.
+  const users = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: adminListUsers,
+    enabled: !proxy,
+  });
   const [creating, setCreating] = useState(false);
   const [resetting, setResetting] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -200,6 +226,10 @@ function UsersTab() {
       toaster.create({ title: errorText(error), type: "error" }),
     onSettled: () => setDeleting(null),
   });
+
+  if (proxy) {
+    return <ProxyUsersNote />;
+  }
 
   return (
     <Flex direction="column" gap={4}>
@@ -347,39 +377,68 @@ function ConfigTab() {
     env: "purple",
     flag: "orange",
   };
+  const mapping = config.data?.roleMapping;
 
   return (
-    <Flex direction="column" gap={3}>
-      <Text fontSize="sm" color="fg.muted">
-        Effective configuration and where each value comes from
-        (flags &gt; environment &gt; file &gt; defaults).
-      </Text>
-      <Table.Root size="sm">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader>Setting</Table.ColumnHeader>
-            <Table.ColumnHeader>Value</Table.ColumnHeader>
-            <Table.ColumnHeader>Source</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {(config.data ?? []).map((setting) => (
-            <Table.Row key={setting.key}>
-              <Table.Cell fontFamily="mono" fontSize="xs">
-                {setting.key}
-              </Table.Cell>
-              <Table.Cell fontFamily="mono" fontSize="xs" wordBreak="break-all">
-                {setting.value === "" ? "—" : setting.value}
-              </Table.Cell>
-              <Table.Cell>
-                <Badge colorPalette={sourceColor[setting.source] ?? "gray"}>
-                  {setting.source}
-                </Badge>
-              </Table.Cell>
+    <Flex direction="column" gap={5}>
+      <Flex direction="column" gap={3}>
+        <Text fontSize="sm" color="fg.muted">
+          Effective configuration and where each value comes from
+          (flags &gt; environment &gt; file &gt; defaults).
+        </Text>
+        <Table.Root size="sm">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader>Setting</Table.ColumnHeader>
+              <Table.ColumnHeader>Value</Table.ColumnHeader>
+              <Table.ColumnHeader>Source</Table.ColumnHeader>
             </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+          </Table.Header>
+          <Table.Body>
+            {(config.data?.settings ?? []).map((setting) => (
+              <Table.Row key={setting.key}>
+                <Table.Cell fontFamily="mono" fontSize="xs">
+                  {setting.key}
+                </Table.Cell>
+                <Table.Cell fontFamily="mono" fontSize="xs" wordBreak="break-all">
+                  {setting.value === "" ? "—" : setting.value}
+                </Table.Cell>
+                <Table.Cell>
+                  <Badge colorPalette={sourceColor[setting.source] ?? "gray"}>
+                    {setting.source}
+                  </Badge>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      </Flex>
+
+      {mapping ? (
+        <Flex direction="column" gap={2}>
+          <Text fontSize="sm" fontWeight="medium">
+            Reverse-proxy role mapping
+          </Text>
+          <Text fontSize="sm" color="fg.muted">
+            Identity-provider groups mapped to roles (highest match wins,
+            “*” = any authenticated user). Edit polaris.yaml to change it.
+          </Text>
+          <Table.Root size="sm">
+            <Table.Body>
+              {(["admin", "editor", "viewer"] as const).map((role) => (
+                <Table.Row key={role}>
+                  <Table.Cell width="120px">
+                    <Badge>{role}</Badge>
+                  </Table.Cell>
+                  <Table.Cell fontFamily="mono" fontSize="xs">
+                    {(mapping[role] ?? []).join(", ") || "—"}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </Flex>
+      ) : null}
     </Flex>
   );
 }

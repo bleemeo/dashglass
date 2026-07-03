@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -105,13 +106,13 @@ func main() {
 			"POLARIS_AUTH_FILE", "", false),
 	}
 
-	if err := run(settings, logger); err != nil {
+	if err := run(settings, cfg.Auth.Proxy, logger); err != nil {
 		logger.Error("fatal", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(settings map[string]setting, logger *slog.Logger) error {
+func run(settings map[string]setting, proxyConfig auth.ProxyConfig, logger *slog.Logger) error {
 	dashboardStore, err := store.New(settings["dashboards.dir"].value)
 	if err != nil {
 		return err
@@ -130,6 +131,15 @@ func run(settings map[string]setting, logger *slog.Logger) error {
 	authStore, err := auth.NewStore(settings["auth.file"].value)
 	if err != nil {
 		return err
+	}
+
+	proxyAuth, err := auth.NewProxyAuthenticator(proxyConfig)
+	if err != nil {
+		return err
+	}
+	if proxyAuth != nil && proxyAuth.TrustsAnySource() {
+		logger.Warn("reverse-proxy auth trusts identity headers from ANY source; " +
+			"set auth.proxy.trusted_proxies unless the backend is only reachable through the proxy")
 	}
 	// Automated deployments can seed an admin without the UI or CLI.
 	if password := os.Getenv("POLARIS_BOOTSTRAP_ADMIN_PASSWORD"); password != "" && !authStore.Enabled() {
@@ -164,6 +174,14 @@ func run(settings map[string]setting, logger *slog.Logger) error {
 			Source: settings[key].source,
 		})
 	}
+	// Proxy auth is file-only; surface it in the config view when set.
+	if proxyConfig.UserHeader != "" {
+		apiSettings = append(apiSettings,
+			api.Setting{Key: "auth.proxy.user_header", Value: proxyConfig.UserHeader, Source: "file"},
+			api.Setting{Key: "auth.proxy.groups_header", Value: proxyConfig.GroupsHeader, Source: "file"},
+			api.Setting{Key: "auth.proxy.trusted_proxies", Value: strings.Join(proxyConfig.TrustedProxies, ", "), Source: "file"},
+		)
+	}
 
 	mux := http.NewServeMux()
 	api.New(api.Options{
@@ -174,6 +192,7 @@ func run(settings map[string]setting, logger *slog.Logger) error {
 		Version:       version,
 		GrafanaComURL: grafanaComURL,
 		Auth:          authStore,
+		ProxyAuth:     proxyAuth,
 		Settings:      apiSettings,
 	}).Routes(mux)
 	mux.Handle("/", ui.Handler())

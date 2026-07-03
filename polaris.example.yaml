@@ -27,3 +27,19 @@ auth:
   # exists — until then everyone is an anonymous admin so you can create
   # the first account from the UI.
   file: ./auth.yaml
+
+  # Trusted reverse-proxy authentication. When user_header is set, an
+  # authenticating proxy in front (Authelia, Authentik, oauth2-proxy,
+  # Tailscale…) is the identity source and local login is disabled.
+  # proxy:
+  #   user_header: Remote-User
+  #   groups_header: Remote-Groups   # optional
+  #   # Only honor identity headers from these peers. Leave unset ONLY if
+  #   # the backend is never reachable except through the proxy.
+  #   trusted_proxies: ["10.0.0.0/8"]
+  #   # Groups → role. Highest match wins; "*" = any authenticated user;
+  #   # no match = denied (a shared IdP grants nothing until listed here).
+  #   role_mapping:
+  #     admin: [polaris-admins]
+  #     editor: [dev-team]
+  #     viewer: ["*"]
