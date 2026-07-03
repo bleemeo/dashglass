@@ -17,7 +17,29 @@ export interface Capabilities {
   readonly: boolean;
   formats: string[];
   prometheus: boolean;
+  auth?: { kind: "none" | "builtin" };
   features?: { grafanaCom?: boolean };
+}
+
+export type Role = "viewer" | "editor" | "admin";
+
+export interface AuthMe {
+  authEnabled: boolean;
+  authenticated: boolean;
+  username?: string;
+  role?: Role;
+}
+
+export interface AdminUser {
+  username: string;
+  role: Role;
+}
+
+export interface ConfigSetting {
+  key: string;
+  value: string;
+  source: "default" | "file" | "env" | "flag";
+  secret?: boolean;
 }
 
 export interface GrafanaComDashboard {
@@ -48,6 +70,14 @@ export class APIError extends Error {
 }
 
 async function errorFrom(response: Response): Promise<APIError> {
+  // A 401 means the session is gone: land on the login page (except when
+  // already there — the login POST handles its own errors).
+  if (
+    response.status === 401 &&
+    !window.location.pathname.startsWith("/login")
+  ) {
+    window.location.assign("/login");
+  }
   const body = (await response.json().catch(() => ({}))) as {
     error?: string;
     issues?: string[];
@@ -56,6 +86,92 @@ async function errorFrom(response: Response): Promise<APIError> {
     body.error ?? `HTTP ${response.status}`,
     body.issues ?? [],
   );
+}
+
+// --- Authentication (DESIGN.md §7.4) ----------------------------------------
+
+export async function fetchAuthMe(): Promise<AuthMe> {
+  const response = await fetch("/api/auth/me");
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<AuthMe>;
+}
+
+export async function login(username: string, password: string): Promise<void> {
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+}
+
+export async function logout(): Promise<void> {
+  const response = await fetch("/api/auth/logout", { method: "POST" });
+  if (!response.ok && response.status !== 401) {
+    throw await errorFrom(response);
+  }
+}
+
+export async function adminListUsers(): Promise<AdminUser[]> {
+  const response = await fetch("/api/admin/users");
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<AdminUser[]>;
+}
+
+export async function adminCreateUser(
+  username: string,
+  password: string,
+  role: Role,
+): Promise<void> {
+  const response = await fetch("/api/admin/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password, role }),
+  });
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+}
+
+export async function adminUpdateUser(
+  username: string,
+  updates: { role?: Role; password?: string },
+): Promise<void> {
+  const response = await fetch(
+    `/api/admin/users/${encodeURIComponent(username)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    },
+  );
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+}
+
+export async function adminDeleteUser(username: string): Promise<void> {
+  const response = await fetch(
+    `/api/admin/users/${encodeURIComponent(username)}`,
+    { method: "DELETE" },
+  );
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+}
+
+export async function adminConfig(): Promise<ConfigSetting[]> {
+  const response = await fetch("/api/admin/config");
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<ConfigSetting[]>;
 }
 
 export async function fetchCapabilities(): Promise<Capabilities> {

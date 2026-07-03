@@ -19,16 +19,17 @@ import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 import {
-  useCapabilities,
   useDashboards,
   useDeleteDashboard,
+  usePermissions,
 } from "../api/hooks";
 
 export function DashboardsPage() {
   const dashboards = useDashboards();
-  const capabilities = useCapabilities();
   const remove = useDeleteDashboard();
-  const readonly = capabilities.data?.readonly ?? false;
+  // canEdit already folds in the provisioned readonly mode and the role.
+  const { canEdit } = usePermissions();
+  const readonly = !canEdit;
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   usePageTitle("Dashboards");

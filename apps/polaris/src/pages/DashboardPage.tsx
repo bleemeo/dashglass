@@ -20,7 +20,7 @@ import {
   defaultTimeRange,
 } from "@polarisui/runtime";
 
-import { useDashboardFile } from "../api/hooks";
+import { useDashboardFile, usePermissions } from "../api/hooks";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useKeyShortcut } from "../hooks/useShortcuts";
 import { TimeRangeControls } from "../components/TimeRangeControls";
@@ -39,9 +39,12 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
     dashboard.spec.refreshInterval ?? "off",
   );
   usePageTitle(dashboard.spec.display?.name ?? name);
-  useKeyShortcut("e", () =>
-    void navigate(`/d/${encodeURIComponent(name)}/edit`),
-  );
+  const { canEdit } = usePermissions();
+  useKeyShortcut("e", () => {
+    if (canEdit) {
+      void navigate(`/d/${encodeURIComponent(name)}/edit`);
+    }
+  });
 
   // Read once at mount: afterwards URLStateSync mirrors state → URL.
   const [urlState] = useState(() => ({
@@ -122,7 +125,7 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
                     >
                       Back to dashboard
                     </Button>
-                  ) : (
+                  ) : canEdit ? (
                     <>
                       <Button size="sm" variant="outline" asChild>
                         <Link to={`/d/${encodeURIComponent(name)}/edit`}>
@@ -135,7 +138,7 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
                         </Link>
                       </Button>
                     </>
-                  )}
+                  ) : null}
                 </Flex>
               )}
             </Flex>

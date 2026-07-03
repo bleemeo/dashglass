@@ -8,6 +8,7 @@ import {
 
 import {
   deleteDashboard,
+  fetchAuthMe,
   fetchCapabilities,
   getDashboardFile,
   listDashboards,
@@ -21,6 +22,36 @@ export function useCapabilities() {
     queryFn: fetchCapabilities,
     staleTime: Number.POSITIVE_INFINITY,
   });
+}
+
+export function useAuthMe() {
+  return useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: fetchAuthMe,
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Effective permissions for UI gating: roles come from the session (or
+ * the anonymous admin while auth is disabled); the provisioned readonly
+ * mode wins over any role for dashboard writes (DESIGN.md §7.4).
+ */
+export function usePermissions() {
+  const capabilities = useCapabilities();
+  const me = useAuthMe();
+  const role = me.data?.role;
+  const readonly = capabilities.data?.readonly ?? false;
+  return {
+    loading: capabilities.isLoading || me.isLoading,
+    authEnabled: me.data?.authEnabled ?? false,
+    authenticated: me.data?.authenticated ?? false,
+    username: me.data?.username,
+    role,
+    canEdit: !readonly && (role === "editor" || role === "admin"),
+    isAdmin: role === "admin",
+    readonly,
+  };
 }
 
 export function useDashboards() {

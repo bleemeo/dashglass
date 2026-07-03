@@ -83,3 +83,12 @@ export function SidebarIcon() {
     </svg>
   );
 }
+
+export function AdminIcon() {
+  return (
+    <svg {...common} aria-hidden>
+      <path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}

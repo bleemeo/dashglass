@@ -13,8 +13,15 @@ import { Route, Routes, Link, useLocation, useSearchParams } from "react-router"
 import { useRuntime } from "@polarisui/runtime";
 import { ColorModeButton } from "@polarisui/ui";
 
-import { useCapabilities, useDashboardEvents } from "./api/hooks";
-import { SidebarIcon } from "./components/icons";
+import {
+  useCapabilities,
+  useDashboardEvents,
+  usePermissions,
+} from "./api/hooks";
+import { AdminIcon, SidebarIcon } from "./components/icons";
+import { UserMenu } from "./components/UserMenu";
+import { AdminPage } from "./pages/AdminPage";
+import { LoginPage } from "./pages/LoginPage";
 import { usePageTitle } from "./hooks/usePageTitle";
 
 const SIDEBAR_KEY = "polaris-sidebar-collapsed";
@@ -37,6 +44,7 @@ function SideBar({
   const { registries } = useRuntime();
   const location = useLocation();
   const capabilities = useCapabilities();
+  const { isAdmin, authEnabled } = usePermissions();
 
   const toggle = (
     <IconButton
@@ -106,7 +114,29 @@ function SideBar({
           </ChakraLink>
         );
       })}
+      {isAdmin ? (
+        <ChakraLink
+          asChild
+          paddingX={collapsed ? 0 : 3}
+          paddingY={2}
+          gap={2}
+          borderRadius="md"
+          justifyContent={collapsed ? "center" : "flex-start"}
+          fontWeight={location.pathname.startsWith("/admin") ? "semibold" : "normal"}
+          backgroundColor={
+            location.pathname.startsWith("/admin") ? "bg.muted" : "transparent"
+          }
+          _hover={{ backgroundColor: "bg.muted" }}
+          title={collapsed ? "Admin" : undefined}
+        >
+          <Link to="/admin">
+            <AdminIcon />
+            {collapsed ? null : "Admin"}
+          </Link>
+        </ChakraLink>
+      ) : null}
       <Box flex={1} />
+      {authEnabled ? <UserMenu collapsed={collapsed} /> : null}
       <Flex
         alignItems="center"
         justifyContent={collapsed ? "center" : "space-between"}
@@ -149,6 +179,7 @@ export function App() {
   const { registries } = useRuntime();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [searchParams] = useSearchParams();
+  const { isAdmin } = usePermissions();
   // Kiosk mode (?kiosk): chrome-less rendering for wall screens.
   const kiosk = searchParams.has("kiosk");
   useDashboardEvents();
@@ -164,17 +195,33 @@ export function App() {
     });
   };
 
+  // The login page owns the full viewport (no sidebar).
   return (
-    <Flex height="100vh" alignItems="stretch">
-      {kiosk ? null : <SideBar collapsed={collapsed} onToggle={toggle} />}
-      <Box flex={1} overflow="auto" padding={kiosk ? 4 : 6}>
-        <Routes>
-          {registries.pages.list().map((page) => (
-            <Route key={page.kind} path={page.path} element={page.element} />
-          ))}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </Box>
-    </Flex>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="*"
+        element={
+          <Flex height="100vh" alignItems="stretch">
+            {kiosk ? null : <SideBar collapsed={collapsed} onToggle={toggle} />}
+            <Box flex={1} overflow="auto" padding={kiosk ? 4 : 6}>
+              <Routes>
+                {registries.pages.list().map((page) => (
+                  <Route
+                    key={page.kind}
+                    path={page.path}
+                    element={page.element}
+                  />
+                ))}
+                {isAdmin ? (
+                  <Route path="/admin" element={<AdminPage />} />
+                ) : null}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Box>
+          </Flex>
+        }
+      />
+    </Routes>
   );
 }
