@@ -48,6 +48,7 @@ pnpm monorepo (TypeScript, React 19, strict tsconfig) + a Go backend:
 pnpm test                    # all workspace tests (vitest)
 pnpm typecheck               # all packages + app (tsc)
 cd backend && go test ./...  # backend tests
+./polaris lint [paths...]    # validate dashboard files (CI); default ./dashboards
 pnpm --filter polaris dev    # vite on :3000, proxies /api to :8080
 pnpm build-binary            # app build → embed → ./polaris binary
 ```

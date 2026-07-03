@@ -25,6 +25,11 @@ import (
 var version = "dev"
 
 func main() {
+	// Subcommands come before flags: `polaris lint [files-or-dirs...]`.
+	if len(os.Args) > 1 && os.Args[1] == "lint" {
+		os.Exit(runLint(os.Args[2:], os.Stdout, os.Stderr))
+	}
+
 	listen := flag.String("listen", ":8080", "listen address")
 	prometheusURL := flag.String("prometheus-url", "", "Prometheus base URL (credentials as URL userinfo stay server-side)")
 	dashboardsDir := flag.String("dashboards-dir", "./dashboards", "directory holding dashboard files")

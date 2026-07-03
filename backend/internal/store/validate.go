@@ -81,12 +81,16 @@ func migrate(doc any) any {
 // checks the schema cannot express (layout $ref targets, variable name
 // uniqueness) — keep those in sync with packages/model.
 func (s *Store) validate(content []byte, format Format) (map[string]any, error) {
+	return validateContent(s.schema, content, format)
+}
+
+func validateContent(schema *jsonschema.Schema, content []byte, format Format) (map[string]any, error) {
 	doc, err := decode(content, format)
 	if err != nil {
 		return nil, &ValidationError{Issues: []string{fmt.Sprintf("%s syntax: %v", format, err)}}
 	}
 	doc = migrate(doc)
-	if err := s.schema.Validate(doc); err != nil {
+	if err := schema.Validate(doc); err != nil {
 		return nil, &ValidationError{Issues: schemaIssues(err)}
 	}
 	object := doc.(map[string]any) // guaranteed by schema: root is an object
@@ -94,6 +98,27 @@ func (s *Store) validate(content []byte, format Format) (map[string]any, error) 
 		return nil, &ValidationError{Issues: issues}
 	}
 	return object, nil
+}
+
+// Validator checks dashboard documents without a backing directory —
+// the `polaris lint` path, where files come from the CLI arguments.
+type Validator struct {
+	schema *jsonschema.Schema
+}
+
+func NewValidator() (*Validator, error) {
+	schema, err := compileSchema()
+	if err != nil {
+		return nil, err
+	}
+	return &Validator{schema: schema}, nil
+}
+
+// Validate returns nil for a valid document, or a *ValidationError
+// listing every issue found.
+func (v *Validator) Validate(content []byte, format Format) error {
+	_, err := validateContent(v.schema, content, format)
+	return err
 }
 
 // schemaIssues flattens a jsonschema validation error into messages.
