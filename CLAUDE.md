@@ -20,11 +20,17 @@ pnpm monorepo (TypeScript, React 19, strict tsconfig) + a Go backend:
   Prometheus API paths) + `PrometheusLabelValuesVariable` source.
 - `packages/panels-builtin` — panel plugins: TimeSeriesChart, StatChart,
   GaugeChart, Table (ECharts via `echarts/core`; Stat/Table are plain
-  HTML/SVG). Chart theme tokens live here (`ChartThemeProvider`).
+  HTML/SVG) + their options-form editors (plain HTML `polaris-field*`
+  controls). Chart theme tokens live here (`ChartThemeProvider`).
 - `packages/promql-editor` — CodeMirror PromQL editor
   (`@prometheus-io/codemirror-promql`).
+- `packages/ui` — Chakra system (`polarisSystem`, styles the runtime's
+  `polaris-*` class names via semantic tokens) + color mode
+  (`ColorModeProvider`, light/dark/system, `.dark` root class).
 - `apps/polaris` — OSS app shell: assembles registries, TanStack Query for
-  management CRUD, SSE → cache invalidation.
+  management CRUD, SSE → cache invalidation, form-based dashboard editor
+  (`/d/:name/edit`, react-grid-layout v2) and as-code editor
+  (`/d/:name/code`).
 - `backend/` — Go single binary: embedded SPA, dashboards-directory CRUD
   (validating), read-only allowlisted Prometheus proxy on native
   `/api/v1/*` paths, fsnotify → SSE, `/api/capabilities`.
@@ -90,12 +96,31 @@ session's scratchpad).
   (`--virtual-time-budget` hangs).
 - jsonschema/v6 (Go): `ErrorKind.LocalizedString` needs a non-nil
   `message.Printer`.
+- To screenshot both color modes, drive headless Chrome over CDP
+  (`--remote-debugging-port`) and call `Emulation.setEmulatedMedia` with a
+  `prefers-color-scheme` feature — there is no CLI flag for light, and the
+  host OS preference leaks into `--screenshot` runs. Working scripts from a
+  past session: `shot.mjs` / `editor-check.mjs` in that session's
+  scratchpad (rewrite is ~60 lines).
+- Code splitting relies on `sideEffects` in the workspace package.json
+  files. Two traps: `echarts-setup.ts` must stay listed as side-effectful
+  in `panels-builtin` (its `echarts.use()` gets shaken away otherwise and
+  charts crash at runtime with "x is not a constructor"), and the
+  panels-builtin root entry must never statically re-export chart
+  components or ECharts lands back in the app's main chunk (chart panels
+  register via `React.lazy`; `PanelChrome` owns the Suspense boundary).
 
 ## State / roadmap
 
-Steps 1–5 of DESIGN.md §11 are done: model, backend, runtime, built-in
-panels + PromQL editor, app shell (view, explore, as-code editing, GitOps
-live reload). Not started: form-based panel editor (react-grid-layout drag
-& drop belongs there), `packages/ui` theme + dark mode, Grafana importer,
-bundle code-splitting, the bleemeo-panel embedding POC (DESIGN.md §9), and
-the license decision (DESIGN.md §12).
+Done: steps 1–5 of DESIGN.md §11 (model, backend, runtime, built-in panels
++ PromQL editor, app shell with view/explore/GitOps live reload), plus:
+Apache-2.0 license (LICENSE, §12 resolved), `packages/ui` (theme +
+light/dark/system color mode), the form-based dashboard editor
+(`/d/:name/edit`; as-code editor moved to `/d/:name/code`; pure document
+edit ops in `packages/model/src/edit.ts`), bundle code-splitting
+(initial load 195 kB gzip), and Docker packaging (Dockerfile + compose
+with a demo Prometheus).
+
+Not started: Grafana importer, heatmap/bar panels, git-log dashboard
+history, annotations, the bleemeo-panel embedding POC (DESIGN.md §9), and
+the public-naming check ("Polaris" trademark, §12).
