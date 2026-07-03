@@ -14,6 +14,13 @@ export interface ChartTheme {
    * so assign by index, never re-sort or skip.
    */
   series: string[];
+  /**
+   * Continuous single-hue ramp for magnitude encodings (heatmaps), low →
+   * high. The low end recedes toward the surface by design ("near zero"),
+   * so the ramp is mode-specific: light→dark on the light surface,
+   * dark→light on the dark one.
+   */
+  sequential: string[];
   /** Reserved state colors (gauge thresholds); never used for series. */
   status: {
     good: string;
@@ -40,6 +47,16 @@ export const lightChartTheme: ChartTheme = {
     "#e34948", // red
     "#e87ba4", // magenta
     "#eb6834", // orange
+  ],
+  // Blue ramp steps 100→700; low values recede toward the light surface.
+  sequential: [
+    "#cde2fb",
+    "#9ec5f4",
+    "#6da7ec",
+    "#3987e5",
+    "#256abf",
+    "#184f95",
+    "#0d366b",
   ],
   status: {
     good: "#0ca30c",
@@ -68,6 +85,17 @@ export const darkChartTheme: ChartTheme = {
     "#e66767",
     "#d55181",
     "#d95926",
+  ],
+  // Same blue ramp reversed (650→150): low values recede toward the dark
+  // surface, high values come forward as light steps.
+  sequential: [
+    "#104281",
+    "#184f95",
+    "#256abf",
+    "#3987e5",
+    "#5598e7",
+    "#86b6ef",
+    "#b7d3f6",
   ],
   ink: { primary: "#ffffff", secondary: "#c3c2b7", muted: "#898781" },
   gridline: "#2c2c2a",

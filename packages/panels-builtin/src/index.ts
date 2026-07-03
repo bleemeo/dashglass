@@ -2,7 +2,10 @@ import { lazy } from "react";
 
 import type { PanelRegistry } from "@polarisui/runtime";
 
+import { BarEditor } from "./bar/editor";
 import { GaugeEditor } from "./gauge/editor";
+import { HeatmapEditor } from "./heatmap/editor";
+import { MarkdownEditor } from "./markdown/editor";
 import { StatEditor } from "./stat/editor";
 import { TableEditor } from "./table/editor";
 import { TimeSeriesEditor } from "./time-series/editor";
@@ -54,6 +57,37 @@ export function registerBuiltinPanels(panels: PanelRegistry): void {
     ),
     editor: TableEditor,
   });
+  panels.register({
+    kind: "BarChart",
+    displayName: "Bar",
+    component: lazy(() =>
+      import("./bar/BarPanel").then((module) => ({
+        default: module.BarPanel,
+      })),
+    ),
+    editor: BarEditor,
+  });
+  panels.register({
+    kind: "HeatmapChart",
+    displayName: "Heatmap",
+    component: lazy(() =>
+      import("./heatmap/HeatmapPanel").then((module) => ({
+        default: module.HeatmapPanel,
+      })),
+    ),
+    editor: HeatmapEditor,
+    defaultSpec: { unit: "seconds" },
+  });
+  panels.register({
+    kind: "Markdown",
+    displayName: "Text",
+    component: lazy(() =>
+      import("./markdown/MarkdownPanel").then((module) => ({
+        default: module.MarkdownPanel,
+      })),
+    ),
+    editor: MarkdownEditor,
+  });
 }
 
 export {
@@ -89,6 +123,17 @@ export {
   type GaugeSpec,
 } from "./gauge/options";
 export { tableSpecSchema, type TableSpec } from "./table/TablePanel";
+export { buildBarOption, barSpecSchema, type BarSpec } from "./bar/options";
+export {
+  buildHeatmapOption,
+  heatmapSpecSchema,
+  toHeatmapBuckets,
+  type HeatmapSpec,
+} from "./heatmap/options";
+export {
+  markdownSpecSchema,
+  type MarkdownSpec,
+} from "./markdown/options";
 export { TimeSeriesEditor } from "./time-series/editor";
 export { StatEditor } from "./stat/editor";
 export { GaugeEditor } from "./gauge/editor";

@@ -114,6 +114,55 @@ const config = defineConfig({
       gap: "1",
       alignItems: "center",
     },
+    // Markdown panel typography (the global reset strips element defaults).
+    ".polaris-markdown": {
+      padding: "3",
+      fontSize: "sm",
+      color: "fg",
+      overflowY: "auto",
+      height: "100%",
+      "& h1, & h2, & h3": {
+        fontWeight: "semibold",
+        marginTop: "3",
+        marginBottom: "1",
+      },
+      "& h1": { fontSize: "lg" },
+      "& h2": { fontSize: "md" },
+      "& h3": { fontSize: "sm" },
+      "& h1:first-child, & h2:first-child, & h3:first-child": {
+        marginTop: "0",
+      },
+      "& p": { marginBottom: "2" },
+      "& ul, & ol": { paddingLeft: "5", marginBottom: "2" },
+      "& ul": { listStyleType: "disc" },
+      "& ol": { listStyleType: "decimal" },
+      "& a": {
+        color: "blue.600",
+        textDecoration: "underline",
+        _dark: { color: "blue.400" },
+      },
+      "& code": {
+        fontFamily: "mono",
+        fontSize: "xs",
+        backgroundColor: "bg.muted",
+        paddingX: "1",
+        borderRadius: "xs",
+      },
+      "& pre": {
+        backgroundColor: "bg.muted",
+        padding: "2",
+        borderRadius: "sm",
+        overflowX: "auto",
+        marginBottom: "2",
+      },
+      "& blockquote": {
+        borderLeftWidth: "3px",
+        borderColor: "border",
+        paddingLeft: "3",
+        color: "fg.muted",
+        marginBottom: "2",
+      },
+    },
     // Dashboard editor grid: hover-revealed panel actions and a themed
     // react-grid-layout drop placeholder.
     ".polaris-editor-item": {

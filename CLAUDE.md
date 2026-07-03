@@ -19,8 +19,9 @@ pnpm monorepo (TypeScript, React 19, strict tsconfig) + a Go backend:
 - `packages/datasource-prometheus` — HTTP impl of the interface (native
   Prometheus API paths) + `PrometheusLabelValuesVariable` source.
 - `packages/panels-builtin` — panel plugins: TimeSeriesChart, StatChart,
-  GaugeChart, Table (ECharts via `echarts/core`; Stat/Table are plain
-  HTML/SVG) + their options-form editors (plain HTML `polaris-field*`
+  GaugeChart, Table, BarChart, HeatmapChart, Markdown (ECharts via
+  `echarts/core`; Stat/Table/Markdown are plain HTML/SVG) + their
+  options-form editors (plain HTML `polaris-field*`
   controls). Chart theme tokens live here (`ChartThemeProvider`).
 - `packages/promql-editor` — CodeMirror PromQL editor
   (`@prometheus-io/codemirror-promql`).
@@ -128,6 +129,6 @@ edit ops in `packages/model/src/edit.ts`), bundle code-splitting
 (initial load 195 kB gzip), and Docker packaging (Dockerfile + compose
 with a demo Prometheus).
 
-Not started: Grafana importer, heatmap/bar panels, git-log dashboard
-history, annotations, the bleemeo-panel embedding POC (DESIGN.md §9), and
-the public-naming check ("Polaris" trademark, §12).
+Not started: Grafana importer, git-log dashboard history, annotations,
+simple auth in the OSS binary, the bleemeo-panel embedding POC (DESIGN.md
+§9), and the public-naming check ("Polaris" trademark, §12).

@@ -18,6 +18,7 @@
   "dependencies": {
     "@polarisui/runtime": "workspace:*",
     "echarts": "^6.1.0",
+    "react-markdown": "^10.1.0",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
