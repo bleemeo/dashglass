@@ -152,18 +152,26 @@ function textValues(variables: Variable[]): VariableValues {
 
 export interface VariablesProviderProps {
   variables?: Variable[] | undefined;
+  /**
+   * Seed values (e.g. restored from the URL), taking precedence over the
+   * variables' own defaults. Read once at mount.
+   */
+  initialValues?: VariableValues | undefined;
   children: ReactNode;
 }
 
 export function VariablesProvider({
   variables = [],
+  initialValues,
   children,
 }: VariablesProviderProps) {
   const { datasource, registries } = useRuntime();
   const { resolved } = useTimeRange();
-  const [values, setValues] = useState<VariableValues>(() =>
-    textValues(variables),
-  );
+  const initialRef = useRef(initialValues);
+  const [values, setValues] = useState<VariableValues>(() => ({
+    ...textValues(variables),
+    ...initialRef.current,
+  }));
   const [options, setOptions] = useState<Record<string, string[]>>({});
   const listVariables = variables.filter((v) => v.kind === "ListVariable");
   const [loading, setLoading] = useState(listVariables.length > 0);
@@ -175,7 +183,7 @@ export function VariablesProvider({
   resolvedRef.current = resolved;
 
   useEffect(() => {
-    setValues(textValues(variables));
+    setValues({ ...textValues(variables), ...initialRef.current });
     const listVariables = variables.filter((v) => v.kind === "ListVariable");
     if (listVariables.length === 0) {
       setOptions({});

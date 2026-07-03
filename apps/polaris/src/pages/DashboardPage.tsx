@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { Button, Flex, Heading, Text } from "@chakra-ui/react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { parseDashboard, type Dashboard, type Duration } from "@polarisui/model";
 import {
@@ -15,11 +15,17 @@ import { useDashboardFile } from "../api/hooks";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useKeyShortcut } from "../hooks/useShortcuts";
 import { TimeRangeControls } from "../components/TimeRangeControls";
+import {
+  URLStateSync,
+  rangeFromParams,
+  variablesFromParams,
+} from "../components/URLStateSync";
 import { VariablesToolbar } from "../components/VariablesToolbar";
 import { CodeIcon, EditIcon } from "../components/icons";
 
 function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [refreshInterval, setRefreshInterval] = useState<Duration | "off">(
     dashboard.spec.refreshInterval ?? "off",
   );
@@ -28,12 +34,22 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
     void navigate(`/d/${encodeURIComponent(name)}/edit`),
   );
 
+  // Read once at mount: afterwards URLStateSync mirrors state → URL.
+  const [urlState] = useState(() => ({
+    range: rangeFromParams(searchParams),
+    variables: variablesFromParams(searchParams),
+  }));
+
   return (
     <TimeRangeProvider
-      initialRange={defaultTimeRange(dashboard)}
+      initialRange={urlState.range ?? defaultTimeRange(dashboard)}
       refreshInterval={refreshInterval === "off" ? undefined : refreshInterval}
     >
-      <VariablesProvider variables={dashboard.spec.variables}>
+      <VariablesProvider
+        variables={dashboard.spec.variables}
+        initialValues={urlState.variables}
+      >
+        <URLStateSync />
         <Flex direction="column" gap={4} height="100%">
           <Flex justifyContent="space-between" alignItems="center" wrap="wrap" gap={2}>
             <Heading size="lg">
