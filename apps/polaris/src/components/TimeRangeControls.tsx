@@ -1,4 +1,4 @@
-import { Button, Flex } from "@chakra-ui/react";
+import { Flex, IconButton, NativeSelect } from "@chakra-ui/react";
 
 import {
   isRelativeTimeRange,
@@ -6,6 +6,8 @@ import {
   type TimeRange,
 } from "@polarisui/runtime";
 import type { Duration } from "@polarisui/model";
+
+import { RefreshIcon } from "./icons";
 
 const RANGES: { label: string; value: Duration }[] = [
   { label: "Last 5m", value: "5m" },
@@ -34,36 +36,50 @@ export function TimeRangeControls({
 
   return (
     <Flex gap={2} alignItems="center">
-      <select
-        aria-label="Time range"
-        value={rangeValue(range)}
-        onChange={(event) => setRange({ pastDuration: event.target.value })}
+      <NativeSelect.Root size="sm" width="auto">
+        <NativeSelect.Field
+          aria-label="Time range"
+          fontWeight="medium"
+          value={rangeValue(range)}
+          onChange={(event) => setRange({ pastDuration: event.target.value })}
+        >
+          {RANGES.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+          {rangeValue(range) === "custom" ? (
+            <option value="custom">Custom</option>
+          ) : null}
+        </NativeSelect.Field>
+        <NativeSelect.Indicator />
+      </NativeSelect.Root>
+      <NativeSelect.Root size="sm" width="auto">
+        <NativeSelect.Field
+          aria-label="Auto-refresh"
+          color="fg.muted"
+          value={refreshInterval}
+          onChange={(event) =>
+            onRefreshIntervalChange(event.target.value as Duration | "off")
+          }
+        >
+          <option value="off">No refresh</option>
+          <option value="10s">10s</option>
+          <option value="30s">30s</option>
+          <option value="1m">1m</option>
+          <option value="5m">5m</option>
+        </NativeSelect.Field>
+        <NativeSelect.Indicator />
+      </NativeSelect.Root>
+      <IconButton
+        size="sm"
+        variant="outline"
+        aria-label="Refresh now"
+        title="Refresh now"
+        onClick={refresh}
       >
-        {RANGES.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-        {rangeValue(range) === "custom" ? (
-          <option value="custom">Custom</option>
-        ) : null}
-      </select>
-      <select
-        aria-label="Auto-refresh"
-        value={refreshInterval}
-        onChange={(event) =>
-          onRefreshIntervalChange(event.target.value as Duration | "off")
-        }
-      >
-        <option value="off">No refresh</option>
-        <option value="10s">10s</option>
-        <option value="30s">30s</option>
-        <option value="1m">1m</option>
-        <option value="5m">5m</option>
-      </select>
-      <Button size="xs" variant="outline" onClick={refresh}>
-        Refresh
-      </Button>
+        <RefreshIcon />
+      </IconButton>
     </Flex>
   );
 }

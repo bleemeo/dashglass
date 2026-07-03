@@ -9,6 +9,8 @@ import {
 } from "@chakra-ui/react";
 import { Link, useNavigate } from "react-router";
 
+import { PlusIcon } from "../components/icons";
+
 import {
   useCapabilities,
   useDashboards,
@@ -86,7 +88,7 @@ function NewDashboardButton() {
 
   return (
     <Button size="sm" onClick={create}>
-      New dashboard
+      <PlusIcon /> New dashboard
     </Button>
   );
 }

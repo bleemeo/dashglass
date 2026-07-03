@@ -14,6 +14,7 @@ import {
 import { useDashboardFile } from "../api/hooks";
 import { TimeRangeControls } from "../components/TimeRangeControls";
 import { VariablesToolbar } from "../components/VariablesToolbar";
+import { CodeIcon, EditIcon } from "../components/icons";
 
 function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string }) {
   const [refreshInterval, setRefreshInterval] = useState<Duration | "off">(
@@ -36,11 +37,15 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
                 refreshInterval={refreshInterval}
                 onRefreshIntervalChange={setRefreshInterval}
               />
-              <Button size="xs" variant="outline" asChild>
-                <Link to={`/d/${encodeURIComponent(name)}/edit`}>Edit</Link>
+              <Button size="sm" variant="outline" asChild>
+                <Link to={`/d/${encodeURIComponent(name)}/edit`}>
+                  <EditIcon /> Edit
+                </Link>
               </Button>
-              <Button size="xs" variant="ghost" asChild>
-                <Link to={`/d/${encodeURIComponent(name)}/code`}>Code</Link>
+              <Button size="sm" variant="ghost" asChild>
+                <Link to={`/d/${encodeURIComponent(name)}/code`}>
+                  <CodeIcon /> Code
+                </Link>
               </Button>
             </Flex>
           </Flex>

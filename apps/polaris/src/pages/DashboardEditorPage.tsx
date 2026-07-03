@@ -39,6 +39,7 @@ import {
   useSaveDashboard,
 } from "../api/hooks";
 import { PanelEditorDrawer } from "../components/editor/PanelEditorDrawer";
+import { CodeIcon, PlusIcon } from "../components/icons";
 
 function newTimeSeriesPanel(): Panel {
   return {
@@ -89,7 +90,7 @@ function SectionEditor({
           onChange={(event) => onTitleChange(event.target.value)}
         />
         <Button size="xs" variant="outline" onClick={onAddPanel}>
-          + Panel
+          <PlusIcon /> Panel
         </Button>
       </Flex>
       <Box ref={containerRef}>
@@ -210,7 +211,7 @@ function EditorView({
             <Flex gap={2}>
               <Button size="sm" variant="ghost" asChild>
                 <Link to={`/d/${encodeURIComponent(name)}/code`}>
-                  Edit as code
+                  <CodeIcon /> Edit as code
                 </Link>
               </Button>
               <Button
@@ -306,7 +307,7 @@ function EditorView({
               alignSelf="flex-start"
               onClick={() => setDraft((current) => addLayout(current))}
             >
-              + Section
+              <PlusIcon /> Section
             </Button>
           </Flex>
 
