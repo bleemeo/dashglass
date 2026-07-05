@@ -17,7 +17,7 @@ import {
   type PrometheusDataSource,
   type TimeRange,
 } from "./datasource";
-import type { VariableValues } from "./interpolate";
+import { interpolate, type VariableValues } from "./interpolate";
 import { QueryOrchestrator } from "./orchestrator";
 import type { Registries } from "./registries";
 
@@ -150,6 +150,31 @@ function textValues(variables: Variable[]): VariableValues {
   return values;
 }
 
+/**
+ * Deep-interpolates every string in a variable source's spec with the
+ * current variable values, so a chained matcher such as
+ * `up{instance=~"$instance"}` resolves before the source queries. The spec
+ * is plugin-opaque, so this walks it generically rather than assuming
+ * field names.
+ */
+function interpolateSpec(spec: unknown, values: VariableValues): unknown {
+  if (typeof spec === "string") {
+    return interpolate(spec, values);
+  }
+  if (Array.isArray(spec)) {
+    return spec.map((item) => interpolateSpec(item, values));
+  }
+  if (spec && typeof spec === "object") {
+    return Object.fromEntries(
+      Object.entries(spec).map(([key, value]) => [
+        key,
+        interpolateSpec(value, values),
+      ]),
+    );
+  }
+  return spec;
+}
+
 export interface VariablesProviderProps {
   variables?: Variable[] | undefined;
   /**
@@ -182,53 +207,116 @@ export function VariablesProvider({
   const resolvedRef = useRef(resolved);
   resolvedRef.current = resolved;
 
+  // Interpolated spec last used to load each variable's options; lets a
+  // dependent variable ("chained": its matcher references $another) reload
+  // only when its resolved spec actually changes, and stops the load →
+  // setValues → effect loop for variables whose spec is unaffected.
+  const loadedSpecs = useRef<Record<string, string>>({});
+
+  // When the variable definitions themselves change (e.g. editing the
+  // dashboard), reseed text values and force every list to reload.
+  const definitionsKey = JSON.stringify(variables);
   useEffect(() => {
+    loadedSpecs.current = {};
     setValues({ ...textValues(variables), ...initialRef.current });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by definitionsKey
+  }, [definitionsKey]);
+
+  const valuesKey = JSON.stringify(values);
+  useEffect(() => {
     const listVariables = variables.filter((v) => v.kind === "ListVariable");
     if (listVariables.length === 0) {
       setOptions({});
+      loadedSpecs.current = {};
       setLoading(false);
       return;
+    }
+
+    // Names of list variables in this dashboard: a spec still mentioning
+    // one of them (as $name / ${name}) after interpolation is waiting on a
+    // parent that has not loaded yet — defer it rather than query with a
+    // half-resolved matcher.
+    const listNames = listVariables.map((v) => v.spec.name);
+    const stillReferences = (key: string) =>
+      listNames.some((name) =>
+        new RegExp(`\\$\\{?${name}\\b`).test(key),
+      );
+
+    // A variable is (re)loaded when its spec, interpolated with the current
+    // variable values, differs from what it was last loaded with.
+    const pending = listVariables
+      .map((variable) => {
+        const spec = interpolateSpec(
+          variable.spec.plugin.spec ?? {},
+          values,
+        ) as Record<string, unknown>;
+        return { variable, spec, key: JSON.stringify(spec) };
+      })
+      .filter(
+        ({ variable, key }) =>
+          loadedSpecs.current[variable.spec.name] !== key &&
+          !stillReferences(key),
+      );
+    if (pending.length === 0) {
+      return; // nothing depends on what changed → no reload, no loop
     }
     setLoading(true);
     let cancelled = false;
 
     Promise.all(
-      listVariables.map(async (variable) => {
+      pending.map(async ({ variable, spec, key }) => {
         const plugin = registries.variableSources.get(variable.spec.plugin.kind);
         const loaded = plugin
           ? await plugin
-              .loadValues(variable.spec.plugin.spec ?? {}, {
+              .loadValues(spec, {
                 datasource,
                 timeRange: resolvedRef.current,
               })
               .catch(() => [])
           : [];
-        return [variable, loaded] as const;
+        return { variable, loaded, key } as const;
       }),
     ).then((results) => {
       if (cancelled) {
         return;
       }
-      const loadedOptions: Record<string, string[]> = {};
-      const defaults: VariableValues = {};
-      for (const [variable, loaded] of results) {
-        const spec = variable.spec;
-        loadedOptions[spec.name] = loaded;
-        defaults[spec.name] =
-          spec.defaultValue ??
-          (spec.allowAllValue ? ".+" : (loaded[0] ?? ""));
+      setOptions((current) => {
+        const next = { ...current };
+        for (const { variable, loaded } of results) {
+          next[variable.spec.name] = loaded;
+        }
+        return next;
+      });
+      setValues((current) => {
+        const next = { ...current };
+        for (const { variable, loaded } of results) {
+          const spec = variable.spec;
+          const chosen =
+            spec.defaultValue ??
+            (spec.allowAllValue ? ".+" : (loaded[0] ?? ""));
+          const existing = next[spec.name];
+          // Keep the current selection if it is still a valid option;
+          // otherwise fall back to the default (a chained child whose
+          // parent changed usually needs resetting).
+          const stillValid =
+            typeof existing === "string" &&
+            existing !== "" &&
+            (existing === ".+" || loaded.includes(existing));
+          next[spec.name] = stillValid ? existing : chosen;
+        }
+        return next;
+      });
+      for (const { variable, key } of results) {
+        loadedSpecs.current[variable.spec.name] = key;
       }
-      setOptions(loadedOptions);
-      setValues((current) => ({ ...defaults, ...current }));
       setLoading(false);
     });
 
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the variable definitions change
-  }, [JSON.stringify(variables), datasource, registries]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- valuesKey drives chained reloads; JSON keys keep it stable
+  }, [JSON.stringify(variables), valuesKey, datasource, registries]);
 
   const value = useMemo<VariablesContextValue>(
     () => ({
