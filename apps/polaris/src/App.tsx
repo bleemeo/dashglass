@@ -74,18 +74,26 @@ function SideBar({
     >
       <Flex
         alignItems="center"
+        direction={collapsed ? "column" : "row"}
         justifyContent={collapsed ? "center" : "space-between"}
+        gap={collapsed ? 1 : 0}
         marginBottom={4}
         minHeight="24px"
       >
         {collapsed ? (
-          toggle
+          <>
+            {toggle}
+            <ColorModeButton />
+          </>
         ) : (
           <>
             <Heading size="md" whiteSpace="nowrap">
               ✦ Polaris
             </Heading>
-            {toggle}
+            <Flex alignItems="center" gap={0.5}>
+              <ColorModeButton />
+              {toggle}
+            </Flex>
           </>
         )}
       </Flex>
@@ -138,19 +146,12 @@ function SideBar({
       ) : null}
       <Box flex={1} />
       {authEnabled ? <UserMenu collapsed={collapsed} /> : null}
-      <Flex
-        alignItems="center"
-        justifyContent={collapsed ? "center" : "space-between"}
-        gap={2}
-      >
-        {collapsed ? null : (
-          <Text fontSize="xs" color="fg.muted" whiteSpace="nowrap">
-            {capabilities.data?.readonly ? "read-only · " : ""}
-            {capabilities.data?.version ?? ""}
-          </Text>
-        )}
-        <ColorModeButton />
-      </Flex>
+      {collapsed ? null : (
+        <Text fontSize="xs" color="fg.muted" whiteSpace="nowrap">
+          {capabilities.data?.readonly ? "read-only · " : ""}
+          {capabilities.data?.version ?? ""}
+        </Text>
+      )}
     </Flex>
   );
 }
