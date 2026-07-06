@@ -113,7 +113,13 @@ export {
   type TimeSeriesSpec,
   type TooltipParam,
 } from "./time-series/options";
-export { statSpecSchema, type StatSpec } from "./stat/StatChart";
+export { statSpecSchema, statValueColor, type StatSpec } from "./stat/StatChart";
+export {
+  thresholdStatus,
+  thresholdsSchema,
+  type Threshold,
+  type ThresholdStatus,
+} from "./thresholds";
 export {
   calculate,
   calculationSchema,

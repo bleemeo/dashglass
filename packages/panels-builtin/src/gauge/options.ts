@@ -2,24 +2,14 @@ import { z } from "zod";
 
 import type { EChartsCoreOption } from "../echarts-setup";
 import type { ChartTheme } from "../theme";
+import { thresholdStatus, thresholdsSchema } from "../thresholds";
 import { formatValue, type Unit, unitSchema } from "../units";
 
 export const gaugeSpecSchema = z.object({
   unit: unitSchema.optional(),
   min: z.number().optional(),
   max: z.number().optional(),
-  /**
-   * Ordered status boundaries: the gauge is "good" below the first value,
-   * then takes each threshold's status from its value upward.
-   */
-  thresholds: z
-    .array(
-      z.object({
-        value: z.number(),
-        status: z.enum(["warning", "serious", "critical"]),
-      }),
-    )
-    .optional(),
+  thresholds: thresholdsSchema.optional(),
 });
 
 export type GaugeSpec = z.infer<typeof gaugeSpecSchema>;
@@ -29,13 +19,7 @@ export function gaugeStatus(
   value: number,
   spec: GaugeSpec,
 ): "good" | "warning" | "serious" | "critical" {
-  let status: "good" | "warning" | "serious" | "critical" = "good";
-  for (const threshold of spec.thresholds ?? []) {
-    if (value >= threshold.value) {
-      status = threshold.status;
-    }
-  }
-  return status;
+  return thresholdStatus(value, spec.thresholds ?? []);
 }
 
 export function buildGaugeOption(

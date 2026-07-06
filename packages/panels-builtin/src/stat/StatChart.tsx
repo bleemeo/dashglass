@@ -6,6 +6,7 @@ import type { PanelProps, TimeSeries } from "@polarisui/runtime";
 import { NoData } from "../NoData";
 import { parseSpec } from "../spec";
 import { seriesColor, useChartTheme, type ChartTheme } from "../theme";
+import { thresholdStatus, thresholdsSchema } from "../thresholds";
 import { formatValue, unitSchema } from "../units";
 import { calculate, calculationSchema } from "./calculations";
 
@@ -14,9 +15,23 @@ export const statSpecSchema = z.object({
   decimals: z.number().int().min(0).max(6).optional(),
   calculation: calculationSchema.optional(),
   sparkline: z.boolean().optional(),
+  thresholds: thresholdsSchema.optional(),
 });
 
 export type StatSpec = z.infer<typeof statSpecSchema>;
+
+/** Hero-number color: the status ramp when thresholds are set (a disk at
+ * 95% must read as red without reading the number), neutral otherwise. */
+export function statValueColor(
+  value: number | null,
+  spec: StatSpec,
+  theme: ChartTheme,
+): string {
+  if (value === null || !spec.thresholds?.length) {
+    return theme.ink.primary;
+  }
+  return theme.status[thresholdStatus(value, spec.thresholds)];
+}
 
 /** A dependency-free sparkline: a normalized SVG polyline, no axes. */
 function Sparkline({
@@ -101,7 +116,7 @@ export function StatChart({ spec, data }: PanelProps) {
           fontSize: "clamp(20px, 5vw, 42px)",
           fontWeight: 600,
           lineHeight: 1.1,
-          color: theme.ink.primary,
+          color: statValueColor(value, parsed, theme),
         }}
       >
         {formatValue(value, parsed.unit ?? "none", parsed.decimals)}

@@ -7,6 +7,7 @@ import {
   UNIT_OPTIONS,
   withSpecValue,
 } from "../editor/controls";
+import { ThresholdsEditor } from "../editor/ThresholdsEditor";
 import { parseSpec } from "../spec";
 import { statSpecSchema } from "./StatChart";
 
@@ -48,6 +49,12 @@ export function StatEditor({ spec: rawSpec, onChange }: PanelSpecEditorProps) {
         checked={spec.sparkline ?? false}
         onChange={(sparkline) =>
           onChange(withSpecValue(rawSpec, "sparkline", sparkline))
+        }
+      />
+      <ThresholdsEditor
+        thresholds={spec.thresholds ?? []}
+        onChange={(thresholds) =>
+          onChange(withSpecValue(rawSpec, "thresholds", thresholds))
         }
       />
     </div>

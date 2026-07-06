@@ -9,6 +9,7 @@ import {
   calculate,
   gaugeStatus,
   lightChartTheme,
+  statValueColor,
   type TooltipParam,
 } from "../src";
 
@@ -174,5 +175,33 @@ describe("buildTooltipHTML", () => {
     );
     expect(html).toContain("&lt;b&gt;");
     expect(html).not.toContain('label="<b>"');
+  });
+});
+
+describe("statValueColor", () => {
+  const thresholds = [
+    { value: 70, status: "warning" as const },
+    { value: 90, status: "critical" as const },
+  ];
+
+  it("stays neutral without thresholds or without a value", () => {
+    expect(statValueColor(95, {}, lightChartTheme)).toBe(
+      lightChartTheme.ink.primary,
+    );
+    expect(statValueColor(null, { thresholds }, lightChartTheme)).toBe(
+      lightChartTheme.ink.primary,
+    );
+  });
+
+  it("uses the status ramp when thresholds are set", () => {
+    expect(statValueColor(50, { thresholds }, lightChartTheme)).toBe(
+      lightChartTheme.status.good,
+    );
+    expect(statValueColor(75, { thresholds }, lightChartTheme)).toBe(
+      lightChartTheme.status.warning,
+    );
+    expect(statValueColor(95, { thresholds }, lightChartTheme)).toBe(
+      lightChartTheme.status.critical,
+    );
   });
 });
