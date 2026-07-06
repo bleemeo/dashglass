@@ -9,7 +9,7 @@ export interface VariablesToolbarProps {
 
 /** Selectors for dashboard variables; renders nothing without any. */
 export function VariablesToolbar({ variables }: VariablesToolbarProps) {
-  const { values, options, setValue } = useVariables();
+  const { values, options, setValue, loading, errors } = useVariables();
 
   const editable = variables.filter(
     (variable) =>
@@ -32,7 +32,12 @@ export function VariablesToolbar({ variables }: VariablesToolbarProps) {
               {label}
             </Text>
             {variable.kind === "ListVariable" ? (
-              <NativeSelect.Root size="xs" width="auto">
+              <NativeSelect.Root
+                size="xs"
+                width="auto"
+                disabled={loading}
+                aria-busy={loading}
+              >
                 <NativeSelect.Field
                   aria-label={label}
                   value={Array.isArray(value) ? value[0] : (value ?? "")}
@@ -58,6 +63,18 @@ export function VariablesToolbar({ variables }: VariablesToolbarProps) {
                 onChange={(event) => setValue(name, event.target.value)}
               />
             )}
+            {errors[name] ? (
+              <Text
+                fontSize="sm"
+                color="fg.error"
+                cursor="help"
+                role="img"
+                aria-label={`Failed to load values for ${label}`}
+                title={`Failed to load values: ${errors[name]}`}
+              >
+                ⚠
+              </Text>
+            ) : null}
           </Flex>
         );
       })}
