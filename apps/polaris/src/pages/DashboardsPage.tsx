@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Badge,
   Button,
+  CloseButton,
   Flex,
   Heading,
+  Input,
+  InputGroup,
   Link as ChakraLink,
   Table,
   Text,
 } from "@chakra-ui/react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 
 import { getDashboardFile, putDashboard } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -18,6 +21,8 @@ import { RenameDashboardDialog } from "../components/RenameDashboardDialog";
 import { DashboardsIcon, PlusIcon } from "../components/icons";
 import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { useKeyShortcut } from "../hooks/useShortcuts";
+import { filterDashboards } from "../lib/dashboardFilter";
 
 import {
   useDashboards,
@@ -35,6 +40,16 @@ export function DashboardsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   usePageTitle("Dashboards");
+
+  // The filter lives in the URL (?q=) so a filtered list is shareable.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get("q") ?? "";
+  const setQuery = (value: string) =>
+    setSearchParams(value === "" ? {} : { q: value }, { replace: true });
+  const filterRef = useRef<HTMLInputElement>(null);
+  useKeyShortcut("/", () => filterRef.current?.focus());
+
+  const visible = filterDashboards(dashboards.data ?? [], query);
 
   return (
     <Flex direction="column" gap={4}>
@@ -102,6 +117,39 @@ export function DashboardsPage() {
         />
       ) : null}
 
+      {dashboards.data?.length ? (
+        <InputGroup
+          maxWidth="320px"
+          endElement={
+            query !== "" ? (
+              <CloseButton
+                size="2xs"
+                aria-label="Clear filter"
+                onClick={() => {
+                  setQuery("");
+                  filterRef.current?.focus();
+                }}
+              />
+            ) : undefined
+          }
+        >
+          <Input
+            ref={filterRef}
+            size="sm"
+            placeholder="Filter dashboards…"
+            title="Press / to focus"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setQuery("");
+                event.currentTarget.blur();
+              }
+            }}
+          />
+        </InputGroup>
+      ) : null}
+
       {dashboards.isLoading ? <Text>Loading…</Text> : null}
       {dashboards.error ? (
         <Text color="fg.error">{String(dashboards.error)}</Text>
@@ -132,7 +180,22 @@ export function DashboardsPage() {
         </Flex>
       ) : null}
 
-      {dashboards.data?.length ? (
+      {dashboards.data?.length && visible.length === 0 ? (
+        <Flex
+          direction="column"
+          alignItems="center"
+          gap={3}
+          paddingY={16}
+          color="fg.muted"
+        >
+          <Text>No dashboards match "{query}".</Text>
+          <Button size="sm" variant="outline" onClick={() => setQuery("")}>
+            Clear filter
+          </Button>
+        </Flex>
+      ) : null}
+
+      {visible.length ? (
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row>
@@ -143,7 +206,7 @@ export function DashboardsPage() {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {[...dashboards.data]
+            {[...visible]
               .sort((a, b) => {
                 // Root dashboards first, then folders alphabetically.
                 const folderA = a.name.includes("/") ? a.name.split("/")[0]! : "";
