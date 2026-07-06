@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { EChartsCoreOption } from "../echarts-setup";
-import type { ChartTheme } from "../theme";
+import { withAlpha, type ChartTheme } from "../theme";
 import { thresholdStatus, thresholdsSchema } from "../thresholds";
 import { formatValue, type Unit, unitSchema } from "../units";
 
@@ -20,6 +20,35 @@ export function gaugeStatus(
   spec: GaugeSpec,
 ): "good" | "warning" | "serious" | "critical" {
   return thresholdStatus(value, spec.thresholds ?? []);
+}
+
+/**
+ * Background-track segments marking the threshold zones, as ECharts
+ * axisLine color stops ([fraction, color]). Tinted status colors: the
+ * progress arc drawn on top keeps the full-strength one, so "how close
+ * is the value to the next state" is readable at a glance. Exported for
+ * tests.
+ */
+export function gaugeTrackStops(
+  spec: GaugeSpec,
+  theme: ChartTheme,
+): [number, string][] | null {
+  const thresholds = spec.thresholds ?? [];
+  if (thresholds.length === 0) {
+    return null;
+  }
+  const min = spec.min ?? 0;
+  const max = spec.max ?? 100;
+  const span = max - min || 1;
+  const stops: [number, string][] = [];
+  let zoneColor = theme.status.good;
+  for (const threshold of thresholds) {
+    const at = Math.min(Math.max((threshold.value - min) / span, 0), 1);
+    stops.push([at, withAlpha(zoneColor, 0.25)]);
+    zoneColor = theme.status[threshold.status];
+  }
+  stops.push([1, withAlpha(zoneColor, 0.25)]);
+  return stops;
 }
 
 export function buildGaugeOption(
@@ -56,7 +85,10 @@ export function buildGaugeOption(
         },
         axisLine: {
           roundCap: true,
-          lineStyle: { width: 12, color: [[1, theme.gridline]] },
+          lineStyle: {
+            width: 12,
+            color: gaugeTrackStops(spec, theme) ?? [[1, theme.gridline]],
+          },
         },
         axisTick: { show: false },
         splitLine: { show: false },

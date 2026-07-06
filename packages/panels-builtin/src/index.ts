@@ -96,6 +96,7 @@ export {
   lightChartTheme,
   seriesColor,
   useChartTheme,
+  withAlpha,
   type ChartTheme,
 } from "./theme";
 export { formatValue, type Unit } from "./units";
@@ -129,9 +130,15 @@ export {
   buildGaugeOption,
   gaugeSpecSchema,
   gaugeStatus,
+  gaugeTrackStops,
   type GaugeSpec,
 } from "./gauge/options";
-export { tableSpecSchema, type TableSpec } from "./table/TablePanel";
+export {
+  sortTableRows,
+  tableSpecSchema,
+  type TableRow,
+  type TableSpec,
+} from "./table/TablePanel";
 export { buildBarOption, barSpecSchema, type BarSpec } from "./bar/options";
 export {
   buildHeatmapOption,

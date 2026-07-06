@@ -8,8 +8,11 @@ import {
   buildTooltipHTML,
   calculate,
   gaugeStatus,
+  gaugeTrackStops,
   lightChartTheme,
+  sortTableRows,
   statValueColor,
+  withAlpha,
   type TooltipParam,
 } from "../src";
 
@@ -116,6 +119,29 @@ describe("gauge", () => {
       lightChartTheme.series[0],
     );
   });
+
+  it("marks threshold zones on the background track", () => {
+    const stops = gaugeTrackStops(spec, lightChartTheme)!;
+    // Zones: good up to 70%, warning up to 90%, critical to the end —
+    // tinted so the full-strength progress arc stays readable on top.
+    expect(stops.map(([at]) => at)).toEqual([0.7, 0.9, 1]);
+    // Tinted status colors, in zone order: good, warning, critical.
+    expect(stops.map(([, color]) => color)).toEqual([
+      withAlpha(lightChartTheme.status.good, 0.25),
+      withAlpha(lightChartTheme.status.warning, 0.25),
+      withAlpha(lightChartTheme.status.critical, 0.25),
+    ]);
+    // No thresholds → no zones (plain gridline track).
+    expect(gaugeTrackStops({}, lightChartTheme)).toBeNull();
+  });
+
+  it("clamps threshold zones into the min/max span", () => {
+    const stops = gaugeTrackStops(
+      { min: 0, max: 80, thresholds: [{ value: 100, status: "critical" }] },
+      lightChartTheme,
+    )!;
+    expect(stops.map(([at]) => at)).toEqual([1, 1]);
+  });
 });
 
 describe("buildTooltipHTML", () => {
@@ -175,6 +201,41 @@ describe("buildTooltipHTML", () => {
     );
     expect(html).toContain("&lt;b&gt;");
     expect(html).not.toContain('label="<b>"');
+  });
+});
+
+describe("sortTableRows", () => {
+  const rows = [
+    { labels: { instance: "host-b" }, value: 2 },
+    { labels: { instance: "host-a" }, value: null },
+    { labels: { instance: "host-c" }, value: 9 },
+  ];
+
+  it("sorts by a label column in both directions", () => {
+    expect(
+      sortTableRows(rows, "instance", 1).map((r) => r.labels["instance"]),
+    ).toEqual(["host-a", "host-b", "host-c"]);
+    expect(
+      sortTableRows(rows, "instance", -1).map((r) => r.labels["instance"]),
+    ).toEqual(["host-c", "host-b", "host-a"]);
+  });
+
+  it("sorts by value with nulls as smallest", () => {
+    expect(sortTableRows(rows, null, 1).map((r) => r.value)).toEqual([
+      null,
+      2,
+      9,
+    ]);
+    expect(sortTableRows(rows, null, -1).map((r) => r.value)).toEqual([
+      9,
+      2,
+      null,
+    ]);
+  });
+
+  it("does not mutate the input", () => {
+    sortTableRows(rows, null, -1);
+    expect(rows[0]?.labels["instance"]).toBe("host-b");
   });
 });
 

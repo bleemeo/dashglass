@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { TimeSeries } from "@polarisui/runtime";
 
 import type { EChartsCoreOption } from "../echarts-setup";
-import { seriesColor, type ChartTheme } from "../theme";
+import { seriesColor, withAlpha, type ChartTheme } from "../theme";
 import { formatValue, type Unit, unitSchema } from "../units";
 
 export const timeSeriesSpecSchema = z.object({
@@ -24,14 +24,6 @@ export const timeSeriesSpecSchema = z.object({
 export type TimeSeriesSpec = z.infer<typeof timeSeriesSpecSchema>;
 
 const PALETTE_SIZE = 8;
-
-/** "#rrggbb" → "rgba(r,g,b,alpha)". */
-function withAlpha(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
 
 /** Tooltip row cap: past this, a "… N more series" line says what's cut. */
 const TOOLTIP_MAX_SERIES = 10;
