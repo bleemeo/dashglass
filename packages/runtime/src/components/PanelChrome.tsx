@@ -4,6 +4,7 @@ import type { Panel } from "@polarisui/model";
 
 import { useRuntime, useTimeRange } from "../context";
 import { usePanelData } from "../panel-data";
+import { PanelErrorBoundary } from "./PanelErrorBoundary";
 
 /**
  * Structure-only styling: the chrome exposes polaris-* class names and
@@ -96,7 +97,7 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
         </h3>
       </header>
       <div className="polaris-panel-body" style={bodyStyle}>
-        {body}
+        <PanelErrorBoundary resetKey={panel}>{body}</PanelErrorBoundary>
       </div>
     </section>
   );

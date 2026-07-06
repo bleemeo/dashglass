@@ -15,6 +15,7 @@ import { ColorModeProvider, polarisSystem, useColorMode } from "@polarisui/ui";
 
 import { App } from "./App";
 import { Toaster } from "./components/toaster";
+import { RouteErrorPage } from "./pages/RouteErrorPage";
 import { createAppSetup } from "./setup";
 
 const { registries, datasource } = createAppSetup();
@@ -25,7 +26,9 @@ const queryClient = new QueryClient({
 // A data router (not <BrowserRouter>) so editors can block in-app
 // navigation while they hold unsaved changes (useBlocker). The app keeps
 // its own <Routes> tree; this single splat route just anchors the router.
-const router = createBrowserRouter([{ path: "*", element: <App /> }]);
+const router = createBrowserRouter([
+  { path: "*", element: <App />, errorElement: <RouteErrorPage /> },
+]);
 
 /** Feeds the resolved color mode to the chart token set. */
 function ChartThemeBridge({ children }: { children: ReactNode }) {
