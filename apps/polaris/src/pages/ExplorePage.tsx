@@ -11,6 +11,7 @@ import {
   useTimeRange,
 } from "@polarisui/runtime";
 
+import { usePermissions } from "../api/hooks";
 import { AddToDashboardDialog } from "../components/AddToDashboardDialog";
 import { LazyPromQLEditor } from "../components/LazyPromQLEditor";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -84,6 +85,8 @@ export function ExplorePage() {
     "off",
   );
   const [adding, setAdding] = useState(false);
+  // Viewers (and provisioned readonly) can explore but not write.
+  const { canEdit } = usePermissions();
   const panel = useMemo(() => (query ? explorePanel(query) : null), [query]);
   const run = () => setQuery(draft.trim() || null);
 
@@ -116,14 +119,16 @@ export function ExplorePage() {
             <Button size="sm" onClick={run}>
               Run
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!query}
-              onClick={() => setAdding(true)}
-            >
-              <PlusIcon /> Add to dashboard
-            </Button>
+            {canEdit ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!query}
+                onClick={() => setAdding(true)}
+              >
+                <PlusIcon /> Add to dashboard
+              </Button>
+            ) : null}
           </Flex>
 
           {adding && query ? (

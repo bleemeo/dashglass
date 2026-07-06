@@ -16,6 +16,7 @@ import {
 import {
   useCapabilities,
   useDashboardFile,
+  usePermissions,
   useSaveDashboard,
 } from "../api/hooks";
 
@@ -31,7 +32,11 @@ export function EditDashboardPage() {
   const file = useDashboardFile(name);
   const save = useSaveDashboard(name);
   const capabilities = useCapabilities();
-  const readonly = capabilities.data?.readonly ?? false;
+  const provisioned = capabilities.data?.readonly ?? false;
+  // Also covers the viewer role: a deep link into the editor must not
+  // offer work that Save will refuse with a 403.
+  const { canEdit, loading: permissionsLoading } = usePermissions();
+  const readonly = !permissionsLoading && !canEdit;
 
   const [content, setContent] = useState<string | null>(null);
   useEffect(() => {
@@ -107,8 +112,9 @@ export function EditDashboardPage() {
 
       {readonly ? (
         <Text fontSize="sm" color="fg.muted">
-          Dashboards are provisioned read-only on this instance — edit the
-          file in git instead.
+          {provisioned
+            ? "Dashboards are provisioned read-only on this instance — edit the file in git instead."
+            : "Your role does not allow editing dashboards — changes cannot be saved."}
         </Text>
       ) : null}
 
