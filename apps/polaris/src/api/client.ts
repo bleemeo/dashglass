@@ -17,7 +17,7 @@ export interface Capabilities {
   readonly: boolean;
   formats: string[];
   prometheus: boolean;
-  auth?: { kind: "none" | "builtin" | "proxy" };
+  auth?: { kind: "none" | "builtin" | "proxy" | "oidc" };
   features?: { grafanaCom?: boolean };
 }
 

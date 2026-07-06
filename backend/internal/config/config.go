@@ -30,6 +30,8 @@ type Config struct {
 		File string `yaml:"file"`
 		// Trusted reverse-proxy authentication (DESIGN.md §7.4 phase 2).
 		Proxy auth.ProxyConfig `yaml:"proxy"`
+		// Native OpenID Connect login (DESIGN.md §7.4 phase 3).
+		OIDC auth.OIDCConfig `yaml:"oidc"`
 	} `yaml:"auth"`
 }
 

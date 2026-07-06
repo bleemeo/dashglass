@@ -30,6 +30,7 @@ type Server struct {
 	grafanaCom *grafanaComClient
 	auth       *auth.Store
 	proxyAuth  *auth.ProxyAuthenticator
+	oidc       *auth.OIDCAuthenticator
 	throttle   *auth.Throttle
 	settings   []Setting
 }
@@ -50,6 +51,8 @@ type Options struct {
 	// ProxyAuth, when set, makes trusted reverse-proxy headers the
 	// identity source (takes precedence over local sessions).
 	ProxyAuth *auth.ProxyAuthenticator
+	// OIDC, when set, enables native OpenID Connect login.
+	OIDC *auth.OIDCAuthenticator
 	// Settings is the effective configuration shown by the admin UI.
 	Settings []Setting
 }
@@ -62,6 +65,7 @@ func New(options Options) *Server {
 		version:   options.Version,
 		auth:      options.Auth,
 		proxyAuth: options.ProxyAuth,
+		oidc:      options.OIDC,
 		throttle:  auth.NewThrottle(),
 		settings:  options.Settings,
 	}
@@ -82,6 +86,8 @@ func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/auth/login", s.authLogin)
 	mux.HandleFunc("POST /api/auth/logout", s.authLogout)
 	mux.HandleFunc("GET /api/auth/me", s.authMe)
+	mux.HandleFunc("GET /api/auth/oidc/login", s.oidcLogin)
+	mux.HandleFunc("GET /api/auth/oidc/callback", s.oidcCallback)
 	// {name...}: dashboard names may contain one folder level ("infra/db").
 	mux.HandleFunc("GET /api/dashboards", s.requireRole(auth.RoleViewer, s.listDashboards))
 	mux.HandleFunc("GET /api/dashboards/{name...}", s.requireRole(auth.RoleViewer, s.getDashboard))
@@ -118,6 +124,8 @@ func (s *Server) capabilities(writer http.ResponseWriter, _ *http.Request) {
 	switch {
 	case s.proxyAuth != nil:
 		authKind = "proxy"
+	case s.oidc != nil:
+		authKind = "oidc"
 	case s.auth != nil && s.auth.Enabled():
 		authKind = "builtin"
 	}

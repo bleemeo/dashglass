@@ -37,9 +37,11 @@ pnpm monorepo (TypeScript, React 19, strict tsconfig) + a Go backend:
   (`/d/:name/code`).
 - `backend/` — Go single binary: embedded SPA, dashboards-directory CRUD
   (validating), read-only allowlisted Prometheus proxy on native
-  `/api/v1/*` paths, fsnotify → SSE, `/api/capabilities`, and the
-  grafana.com download proxy (`/api/grafana-com/{id}`, numeric-id-only to
-  rule out SSRF, `-disable-grafana-com` for air-gapped installs).
+  `/api/v1/*` paths, fsnotify → SSE, `/api/capabilities`, the grafana.com
+  download proxy (`/api/grafana-com/{id}`, numeric-id-only to rule out
+  SSRF, `-disable-grafana-com` for air-gapped installs), and auth
+  (`internal/auth`: local users/roles/sessions, reverse-proxy headers,
+  OIDC) driven by `internal/config` (`polaris.yaml`, `${ENV}` expansion).
 - `dashboards/` — sample dashboard files used in dev.
 
 ## Commands
@@ -138,8 +140,14 @@ a demo Prometheus), the three extra panel kinds (BarChart, HeatmapChart,
 Markdown), and the Grafana importer (packages/grafana-import + "Import
 from Grafana" in the app).
 
+CI is in place (`.github/workflows/ci.yml`): tests/typecheck/lint +
+a Docker smoke test (`scripts/docker-smoke.sh`) that exercises the
+non-root container's auth surface. Chained dashboard variables work
+(matchers interpolated with current values; dependent lists reload).
+
 Not started: git-log dashboard history, annotations, the bleemeo-panel
 embedding POC (DESIGN.md §9), and the public-naming check ("Polaris"
 trademark, §12). Auth (DESIGN.md §7.4): local users + 3 roles + admin UI
-done (phase 1); reverse-proxy headers done (phase 2); native OIDC and
-LDAP not started.
+done (phase 1); reverse-proxy headers (phase 2) and native OIDC
+(phase 3, authorization-code + PKCE, groups→role mapping) done; LDAP
+not started.

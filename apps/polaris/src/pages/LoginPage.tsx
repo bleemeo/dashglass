@@ -11,8 +11,10 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 
+import { useSearchParams } from "react-router";
+
 import { APIError, login } from "../api/client";
-import { usePermissions } from "../api/hooks";
+import { useCapabilities, usePermissions } from "../api/hooks";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 export function LoginPage() {
@@ -20,6 +22,10 @@ export function LoginPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { proxy, authenticated } = usePermissions();
+  const capabilities = useCapabilities();
+  const oidc = capabilities.data?.auth?.kind === "oidc";
+  const [searchParams] = useSearchParams();
+  const callbackError = searchParams.get("error");
   // Once identified, leave the login page. In proxy mode the identity
   // comes from headers, so an authenticated proxy user is redirected;
   // an unauthenticated one gets a note (below) instead of a bounce loop.
@@ -58,7 +64,27 @@ export function LoginPage() {
       gap={6}
     >
       <Heading size="xl">✦ Polaris</Heading>
-      {proxy ? (
+      {oidc ? (
+        <Flex
+          direction="column"
+          gap={3}
+          width="320px"
+          padding={6}
+          borderWidth="1px"
+          borderRadius="md"
+          backgroundColor="bg.panel"
+          alignItems="stretch"
+        >
+          {callbackError ? (
+            <Text fontSize="sm" color="fg.error">
+              {callbackError}
+            </Text>
+          ) : null}
+          <Button asChild size="sm">
+            <a href="/api/auth/oidc/login">Sign in with SSO</a>
+          </Button>
+        </Flex>
+      ) : proxy ? (
         <Flex
           direction="column"
           gap={2}

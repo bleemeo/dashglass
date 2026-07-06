@@ -13,12 +13,30 @@ import (
 // possible (the admin UI is reachable to create the first user).
 var anonymous = auth.User{Username: "anonymous", Role: auth.RoleAdmin}
 
+var errUnauthenticated = errors.New("authentication required")
+
 // authenticate resolves the request identity. A configured reverse proxy
 // is the identity source and takes precedence over local sessions; the
 // headers are evaluated per request (no Polaris session in that mode).
 func (s *Server) authenticate(r *http.Request) (auth.User, error) {
 	if s.proxyAuth != nil {
 		return s.proxyAuth.Identify(r)
+	}
+	// OIDC identities live in a signed external session cookie, not the
+	// local store; local users (if any also configured) still resolve
+	// through the store below.
+	if s.oidc != nil {
+		secret, err := s.auth.SessionSecret()
+		if err != nil {
+			return auth.User{}, err
+		}
+		if user, err := auth.VerifyExternalSession(r, secret); err == nil {
+			return user, nil
+		}
+		if s.auth.Enabled() {
+			return s.auth.UserFromRequest(r, secret)
+		}
+		return auth.User{}, errUnauthenticated
 	}
 	if s.auth == nil || !s.auth.Enabled() {
 		return anonymous, nil
@@ -100,7 +118,8 @@ func (s *Server) authLogout(writer http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) authMe(writer http.ResponseWriter, request *http.Request) {
-	enabled := s.proxyAuth != nil || (s.auth != nil && s.auth.Enabled())
+	enabled := s.proxyAuth != nil || s.oidc != nil ||
+		(s.auth != nil && s.auth.Enabled())
 	user, err := s.authenticate(request)
 	if err != nil {
 		writeJSON(writer, http.StatusOK, map[string]any{
@@ -237,10 +256,17 @@ func (s *Server) adminConfig(writer http.ResponseWriter, _ *http.Request) {
 		settings = append(settings, setting)
 	}
 	response := map[string]any{"settings": settings}
-	// In proxy mode, surface the (read-only) role mapping so an admin can
-	// see how identity-provider groups become roles.
+	// Surface the (read-only) group→role mapping of whichever external
+	// provider is active, so an admin can see how groups become roles.
+	var mapping *auth.RoleMapping
 	if s.proxyAuth != nil {
-		mapping := s.proxyAuth.Mapping()
+		m := s.proxyAuth.Mapping()
+		mapping = &m
+	} else if s.oidc != nil {
+		m := s.oidc.Mapping()
+		mapping = &m
+	}
+	if mapping != nil {
 		response["roleMapping"] = map[string][]string{
 			"admin":  mapping.Admin,
 			"editor": mapping.Editor,

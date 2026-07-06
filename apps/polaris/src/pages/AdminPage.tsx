@@ -171,7 +171,7 @@ function UserDialog({
   );
 }
 
-function ProxyUsersNote() {
+function ExternalUsersNote({ kind }: { kind: string }) {
   return (
     <Flex
       direction="column"
@@ -181,7 +181,9 @@ function ProxyUsersNote() {
       borderRadius="md"
     >
       <Text fontSize="sm" fontWeight="medium">
-        Authentication is handled by a reverse proxy
+        {kind === "oidc"
+          ? "Authentication is handled by OpenID Connect"
+          : "Authentication is handled by a reverse proxy"}
       </Text>
       <Text fontSize="sm" color="fg.muted">
         Users and their groups come from your identity provider; roles are
@@ -194,12 +196,17 @@ function ProxyUsersNote() {
 
 function UsersTab() {
   const queryClient = useQueryClient();
-  const { authEnabled, proxy, username: currentUser } = usePermissions();
+  const {
+    authEnabled,
+    externalIdentity,
+    authKind,
+    username: currentUser,
+  } = usePermissions();
   // Proxy mode has no local accounts; skip the users query entirely.
   const users = useQuery({
     queryKey: ["admin", "users"],
     queryFn: adminListUsers,
-    enabled: !proxy,
+    enabled: !externalIdentity,
   });
   const [creating, setCreating] = useState(false);
   const [resetting, setResetting] = useState<string | null>(null);
@@ -227,8 +234,8 @@ function UsersTab() {
     onSettled: () => setDeleting(null),
   });
 
-  if (proxy) {
-    return <ProxyUsersNote />;
+  if (externalIdentity) {
+    return <ExternalUsersNote kind={authKind} />;
   }
 
   return (
@@ -417,7 +424,7 @@ function ConfigTab() {
       {mapping ? (
         <Flex direction="column" gap={2}>
           <Text fontSize="sm" fontWeight="medium">
-            Reverse-proxy role mapping
+            Group → role mapping
           </Text>
           <Text fontSize="sm" color="fg.muted">
             Identity-provider groups mapped to roles (highest match wins,

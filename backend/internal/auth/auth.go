@@ -132,6 +132,28 @@ func (s *Store) SessionSecret() ([]byte, error) {
 	return s.secret, nil
 }
 
+// EnsureSecret generates and persists the session secret if absent. Local
+// users persist it lazily, but an OIDC-only deployment has no users, so
+// call this at startup to keep sessions valid across restarts.
+func (s *Store) EnsureSecret() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.state.SessionSecret != "" {
+		return nil
+	}
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return err
+	}
+	s.state.SessionSecret = hex.EncodeToString(raw)
+	decoded, err := hex.DecodeString(s.state.SessionSecret)
+	if err != nil {
+		return err
+	}
+	s.secret = decoded
+	return s.saveLocked()
+}
+
 // Users lists the local accounts, sorted by name.
 func (s *Store) Users() []User {
 	s.mu.RLock()

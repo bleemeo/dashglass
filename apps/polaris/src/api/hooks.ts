@@ -42,12 +42,17 @@ export function usePermissions() {
   const me = useAuthMe();
   const role = me.data?.role;
   const readonly = capabilities.data?.readonly ?? false;
+  const authKind = capabilities.data?.auth?.kind ?? "none";
   return {
     loading: capabilities.isLoading || me.isLoading,
     authEnabled: me.data?.authEnabled ?? false,
     authenticated: me.data?.authenticated ?? false,
+    authKind,
     // Reverse-proxy mode: no local login, users are external.
     proxy: me.data?.proxy ?? false,
+    // Identity comes from an external provider (proxy or OIDC): no local
+    // accounts to manage.
+    externalIdentity: authKind === "proxy" || authKind === "oidc",
     username: me.data?.username,
     role,
     canEdit: !readonly && (role === "editor" || role === "admin"),

@@ -106,13 +106,13 @@ func main() {
 			"POLARIS_AUTH_FILE", "", false),
 	}
 
-	if err := run(settings, cfg.Auth.Proxy, logger); err != nil {
+	if err := run(settings, cfg.Auth.Proxy, cfg.Auth.OIDC, logger); err != nil {
 		logger.Error("fatal", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(settings map[string]setting, proxyConfig auth.ProxyConfig, logger *slog.Logger) error {
+func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig auth.OIDCConfig, logger *slog.Logger) error {
 	dashboardStore, err := store.New(settings["dashboards.dir"].value)
 	if err != nil {
 		return err
@@ -140,6 +140,21 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, logger *slog
 	if proxyAuth != nil && proxyAuth.TrustsAnySource() {
 		logger.Warn("reverse-proxy auth trusts identity headers from ANY source; " +
 			"set auth.proxy.trusted_proxies unless the backend is only reachable through the proxy")
+	}
+
+	ctxDiscover, cancelDiscover := context.WithTimeout(context.Background(), 15*time.Second)
+	oidcAuth, err := auth.NewOIDCAuthenticator(ctxDiscover, oidcConfig)
+	cancelDiscover()
+	if err != nil {
+		return err
+	}
+	if oidcAuth != nil {
+		// OIDC sessions are signed with the store secret; persist it so
+		// they survive restarts even with no local users.
+		if err := authStore.EnsureSecret(); err != nil {
+			return fmt.Errorf("persisting session secret: %w", err)
+		}
+		logger.Info("OpenID Connect login enabled", "issuer", oidcConfig.Issuer)
 	}
 	// Automated deployments can seed an admin without the UI or CLI.
 	if password := os.Getenv("POLARIS_BOOTSTRAP_ADMIN_PASSWORD"); password != "" && !authStore.Enabled() {
@@ -182,6 +197,14 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, logger *slog
 			api.Setting{Key: "auth.proxy.trusted_proxies", Value: strings.Join(proxyConfig.TrustedProxies, ", "), Source: "file"},
 		)
 	}
+	if oidcConfig.Issuer != "" {
+		apiSettings = append(apiSettings,
+			api.Setting{Key: "auth.oidc.issuer", Value: oidcConfig.Issuer, Source: "file"},
+			api.Setting{Key: "auth.oidc.client_id", Value: oidcConfig.ClientID, Source: "file"},
+			api.Setting{Key: "auth.oidc.client_secret", Value: oidcConfig.ClientSecret, Source: "file", Secret: true},
+			api.Setting{Key: "auth.oidc.redirect_url", Value: oidcConfig.RedirectURL, Source: "file"},
+		)
+	}
 
 	mux := http.NewServeMux()
 	api.New(api.Options{
@@ -193,6 +216,7 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, logger *slog
 		GrafanaComURL: grafanaComURL,
 		Auth:          authStore,
 		ProxyAuth:     proxyAuth,
+		OIDC:          oidcAuth,
 		Settings:      apiSettings,
 	}).Routes(mux)
 	mux.Handle("/", ui.Handler())

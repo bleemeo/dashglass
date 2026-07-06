@@ -43,3 +43,16 @@ auth:
   #     admin: [polaris-admins]
   #     editor: [dev-team]
   #     viewer: ["*"]
+
+  # Native OpenID Connect login (Authentik, Keycloak, Pocket ID, Auth0…).
+  # No reverse proxy needed; Polaris runs the authorization-code flow and
+  # maps the ID token's groups claim to a role (same rules as above).
+  # oidc:
+  #   issuer: https://auth.example.com/application/o/polaris/
+  #   client_id: polaris
+  #   client_secret: ${OIDC_CLIENT_SECRET}
+  #   redirect_url: https://polaris.example.com/api/auth/oidc/callback
+  #   groups_claim: groups          # optional (default "groups")
+  #   role_mapping:
+  #     admin: [polaris-admins]
+  #     viewer: ["*"]
