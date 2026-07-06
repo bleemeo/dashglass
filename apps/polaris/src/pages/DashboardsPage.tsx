@@ -14,6 +14,7 @@ import { Link } from "react-router";
 import { getDashboardFile, putDashboard } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { NewDashboardDialog } from "../components/NewDashboardDialog";
+import { RenameDashboardDialog } from "../components/RenameDashboardDialog";
 import { DashboardsIcon, PlusIcon } from "../components/icons";
 import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -32,6 +33,7 @@ export function DashboardsPage() {
   const readonly = !canEdit;
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
   usePageTitle("Dashboards");
 
   return (
@@ -46,6 +48,12 @@ export function DashboardsPage() {
       </Flex>
       {creating ? (
         <NewDashboardDialog onClose={() => setCreating(false)} />
+      ) : null}
+      {renaming ? (
+        <RenameDashboardDialog
+          name={renaming}
+          onClose={() => setRenaming(null)}
+        />
       ) : null}
       {deleting ? (
         <ConfirmDialog
@@ -193,14 +201,23 @@ export function DashboardsPage() {
                 </Table.Cell>
                 <Table.Cell textAlign="right">
                   {readonly ? null : (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      colorPalette="red"
-                      onClick={() => setDeleting(dashboard.name)}
-                    >
-                      Delete
-                    </Button>
+                    <>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => setRenaming(dashboard.name)}
+                      >
+                        Rename
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        colorPalette="red"
+                        onClick={() => setDeleting(dashboard.name)}
+                      >
+                        Delete
+                      </Button>
+                    </>
                   )}
                 </Table.Cell>
               </Table.Row>,
