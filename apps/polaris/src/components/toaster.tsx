@@ -9,16 +9,33 @@ import {
   createToaster,
 } from "@chakra-ui/react";
 
-/** App-wide toast queue: `toaster.create({ title, type, action })`. */
-export const toaster = createToaster({
+const toastStore = createToaster({
   placement: "bottom-end",
   pauseOnPageIdle: true,
 });
 
+type ToastOptions = Parameters<typeof toastStore.create>[0];
+
+/**
+ * App-wide toast queue: `toaster.create({ title, type, action })`. Every
+ * toast is dismissible, and errors stay until dismissed — they must
+ * survive long enough to be read (and copied).
+ */
+export const toaster = {
+  create: (options: ToastOptions) =>
+    toastStore.create({
+      closable: true,
+      ...(options.type === "error"
+        ? { duration: Number.POSITIVE_INFINITY }
+        : {}),
+      ...options,
+    }),
+};
+
 export function Toaster() {
   return (
     <Portal>
-      <ChakraToaster toaster={toaster} insetInline={{ mdDown: "4" }}>
+      <ChakraToaster toaster={toastStore} insetInline={{ mdDown: "4" }}>
         {(toast) => (
           <Toast.Root width={{ md: "sm" }}>
             {toast.type === "loading" ? (
