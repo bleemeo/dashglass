@@ -6,6 +6,7 @@ import {
   type GridLayout,
 } from "./schema/layouts";
 import type { Panel } from "./schema/panels";
+import type { Variable } from "./schema/variables";
 
 /**
  * Pure editing operations on the dashboard document, shared by form-based
@@ -148,6 +149,22 @@ export function addLayout(dashboard: Dashboard, title?: string): Dashboard {
   return withSpec(dashboard, {
     layouts: [...dashboard.spec.layouts, layout],
   });
+}
+
+/**
+ * Replaces the dashboard's variables (an empty list removes the field, so
+ * a dashboard without variables serializes without a `variables:` key).
+ */
+export function setVariables(
+  dashboard: Dashboard,
+  variables: Variable[],
+): Dashboard {
+  if (variables.length === 0) {
+    const spec = { ...dashboard.spec };
+    delete spec.variables;
+    return { ...dashboard, spec };
+  }
+  return withSpec(dashboard, { variables });
 }
 
 /** Retitles a grid section (an empty title removes the display block). */

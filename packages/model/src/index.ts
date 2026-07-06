@@ -57,6 +57,7 @@ export {
   addPanel,
   removePanelAt,
   setLayoutTitle,
+  setVariables,
   uniquePanelKey,
   updateLayoutItems,
   updatePanel,

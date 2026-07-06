@@ -12,6 +12,7 @@ import {
   panelKeyFromRef,
   removePanelAt,
   setLayoutTitle,
+  setVariables,
   stringifyDashboard,
   uniquePanelKey,
   updateLayoutItems,
@@ -37,6 +38,7 @@ import { DashboardNotFound } from "../components/DashboardNotFound";
 import {
   useCapabilities,
   useDashboardFile,
+  usePermissions,
   useSaveDashboard,
 } from "../api/hooks";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -44,6 +46,7 @@ import { TimeRangeControls } from "../components/TimeRangeControls";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { VariablesToolbar } from "../components/VariablesToolbar";
 import { PanelEditorDrawer } from "../components/editor/PanelEditorDrawer";
+import { VariablesEditorDialog } from "../components/editor/VariablesEditorDialog";
 import { CodeIcon, PlusIcon } from "../components/icons";
 import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -200,11 +203,16 @@ function EditorView({
   const navigate = useNavigate();
   const save = useSaveDashboard(name);
   const capabilities = useCapabilities();
-  const readonly = capabilities.data?.readonly ?? false;
+  const provisioned = capabilities.data?.readonly ?? false;
+  // Also covers the viewer role: a deep link into the editor must not
+  // offer work that Save will refuse with a 403.
+  const { canEdit, loading: permissionsLoading } = usePermissions();
+  const readonly = !permissionsLoading && !canEdit;
 
   const [draft, setDraft] = useState<Dashboard>(initial);
   usePageTitle(`${initial.spec.display?.name ?? name} · edit`);
   const [editing, setEditing] = useState<string | null>(null);
+  const [editingVariables, setEditingVariables] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const dirty = draft !== initial;
   // Lets the post-save navigation through the guard (the draft still
@@ -269,7 +277,9 @@ function EditorView({
 
   return (
     <TimeRangeProvider initialRange={defaultTimeRange(initial)}>
-      <VariablesProvider variables={initial.spec.variables}>
+      {/* Keyed on the draft's variables so saving the variables dialog
+          reflects immediately in the preview toolbar and panels. */}
+      <VariablesProvider variables={draft.spec.variables}>
         <Flex direction="column" gap={3} height="100%">
           <Flex justifyContent="space-between" alignItems="center" gap={2}>
             <Heading size="lg">
@@ -334,7 +344,14 @@ function EditorView({
           {/* Preview controls: the grid below is the live preview, so the
               range and variable values must be steerable while editing. */}
           <Flex gap={3} alignItems="center" wrap="wrap">
-            <VariablesToolbar variables={initial.spec.variables ?? []} />
+            <VariablesToolbar variables={draft.spec.variables ?? []} />
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => setEditingVariables(true)}
+            >
+              Variables…
+            </Button>
             <TimeRangeControls
               refreshInterval="off"
               onRefreshIntervalChange={() => {}}
@@ -344,8 +361,9 @@ function EditorView({
 
           {readonly ? (
             <Text fontSize="sm" color="fg.muted">
-              Dashboards are provisioned read-only on this instance — edit
-              the file in git instead.
+              {provisioned
+                ? "Dashboards are provisioned read-only on this instance — edit the file in git instead."
+                : "Your role does not allow editing dashboards — changes cannot be saved."}
             </Text>
           ) : null}
           {save.error ? (
@@ -406,6 +424,13 @@ function EditorView({
             </Button>
           </Flex>
 
+          {editingVariables ? (
+            <VariablesEditorDialog
+              variables={draft.spec.variables ?? []}
+              onSave={(variables) => applyEdit(setVariables(draft, variables))}
+              onClose={() => setEditingVariables(false)}
+            />
+          ) : null}
           {editing && editingPanel ? (
             <PanelEditorDrawer
               panelKey={editing}

@@ -9,8 +9,10 @@ import {
   setLayoutTitle,
   uniquePanelKey,
   updateLayoutItems,
+  setVariables,
   updatePanel,
   type Panel,
+  type Variable,
 } from "../src";
 import { nodeOverviewDashboard } from "./fixtures";
 
@@ -96,5 +98,25 @@ describe("edit operations", () => {
     dashboard = setLayoutTitle(dashboard, index, "");
     expect(dashboard.spec.layouts[index]!.spec.display).toBeUndefined();
     expect(() => dashboardSchema.parse(dashboard)).not.toThrow();
+  });
+});
+
+describe("setVariables", () => {
+  const textVariable: Variable = {
+    kind: "TextVariable",
+    spec: { name: "env", value: "prod" },
+  };
+
+  it("replaces the variables list immutably", () => {
+    const dashboard = nodeOverviewDashboard();
+    const next = setVariables(dashboard, [textVariable]);
+    expect(next.spec.variables).toEqual([textVariable]);
+    expect(next).not.toBe(dashboard);
+  });
+
+  it("removes the field entirely for an empty list", () => {
+    const dashboard = setVariables(nodeOverviewDashboard(), [textVariable]);
+    const cleared = setVariables(dashboard, []);
+    expect("variables" in cleared.spec).toBe(false);
   });
 });
