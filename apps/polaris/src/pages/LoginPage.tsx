@@ -23,6 +23,94 @@ import { usePageTitle } from "../hooks/usePageTitle";
 // Fixed brand surface (intentionally the same in light and dark).
 const BRAND_GRADIENT = "linear-gradient(150deg, #2a78d6 0%, #1c4f97 55%, #14356b 100%)";
 
+/**
+ * Decorative monitoring motif for the brand panel: a stylized dashboard
+ * (an area chart with gridlines, a secondary series, a live dot, and two
+ * stat tiles), drawn in translucent white over the gradient.
+ */
+function MonitoringArt() {
+  return (
+    <svg
+      viewBox="0 0 360 220"
+      width="100%"
+      role="img"
+      aria-label="Dashboard illustration"
+      style={{ maxWidth: 420, color: "white" }}
+    >
+      <defs>
+        <linearGradient id="polaris-area" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="white" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="white" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* Two stat tiles. */}
+      {[0, 1].map((i) => (
+        <g key={i} transform={`translate(${i * 176}, 0)`}>
+          <rect width="164" height="52" rx="8" fill="white" fillOpacity="0.08" />
+          <rect x="14" y="14" width="46" height="6" rx="3" fill="white" fillOpacity="0.35" />
+          <rect x="14" y="28" width="80" height="12" rx="4" fill="white" fillOpacity="0.75" />
+          <path
+            d={i === 0 ? "M112 34 L124 28 L136 32 L148 20" : "M112 24 L124 30 L136 22 L148 30"}
+            fill="none"
+            stroke="white"
+            strokeOpacity="0.55"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </g>
+      ))}
+
+      {/* Chart card. */}
+      <g transform="translate(0, 68)">
+        <rect width="360" height="152" rx="10" fill="white" fillOpacity="0.06" />
+        {/* Gridlines. */}
+        {[36, 72, 108].map((y) => (
+          <line
+            key={y}
+            x1="16"
+            y1={y}
+            x2="344"
+            y2={y}
+            stroke="white"
+            strokeOpacity="0.12"
+            strokeDasharray="3 5"
+          />
+        ))}
+        {/* Area under the primary series. */}
+        <path
+          d="M16 118 L60 96 L104 104 L148 70 L192 82 L236 50 L280 62 L324 34 L344 40 L344 136 L16 136 Z"
+          fill="url(#polaris-area)"
+        />
+        {/* Secondary series. */}
+        <path
+          d="M16 124 L60 118 L104 122 L148 110 L192 114 L236 104 L280 110 L324 96 L344 100"
+          fill="none"
+          stroke="white"
+          strokeOpacity="0.4"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Primary series. */}
+        <path
+          d="M16 118 L60 96 L104 104 L148 70 L192 82 L236 50 L280 62 L324 34 L344 40"
+          fill="none"
+          stroke="white"
+          strokeOpacity="0.92"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Live dot. */}
+        <circle cx="344" cy="40" r="9" fill="white" fillOpacity="0.25" />
+        <circle cx="344" cy="40" r="4" fill="white" />
+      </g>
+    </svg>
+  );
+}
+
 function EyeIcon({ off }: { off: boolean }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -218,13 +306,12 @@ export function LoginPage() {
           ✦ Polaris
         </Heading>
         <Box>
-          <Heading size="2xl" lineHeight="1.15" maxWidth="18ch">
-            Prometheus-native dashboards, versioned in git.
+          <Heading size="2xl" lineHeight="1.15" maxWidth="16ch">
+            Your metrics, at a glance.
           </Heading>
-          <Text marginTop={4} fontSize="md" opacity={0.85} maxWidth="34ch">
-            The dashboard part of Grafana — nothing else. Edit in the UI,
-            review in git, deploy anywhere.
-          </Text>
+          <Box marginTop={10}>
+            <MonitoringArt />
+          </Box>
         </Box>
         <Text fontSize="xs" opacity={0.7}>
           {capabilities.data?.version
