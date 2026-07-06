@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 
 import {
   Badge,
+  Box,
   Button,
   CloseButton,
   Flex,
@@ -53,10 +54,17 @@ export function DashboardsPage() {
 
   return (
     <Flex direction="column" gap={4}>
-      <Flex justifyContent="space-between" alignItems="center">
-        <Heading size="lg">Dashboards</Heading>
+      <Flex justifyContent="space-between" alignItems="flex-start" gap={4}>
+        <Box>
+          <Heading size="lg">Dashboards</Heading>
+          <Text fontSize="sm" color="fg.muted" marginTop={1}>
+            {dashboards.data?.length
+              ? `${dashboards.data.length} dashboard${dashboards.data.length > 1 ? "s" : ""} · stored as files, versioned in git`
+              : "File-backed dashboards, versioned in git"}
+          </Text>
+        </Box>
         {readonly ? null : (
-          <Button size="sm" onClick={() => setCreating(true)}>
+          <Button size="sm" flexShrink={0} onClick={() => setCreating(true)}>
             <PlusIcon /> New dashboard
           </Button>
         )}
