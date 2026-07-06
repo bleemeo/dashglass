@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Button, Flex, Heading, Text, Textarea } from "@chakra-ui/react";
+import { Button, Flex, Heading, Text } from "@chakra-ui/react";
 import { useNavigate, useParams } from "react-router";
 
 import { APIError, isNotFound } from "../api/client";
+import { DashboardCodeEditor } from "../components/DashboardCodeEditor";
 import { DashboardNotFound } from "../components/DashboardNotFound";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { toaster } from "../components/toaster";
@@ -126,15 +127,13 @@ export function EditDashboardPage() {
         </Flex>
       ) : null}
 
-      <Textarea
-        value={content ?? ""}
-        onChange={(event) => setContent(event.target.value)}
-        fontFamily="mono"
-        fontSize="xs"
-        flex={1}
-        minHeight="60vh"
-        spellCheck={false}
-      />
+      <Flex direction="column" flex={1} minHeight="60vh">
+        <DashboardCodeEditor
+          value={content ?? ""}
+          onChange={setContent}
+          format={file.data?.format ?? "yaml"}
+        />
+      </Flex>
     </Flex>
   );
 }
