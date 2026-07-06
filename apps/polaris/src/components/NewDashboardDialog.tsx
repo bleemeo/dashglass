@@ -48,7 +48,7 @@ function slugify(text: string): string {
 }
 
 /** Extracts the dashboard id from a grafana.com URL, or a plain id. */
-function parseGrafanaComID(input: string): string | null {
+export function parseGrafanaComID(input: string): string | null {
   const trimmed = input.trim();
   if (/^\d+$/.test(trimmed)) {
     return trimmed;
