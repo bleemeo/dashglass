@@ -26,14 +26,20 @@ export function LoginPage() {
   const oidc = capabilities.data?.auth?.kind === "oidc";
   const [searchParams] = useSearchParams();
   const callbackError = searchParams.get("error");
+  const expired = searchParams.get("reason") === "expired";
+  // Where to land after signing in: same-origin path only (a "//" or
+  // absolute URL in ?next= must not become an open redirect).
+  const rawNext = searchParams.get("next") ?? "/";
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
   // Once identified, leave the login page. In proxy mode the identity
   // comes from headers, so an authenticated proxy user is redirected;
   // an unauthenticated one gets a note (below) instead of a bounce loop.
   useEffect(() => {
     if (authenticated) {
-      void navigate("/", { replace: true });
+      void navigate(next, { replace: true });
     }
-  }, [authenticated, navigate]);
+  }, [authenticated, navigate, next]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +51,7 @@ export function LoginPage() {
     try {
       await login(username, password);
       await queryClient.invalidateQueries();
-      void navigate("/");
+      void navigate(next);
     } catch (loginError) {
       setError(
         loginError instanceof APIError ? loginError.message : String(loginError),
@@ -64,6 +70,11 @@ export function LoginPage() {
       gap={6}
     >
       <Heading size="xl">✦ Polaris</Heading>
+      {expired ? (
+        <Text fontSize="sm" color="fg.muted">
+          Your session expired — sign in to continue where you left off.
+        </Text>
+      ) : null}
       {oidc ? (
         <Flex
           direction="column"

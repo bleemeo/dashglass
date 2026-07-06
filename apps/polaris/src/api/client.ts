@@ -92,12 +92,16 @@ export function isNotFound(error: unknown): boolean {
 
 async function errorFrom(response: Response): Promise<APIError> {
   // A 401 means the session is gone: land on the login page (except when
-  // already there — the login POST handles its own errors).
+  // already there — the login POST handles its own errors), carrying the
+  // current location so signing back in returns to it.
   if (
     response.status === 401 &&
     !window.location.pathname.startsWith("/login")
   ) {
-    window.location.assign("/login");
+    const next = encodeURIComponent(
+      window.location.pathname + window.location.search,
+    );
+    window.location.assign(`/login?reason=expired&next=${next}`);
   }
   const body = (await response.json().catch(() => ({}))) as {
     error?: string;
