@@ -120,6 +120,61 @@ func (s *Server) authLogout(writer http.ResponseWriter, _ *http.Request) {
 	writer.WriteHeader(http.StatusNoContent)
 }
 
+// authChangePassword lets a signed-in local user change their own
+// password without asking an admin. The session-version bump revokes
+// every outstanding session, so a fresh cookie is issued for this one.
+func (s *Server) authChangePassword(writer http.ResponseWriter, request *http.Request) {
+	if s.proxyAuth != nil || s.oidc != nil {
+		writeError(writer, http.StatusBadRequest,
+			"passwords are managed by your identity provider")
+		return
+	}
+	if s.auth == nil || !s.auth.Enabled() {
+		writeError(writer, http.StatusBadRequest, "authentication is not enabled")
+		return
+	}
+	user, err := s.authenticate(request)
+	if err != nil {
+		writeError(writer, http.StatusUnauthorized, "authentication required")
+		return
+	}
+	var body struct {
+		Current string `json:"current"`
+		New     string `json:"new"`
+	}
+	if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+		writeError(writer, http.StatusBadRequest, "expected a JSON body")
+		return
+	}
+	if _, err := s.auth.VerifyPassword(user.Username, body.Current); err != nil {
+		s.logger.Warn("password change refused",
+			"username", user.Username, "remote", request.RemoteAddr)
+		writeError(writer, http.StatusForbidden, "current password is incorrect")
+		return
+	}
+	if err := s.auth.Update(user.Username, nil, &body.New); err != nil {
+		writeError(writer, http.StatusBadRequest, err.Error())
+		return
+	}
+	updated, err := s.auth.Get(user.Username)
+	if err != nil {
+		writeError(writer, http.StatusInternalServerError, err.Error())
+		return
+	}
+	secret, err := s.auth.SessionSecret()
+	if err != nil {
+		writeError(writer, http.StatusInternalServerError, err.Error())
+		return
+	}
+	cookie, err := auth.NewSessionCookie(updated, secret, request.TLS != nil)
+	if err != nil {
+		writeError(writer, http.StatusInternalServerError, err.Error())
+		return
+	}
+	http.SetCookie(writer, cookie)
+	writer.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) authMe(writer http.ResponseWriter, request *http.Request) {
 	enabled := s.proxyAuth != nil || s.oidc != nil ||
 		(s.auth != nil && s.auth.Enabled())

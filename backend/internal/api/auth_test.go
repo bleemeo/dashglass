@@ -169,3 +169,56 @@ func newCookieClient(t *testing.T, server *httptest.Server) *http.Client {
 func newJar() (http.CookieJar, error) {
 	return cookiejar.New(nil)
 }
+
+func TestSelfServicePasswordChange(t *testing.T) {
+	server, _ := newAuthServer(t)
+	client := server.Client()
+
+	// Bootstrap an admin, then sign in with a cookie jar.
+	response := doJSON(t, client, http.MethodPost, server.URL+"/api/admin/users",
+		`{"username":"lionel","password":"password123","role":"admin"}`)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("create admin: %d", response.StatusCode)
+	}
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := &http.Client{Jar: jar}
+	response = doJSON(t, session, http.MethodPost, server.URL+"/api/auth/login",
+		`{"username":"lionel","password":"password123"}`)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("login: %d", response.StatusCode)
+	}
+
+	// Wrong current password is refused.
+	response = doJSON(t, session, http.MethodPost, server.URL+"/api/auth/password",
+		`{"current":"nope","new":"granted456"}`)
+	if response.StatusCode != http.StatusForbidden {
+		t.Fatalf("wrong current password: %d, want 403", response.StatusCode)
+	}
+
+	// Correct current password changes it and keeps this session alive
+	// (a fresh cookie rides the response through the jar).
+	response = doJSON(t, session, http.MethodPost, server.URL+"/api/auth/password",
+		`{"current":"password123","new":"granted456"}`)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("password change: %d, want 204", response.StatusCode)
+	}
+	response = doJSON(t, session, http.MethodGet, server.URL+"/api/dashboards", "")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("session after change: %d, want 200", response.StatusCode)
+	}
+
+	// Old password no longer signs in; the new one does.
+	response = doJSON(t, client, http.MethodPost, server.URL+"/api/auth/login",
+		`{"username":"lionel","password":"password123"}`)
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("old password login: %d, want 401", response.StatusCode)
+	}
+	response = doJSON(t, client, http.MethodPost, server.URL+"/api/auth/login",
+		`{"username":"lionel","password":"granted456"}`)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("new password login: %d, want 200", response.StatusCode)
+	}
+}

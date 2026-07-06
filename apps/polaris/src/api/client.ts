@@ -142,6 +142,21 @@ export async function logout(): Promise<void> {
   }
 }
 
+/** Self-service password change; the session stays alive (fresh cookie). */
+export async function changePassword(
+  current: string,
+  next: string,
+): Promise<void> {
+  const response = await fetch("/api/auth/password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ current, new: next }),
+  });
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+}
+
 export async function adminListUsers(): Promise<AdminUser[]> {
   const response = await fetch("/api/admin/users");
   if (!response.ok) {

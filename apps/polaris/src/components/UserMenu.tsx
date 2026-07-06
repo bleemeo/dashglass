@@ -1,15 +1,21 @@
+import { useState } from "react";
+
 import { Badge, Button, Flex, Text } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 
 import { logout } from "../api/client";
 import { usePermissions } from "../api/hooks";
+import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
 /** Signed-in identity + sign-out, above the color-mode row in the sidebar. */
 export function UserMenu({ collapsed }: { collapsed: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { username, role } = usePermissions();
+  // Passwords are local-store only: proxy/OIDC identities manage theirs
+  // at the provider.
+  const { username, role, authKind } = usePermissions();
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const signOut = async () => {
     await logout();
@@ -51,6 +57,17 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
           </Badge>
         ) : null}
       </Flex>
+      {authKind === "builtin" ? (
+        <Button
+          size="xs"
+          variant="ghost"
+          justifyContent="flex-start"
+          color="fg.muted"
+          onClick={() => setChangingPassword(true)}
+        >
+          Change password
+        </Button>
+      ) : null}
       <Button
         size="xs"
         variant="ghost"
@@ -60,6 +77,9 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
       >
         Sign out
       </Button>
+      {changingPassword ? (
+        <ChangePasswordDialog onClose={() => setChangingPassword(false)} />
+      ) : null}
     </Flex>
   );
 }
