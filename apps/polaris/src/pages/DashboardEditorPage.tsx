@@ -32,7 +32,8 @@ import {
   defaultTimeRange,
 } from "@polarisui/runtime";
 
-import { APIError } from "../api/client";
+import { APIError, isNotFound } from "../api/client";
+import { DashboardNotFound } from "../components/DashboardNotFound";
 import {
   useCapabilities,
   useDashboardFile,
@@ -392,6 +393,9 @@ export function DashboardEditorPage() {
 
   if (file.isLoading) {
     return <Text>Loading…</Text>;
+  }
+  if (isNotFound(file.error)) {
+    return <DashboardNotFound name={name} />;
   }
   if (file.error) {
     return <Text color="fg.error">{String(file.error)}</Text>;

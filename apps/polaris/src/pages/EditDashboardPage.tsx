@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Flex, Heading, Text, Textarea } from "@chakra-ui/react";
 import { useNavigate, useParams } from "react-router";
 
-import { APIError } from "../api/client";
+import { APIError, isNotFound } from "../api/client";
+import { DashboardNotFound } from "../components/DashboardNotFound";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -62,6 +63,9 @@ export function EditDashboardPage() {
 
   if (file.isLoading) {
     return <Text>Loading…</Text>;
+  }
+  if (isNotFound(file.error)) {
+    return <DashboardNotFound name={name} />;
   }
   if (file.error) {
     return <Text color="fg.error">{String(file.error)}</Text>;

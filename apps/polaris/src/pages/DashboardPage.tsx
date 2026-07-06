@@ -20,7 +20,9 @@ import {
   defaultTimeRange,
 } from "@polarisui/runtime";
 
+import { isNotFound } from "../api/client";
 import { useDashboardFile, usePermissions } from "../api/hooks";
+import { DashboardNotFound } from "../components/DashboardNotFound";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useKeyShortcut } from "../hooks/useShortcuts";
 import { TimeRangeControls } from "../components/TimeRangeControls";
@@ -189,6 +191,9 @@ export function DashboardPage() {
 
   if (file.isLoading) {
     return <Text>Loading…</Text>;
+  }
+  if (isNotFound(file.error)) {
+    return <DashboardNotFound name={name} />;
   }
   if (file.error) {
     return <Text color="fg.error">{String(file.error)}</Text>;

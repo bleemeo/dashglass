@@ -13,6 +13,7 @@ import {
 import { RuntimeProvider } from "@polarisui/runtime";
 import { ColorModeProvider, polarisSystem, useColorMode } from "@polarisui/ui";
 
+import { isClientError } from "./api/client";
 import { App } from "./App";
 import { Toaster } from "./components/toaster";
 import { RouteErrorPage } from "./pages/RouteErrorPage";
@@ -20,7 +21,15 @@ import { createAppSetup } from "./setup";
 
 const { registries, datasource } = createAppSetup();
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 5_000 } },
+  defaultOptions: {
+    queries: {
+      // 4xx responses are definitive — retrying a 404 only delayed the
+      // "dashboard not found" page behind seconds of "Loading…".
+      retry: (failureCount, error) =>
+        !isClientError(error) && failureCount < 1,
+      staleTime: 5_000,
+    },
+  },
 });
 
 // A data router (not <BrowserRouter>) so editors can block in-app
