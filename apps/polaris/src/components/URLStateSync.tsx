@@ -32,6 +32,17 @@ export function rangeFromParams(params: URLSearchParams): TimeRange | null {
   return null;
 }
 
+/** Writes a time range as `from`/`to` params (relative or absolute). */
+export function rangeToParams(params: URLSearchParams, range: TimeRange): void {
+  if (isRelativeTimeRange(range)) {
+    params.set("from", `now-${range.pastDuration}`);
+    params.delete("to");
+  } else {
+    params.set("from", String(range.start.getTime()));
+    params.set("to", String(range.end.getTime()));
+  }
+}
+
 export function variablesFromParams(params: URLSearchParams): VariableValues {
   const values: VariableValues = {};
   for (const key of new Set(params.keys())) {
@@ -57,13 +68,7 @@ export function URLStateSync() {
   useEffect(() => {
     setSearchParams(
       (params) => {
-        if (isRelativeTimeRange(range)) {
-          params.set("from", `now-${range.pastDuration}`);
-          params.delete("to");
-        } else {
-          params.set("from", String(range.start.getTime()));
-          params.set("to", String(range.end.getTime()));
-        }
+        rangeToParams(params, range);
         for (const key of [...new Set(params.keys())]) {
           if (key.startsWith("var-")) {
             params.delete(key);
