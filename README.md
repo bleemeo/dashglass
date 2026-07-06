@@ -4,7 +4,52 @@ Lightweight, Prometheus-native dashboards with first-class GitOps support:
 dashboards are edited in the UI and stored as JSON/YAML/TOML files you can
 version, review and deploy through git.
 
-See [DESIGN.md](./DESIGN.md) for the full design document.
+![Polaris dashboard](docs/screenshot-light.png)
+
+- **Just the dashboards** — the dashboard part of Grafana, nothing else:
+  one small Go binary, no database, no bundled kitchen sink.
+- **Files are the product** — every dashboard is a git-friendly file with
+  deterministic serialization: a one-field edit produces a one-line diff.
+  Edit in the UI, review in git, or run fully provisioned (`-readonly`).
+- **Prometheus-native** — queries go through a read-only proxy to your
+  Prometheus; a built-in PromQL editor with live autocompletion, an
+  Explore view, chained dashboard variables.
+- **Grafana import** — convert dashboards from a JSON export or straight
+  from grafana.com, with honest per-panel warnings.
+- **Light & dark**, keyboard shortcuts, kiosk mode for wall screens.
+
+## Quickstart
+
+With Docker Compose (includes a demo Prometheus scraping itself, so the
+sample dashboards have data out of the box):
+
+```sh
+git clone https://github.com/bleemeo/polarisui && cd polarisui
+docker compose up
+# open http://localhost:8080
+```
+
+Or as a single binary against your own Prometheus:
+
+```sh
+pnpm install && pnpm build-binary
+./polaris -prometheus-url http://localhost:9090 -dashboards-dir ./dashboards
+```
+
+### First run and authentication
+
+A fresh instance starts with authentication **disabled: anyone who can
+reach it has full (admin) access**. To enable authentication, create the
+first admin user from **Admin → Create the first user** — everyone is
+then asked to sign in. Alternatives for automated deploys:
+
+- `POLARIS_BOOTSTRAP_ADMIN_PASSWORD=…` creates an `admin` user at startup;
+- `./polaris user add <name> [role]` is the break-glass CLI.
+
+Local users get one of three roles (viewer / editor / admin). Reverse-proxy
+header authentication and native OIDC (authorization code + PKCE, with
+groups → role mapping) are configured through `polaris.yaml` — see
+[polaris.example.yaml](./polaris.example.yaml) for the annotated reference.
 
 ## Repository layout
 
@@ -13,15 +58,19 @@ See [DESIGN.md](./DESIGN.md) for the full design document.
 - `packages/runtime` — plugin registries, query orchestrator and dashboard
   rendering engine.
 - `packages/panels-builtin` — built-in panel plugins: time series, stat,
-  gauge, table (ECharts).
+  gauge, table, bar, heatmap, markdown (ECharts).
 - `packages/datasource-prometheus` — Prometheus data source over the
   native HTTP API paths.
 - `packages/promql-editor` — CodeMirror PromQL editor with live
   autocompletion.
-- `packages/ui` — Chakra theme and shared primitives (planned).
-- `apps/polaris` — the open-source app shell (planned).
+- `packages/grafana-import` — best-effort Grafana JSON → Polaris converter.
+- `packages/ui` — Chakra theme, color mode and shared styling.
+- `apps/polaris` — the open-source app shell (dashboard list, viewer,
+  form-based and as-code editors, Explore, admin).
 - `backend/` — Go server: SPA hosting, Prometheus proxy, dashboard file
-  management (CRUD + validation + fsnotify/SSE live reload).
+  management (CRUD + validation + fsnotify/SSE live reload), auth.
+
+See [DESIGN.md](./DESIGN.md) for the full design document.
 
 ## Development
 
@@ -55,7 +104,8 @@ pnpm build-binary
 
 The dashboard JSON Schema used by the backend is generated from the Zod
 schemas (`pnpm generate-schema` in `packages/model`); regenerate it after
-changing the model.
+changing the model. `./polaris lint [paths...]` validates dashboard files
+(used in CI).
 
 ## License
 
