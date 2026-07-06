@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Box, Button, Flex, Heading, Input, Text } from "@chakra-ui/react";
 import { GridLayout, useContainerWidth } from "react-grid-layout";
@@ -39,6 +39,7 @@ import {
   useSaveDashboard,
 } from "../api/hooks";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { PanelEditorDrawer } from "../components/editor/PanelEditorDrawer";
 import { CodeIcon, PlusIcon } from "../components/icons";
 import { toaster } from "../components/toaster";
@@ -200,8 +201,11 @@ function EditorView({
   const [draft, setDraft] = useState<Dashboard>(initial);
   usePageTitle(`${initial.spec.display?.name ?? name} · edit`);
   const [editing, setEditing] = useState<string | null>(null);
-  const [confirmLeave, setConfirmLeave] = useState<null | (() => void)>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const dirty = draft !== initial;
+  // Lets the post-save navigation through the guard (the draft still
+  // differs from `initial` until the refetch lands).
+  const justSaved = useRef(false);
 
   const editingPanel = editing ? draft.spec.panels[editing] : undefined;
   const issues = save.error instanceof APIError ? save.error.issues : [];
@@ -215,6 +219,7 @@ function EditorView({
       {
         onSuccess: () => {
           toaster.create({ title: "Dashboard saved", type: "success" });
+          justSaved.current = true;
           void navigate(`/d/${encodeURIComponent(name)}`);
         },
       },
@@ -222,15 +227,6 @@ function EditorView({
   };
   useSaveShortcut(doSave);
   useUnsavedChangesWarning(dirty);
-
-  /** Runs `action` directly, or after confirmation when the draft is dirty. */
-  const leave = (action: () => void) => {
-    if (dirty) {
-      setConfirmLeave(() => action);
-    } else {
-      action();
-    }
-  };
 
   return (
     <TimeRangeProvider initialRange={defaultTimeRange(initial)}>
@@ -248,9 +244,7 @@ function EditorView({
                 size="sm"
                 variant="ghost"
                 onClick={() =>
-                  leave(() =>
-                    void navigate(`/d/${encodeURIComponent(name)}/code`),
-                  )
+                  void navigate(`/d/${encodeURIComponent(name)}/code`)
                 }
               >
                 <CodeIcon /> Edit as code
@@ -260,7 +254,7 @@ function EditorView({
                 variant="outline"
                 onClick={() => {
                   if (dirty) {
-                    setConfirmLeave(() => () => setDraft(initial));
+                    setConfirmDiscard(true);
                   } else {
                     void navigate(`/d/${encodeURIComponent(name)}`);
                   }
@@ -357,18 +351,19 @@ function EditorView({
               onClose={() => setEditing(null)}
             />
           ) : null}
-          {confirmLeave ? (
+          {confirmDiscard ? (
             <ConfirmDialog
               title="Unsaved changes"
               message="This dashboard has unsaved changes. Discard them?"
               confirmLabel="Discard"
               onConfirm={() => {
-                setConfirmLeave(null);
-                confirmLeave();
+                setConfirmDiscard(false);
+                setDraft(initial);
               }}
-              onClose={() => setConfirmLeave(null)}
+              onClose={() => setConfirmDiscard(false)}
             />
           ) : null}
+          <UnsavedChangesGuard when={dirty} bypass={justSaved} />
         </Flex>
       </VariablesProvider>
     </TimeRangeProvider>

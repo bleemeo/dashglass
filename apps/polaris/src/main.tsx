@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { ChakraProvider } from "@chakra-ui/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router";
+import { createBrowserRouter, RouterProvider } from "react-router";
 
 import {
   ChartThemeProvider,
@@ -21,6 +21,11 @@ const { registries, datasource } = createAppSetup();
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 5_000 } },
 });
+
+// A data router (not <BrowserRouter>) so editors can block in-app
+// navigation while they hold unsaved changes (useBlocker). The app keeps
+// its own <Routes> tree; this single splat route just anchors the router.
+const router = createBrowserRouter([{ path: "*", element: <App /> }]);
 
 /** Feeds the resolved color mode to the chart token set. */
 function ChartThemeBridge({ children }: { children: ReactNode }) {
@@ -41,9 +46,7 @@ createRoot(document.getElementById("root")!).render(
         <ChartThemeBridge>
           <QueryClientProvider client={queryClient}>
             <RuntimeProvider datasource={datasource} registries={registries}>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
+              <RouterProvider router={router} />
               <Toaster />
             </RuntimeProvider>
           </QueryClientProvider>

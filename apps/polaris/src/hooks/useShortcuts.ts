@@ -50,9 +50,9 @@ export function useKeyShortcut(key: string, onTrigger: () => void): void {
 
 /**
  * Warns before the tab closes while there are unsaved changes. In-app
- * navigation is guarded by the editors' own confirm dialogs; this covers
- * close/reload, where the native prompt is the only mechanism browsers
- * allow.
+ * navigation (sidebar links, browser back/forward) is guarded by
+ * `UnsavedChangesGuard`; this covers close/reload, where the native
+ * prompt is the only mechanism browsers allow.
  */
 export function useUnsavedChangesWarning(dirty: boolean): void {
   useEffect(() => {

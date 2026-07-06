@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button, Flex, Heading, Text, Textarea } from "@chakra-ui/react";
 import { useNavigate, useParams } from "react-router";
 
 import { APIError } from "../api/client";
-import { ConfirmDialog } from "../components/ConfirmDialog";
+import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
 import {
@@ -32,7 +32,6 @@ export function EditDashboardPage() {
   const readonly = capabilities.data?.readonly ?? false;
 
   const [content, setContent] = useState<string | null>(null);
-  const [confirmBack, setConfirmBack] = useState(false);
   useEffect(() => {
     if (file.data && content === null) {
       setContent(file.data.content);
@@ -40,6 +39,9 @@ export function EditDashboardPage() {
   }, [file.data, content]);
 
   const dirty = content !== null && content !== (file.data?.content ?? null);
+  // Lets the post-save navigation through the guard (`content` still
+  // differs from the cached file until the refetch lands).
+  const justSaved = useRef(false);
   const doSave = () => {
     if (readonly || content === null || !file.data || save.isPending) {
       return;
@@ -49,6 +51,7 @@ export function EditDashboardPage() {
       {
         onSuccess: () => {
           toaster.create({ title: "Dashboard saved", type: "success" });
+          justSaved.current = true;
           void navigate(`/d/${encodeURIComponent(name)}`);
         },
       },
@@ -80,13 +83,7 @@ export function EditDashboardPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              if (dirty) {
-                setConfirmBack(true);
-              } else {
-                void navigate(`/d/${encodeURIComponent(name)}`);
-              }
-            }}
+            onClick={() => void navigate(`/d/${encodeURIComponent(name)}`)}
           >
             Back
           </Button>
@@ -101,15 +98,7 @@ export function EditDashboardPage() {
           </Button>
         </Flex>
       </Flex>
-      {confirmBack ? (
-        <ConfirmDialog
-          title="Unsaved changes"
-          message="This file has unsaved changes. Discard them?"
-          confirmLabel="Discard"
-          onConfirm={() => void navigate(`/d/${encodeURIComponent(name)}`)}
-          onClose={() => setConfirmBack(false)}
-        />
-      ) : null}
+      <UnsavedChangesGuard when={dirty} bypass={justSaved} />
 
       {readonly ? (
         <Text fontSize="sm" color="fg.muted">
