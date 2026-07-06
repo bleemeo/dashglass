@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    name: Tests, typecheck, lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: backend/go.sum
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (all packages + app)
+        run: pnpm typecheck
+      - name: Test (workspace, vitest)
+        run: pnpm test
+
+      - name: Go vet
+        run: cd backend && go vet ./...
+      - name: Go test
+        run: cd backend && go test ./...
+
+      - name: Validate sample dashboards (polaris lint)
+        run: |
+          pnpm build-binary
+          ./polaris lint dashboards/
+          # build-binary overwrites the tracked placeholder; restore it.
+          git checkout -- backend/internal/ui/dist/index.html
+
+  docker:
+    name: Docker image smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t polaris-ci .
+      - name: Smoke test (non-root container, auth surface)
+        run: bash scripts/docker-smoke.sh polaris-ci 8899
