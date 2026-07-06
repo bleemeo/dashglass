@@ -180,6 +180,15 @@ export function TimeRangeControls({
               {option.label}
             </option>
           ))}
+          {/* A relative range outside the presets (e.g. ?from=now-3h)
+              still needs a matching option, or the select silently
+              displays the first preset. */}
+          {isRelativeTimeRange(range) &&
+          !RANGES.some((option) => option.value === range.pastDuration) ? (
+            <option value={range.pastDuration}>
+              Last {range.pastDuration}
+            </option>
+          ) : null}
           <option value="custom">{customLabel}</option>
         </NativeSelect.Field>
         <NativeSelect.Indicator />
