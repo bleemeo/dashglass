@@ -33,6 +33,62 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+/** Tooltip row cap: past this, a "… N more series" line says what's cut. */
+const TOOLTIP_MAX_SERIES = 10;
+
+function escapeHTML(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/** The subset of ECharts' axis-trigger callback params the tooltip uses. */
+export interface TooltipParam {
+  seriesName?: string;
+  /** ECharts-provided colored dot (HTML). */
+  marker?: string;
+  /** Our data points are [timestamp, value] pairs. */
+  value?: unknown;
+  axisValueLabel?: string;
+}
+
+/**
+ * Axis tooltip body: entries sorted by value (descending — "who is on
+ * top?"), capped at TOOLTIP_MAX_SERIES so a 50-series panel stays
+ * readable, values formatted with the panel unit. Exported for tests.
+ */
+export function buildTooltipHTML(
+  params: TooltipParam[],
+  unit: Unit,
+  theme: ChartTheme,
+): string {
+  const entries = params.flatMap((param) => {
+    const value = Array.isArray(param.value) ? param.value[1] : undefined;
+    return typeof value === "number" ? [{ param, value }] : [];
+  });
+  entries.sort((a, b) => b.value - a.value);
+  const shown = entries.slice(0, TOOLTIP_MAX_SERIES);
+  const hidden = entries.length - shown.length;
+
+  const header = `<div style="color:${theme.ink.muted};margin-bottom:4px">${escapeHTML(
+    params[0]?.axisValueLabel ?? "",
+  )}</div>`;
+  const rows = shown.map(
+    ({ param, value }) =>
+      `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">` +
+      `<span style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">` +
+      `${param.marker ?? ""}${escapeHTML(param.seriesName ?? "")}</span>` +
+      `<span style="font-weight:600;color:${theme.ink.primary}">${formatValue(value, unit)}</span>` +
+      `</div>`,
+  );
+  const footer =
+    hidden > 0
+      ? `<div style="color:${theme.ink.muted};margin-top:4px">… ${hidden} more series</div>`
+      : "";
+  return header + rows.join("") + footer;
+}
+
 export function buildTimeSeriesOption(
   series: TimeSeries[],
   spec: TimeSeriesSpec,
@@ -101,9 +157,9 @@ export function buildTimeSeriesOption(
       },
       backgroundColor: theme.tooltipBackground,
       borderColor: theme.border,
-      textStyle: { color: theme.ink.primary, fontSize: 12 },
-      valueFormatter: (value: unknown) =>
-        formatValue(typeof value === "number" ? value : null, unit),
+      textStyle: { color: theme.ink.secondary, fontSize: 12 },
+      formatter: (params: TooltipParam | TooltipParam[]) =>
+        buildTooltipHTML(Array.isArray(params) ? params : [params], unit, theme),
     },
     legend: {
       show: showLegend,

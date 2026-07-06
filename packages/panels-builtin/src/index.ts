@@ -108,8 +108,10 @@ export { ChartGroupProvider, useChartGroup } from "./group";
 // tests and theming.
 export {
   buildTimeSeriesOption,
+  buildTooltipHTML,
   timeSeriesSpecSchema,
   type TimeSeriesSpec,
+  type TooltipParam,
 } from "./time-series/options";
 export { statSpecSchema, type StatSpec } from "./stat/StatChart";
 export {
