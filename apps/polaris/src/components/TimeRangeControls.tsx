@@ -130,12 +130,16 @@ function CustomRangeDialog({
 export interface TimeRangeControlsProps {
   refreshInterval: Duration | "off";
   onRefreshIntervalChange: (interval: Duration | "off") => void;
+  /** Hides the auto-refresh selector (e.g. the editor preview, where a
+   * ticking refresh has no purpose). */
+  hideRefreshInterval?: boolean;
 }
 
 /** Time range picker + auto-refresh selector + manual refresh. */
 export function TimeRangeControls({
   refreshInterval,
   onRefreshIntervalChange,
+  hideRefreshInterval,
 }: TimeRangeControlsProps) {
   const { range, setRange, refresh } = useTimeRange();
   const [picking, setPicking] = useState(false);
@@ -191,23 +195,25 @@ export function TimeRangeControls({
           <ClockIcon />
         </IconButton>
       )}
-      <NativeSelect.Root size="sm" width="auto">
-        <NativeSelect.Field
-          aria-label="Auto-refresh"
-          color="fg.muted"
-          value={refreshInterval}
-          onChange={(event) =>
-            onRefreshIntervalChange(event.target.value as Duration | "off")
-          }
-        >
-          <option value="off">No refresh</option>
-          <option value="10s">10s</option>
-          <option value="30s">30s</option>
-          <option value="1m">1m</option>
-          <option value="5m">5m</option>
-        </NativeSelect.Field>
-        <NativeSelect.Indicator />
-      </NativeSelect.Root>
+      {hideRefreshInterval ? null : (
+        <NativeSelect.Root size="sm" width="auto">
+          <NativeSelect.Field
+            aria-label="Auto-refresh"
+            color="fg.muted"
+            value={refreshInterval}
+            onChange={(event) =>
+              onRefreshIntervalChange(event.target.value as Duration | "off")
+            }
+          >
+            <option value="off">No refresh</option>
+            <option value="10s">10s</option>
+            <option value="30s">30s</option>
+            <option value="1m">1m</option>
+            <option value="5m">5m</option>
+          </NativeSelect.Field>
+          <NativeSelect.Indicator />
+        </NativeSelect.Root>
+      )}
       <IconButton
         size="sm"
         variant="outline"

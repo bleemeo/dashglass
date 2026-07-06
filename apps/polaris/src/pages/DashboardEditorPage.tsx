@@ -40,13 +40,16 @@ import {
   useSaveDashboard,
 } from "../api/hooks";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { TimeRangeControls } from "../components/TimeRangeControls";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
+import { VariablesToolbar } from "../components/VariablesToolbar";
 import { PanelEditorDrawer } from "../components/editor/PanelEditorDrawer";
 import { CodeIcon, PlusIcon } from "../components/icons";
 import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
 import {
   useSaveShortcut,
+  useUndoRedoShortcuts,
   useUnsavedChangesWarning,
 } from "../hooks/useShortcuts";
 
@@ -208,6 +211,41 @@ function EditorView({
   // differs from `initial` until the refetch lands).
   const justSaved = useRef(false);
 
+  // Undo/redo: dashboards are immutable (edit.ts), so history is just a
+  // stack of references. Same-key edits coalesce (typing in the drawer
+  // stays one step per field, not one per keystroke).
+  const past = useRef<Dashboard[]>([]);
+  const future = useRef<Dashboard[]>([]);
+  const lastEditKey = useRef<string | null>(null);
+  const applyEdit = (next: Dashboard, coalesceKey?: string) => {
+    if (next === draft) {
+      return;
+    }
+    if (coalesceKey === undefined || coalesceKey !== lastEditKey.current) {
+      past.current.push(draft);
+      future.current = [];
+    }
+    lastEditKey.current = coalesceKey ?? null;
+    setDraft(next);
+  };
+  const undo = () => {
+    const previous = past.current.pop();
+    if (previous) {
+      future.current.push(draft);
+      lastEditKey.current = null;
+      setDraft(previous);
+    }
+  };
+  const redo = () => {
+    const next = future.current.pop();
+    if (next) {
+      past.current.push(draft);
+      lastEditKey.current = null;
+      setDraft(next);
+    }
+  };
+  useUndoRedoShortcuts(undo, redo);
+
   const editingPanel = editing ? draft.spec.panels[editing] : undefined;
   const issues = save.error instanceof APIError ? save.error.issues : [];
 
@@ -244,6 +282,24 @@ function EditorView({
               <Button
                 size="sm"
                 variant="ghost"
+                disabled={past.current.length === 0}
+                title="⌘Z"
+                onClick={undo}
+              >
+                Undo
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={future.current.length === 0}
+                title="⇧⌘Z"
+                onClick={redo}
+              >
+                Redo
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={() =>
                   void navigate(`/d/${encodeURIComponent(name)}/code`)
                 }
@@ -273,6 +329,17 @@ function EditorView({
                 Save
               </Button>
             </Flex>
+          </Flex>
+
+          {/* Preview controls: the grid below is the live preview, so the
+              range and variable values must be steerable while editing. */}
+          <Flex gap={3} alignItems="center" wrap="wrap">
+            <VariablesToolbar variables={initial.spec.variables ?? []} />
+            <TimeRangeControls
+              refreshInterval="off"
+              onRefreshIntervalChange={() => {}}
+              hideRefreshInterval
+            />
           </Flex>
 
           {readonly ? (
@@ -308,24 +375,21 @@ function EditorView({
                 layout={layout}
                 dashboard={draft}
                 onItemsChange={(items) =>
-                  setDraft((current) =>
-                    updateLayoutItems(current, layoutIndex, items),
-                  )
+                  applyEdit(updateLayoutItems(draft, layoutIndex, items))
                 }
                 onTitleChange={(title) =>
-                  setDraft((current) =>
-                    setLayoutTitle(current, layoutIndex, title),
+                  applyEdit(
+                    setLayoutTitle(draft, layoutIndex, title),
+                    `section-title:${layoutIndex}`,
                   )
                 }
                 onEditPanel={setEditing}
                 onRemovePanel={(itemIndex) =>
-                  setDraft((current) =>
-                    removePanelAt(current, layoutIndex, itemIndex),
-                  )
+                  applyEdit(removePanelAt(draft, layoutIndex, itemIndex))
                 }
                 onAddPanel={() => {
                   const key = uniquePanelKey(draft);
-                  setDraft(
+                  applyEdit(
                     addPanel(draft, key, newTimeSeriesPanel(), layoutIndex),
                   );
                   setEditing(key);
@@ -336,7 +400,7 @@ function EditorView({
               size="xs"
               variant="outline"
               alignSelf="flex-start"
-              onClick={() => setDraft((current) => addLayout(current))}
+              onClick={() => applyEdit(addLayout(draft))}
             >
               <PlusIcon /> Section
             </Button>
@@ -347,7 +411,7 @@ function EditorView({
               panelKey={editing}
               panel={editingPanel}
               onChange={(panel) =>
-                setDraft((current) => updatePanel(current, editing, panel))
+                applyEdit(updatePanel(draft, editing, panel), `panel:${editing}`)
               }
               onClose={() => setEditing(null)}
             />
@@ -359,6 +423,9 @@ function EditorView({
               confirmLabel="Discard"
               onConfirm={() => {
                 setConfirmDiscard(false);
+                past.current = [];
+                future.current = [];
+                lastEditKey.current = null;
                 setDraft(initial);
               }}
               onClose={() => setConfirmDiscard(false)}

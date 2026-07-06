@@ -27,6 +27,32 @@ export function useSaveShortcut(onSave: () => void): void {
 }
 
 /**
+ * Cmd-Z / Ctrl-Z and Shift-Cmd-Z / Ctrl-Y. Ignored while typing, so text
+ * fields keep their native undo.
+ */
+export function useUndoRedoShortcuts(
+  onUndo: () => void,
+  onRedo: () => void,
+): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || isTypingTarget(event.target)) {
+        return;
+      }
+      if (event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        (event.shiftKey ? onRedo : onUndo)();
+      } else if (event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        onRedo();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onUndo, onRedo]);
+}
+
+/**
  * A single bare key (e.g. "e"), ignored while typing or with modifiers.
  */
 export function useKeyShortcut(key: string, onTrigger: () => void): void {
