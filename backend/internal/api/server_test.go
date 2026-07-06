@@ -114,6 +114,51 @@ func TestPutReportsValidationIssues(t *testing.T) {
 	}
 }
 
+func TestPutCreateOnlyRefusesOverwrite(t *testing.T) {
+	server := newTestServer(t, Options{})
+
+	response := doRequest(t, http.MethodPut,
+		server.URL+"/api/dashboards/node-overview", "application/yaml", validYAML)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("PUT status = %d", response.StatusCode)
+	}
+
+	request, err := http.NewRequest(http.MethodPut,
+		server.URL+"/api/dashboards/node-overview", strings.NewReader(validYAML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/yaml")
+	request.Header.Set("If-None-Match", "*")
+	response, err = http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("create-only PUT over existing dashboard: status = %d, want 409",
+			response.StatusCode)
+	}
+
+	// A create-only PUT on a fresh name still succeeds.
+	request, err = http.NewRequest(http.MethodPut,
+		server.URL+"/api/dashboards/fresh", strings.NewReader(
+			strings.Replace(validYAML, "node-overview", "fresh", 1)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/yaml")
+	request.Header.Set("If-None-Match", "*")
+	response, err = http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("create-only PUT on fresh name: status = %d, want 200", response.StatusCode)
+	}
+}
+
 func TestPutRequiresKnownContentType(t *testing.T) {
 	server := newTestServer(t, Options{})
 	response := doRequest(t, http.MethodPut,

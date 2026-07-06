@@ -151,6 +151,12 @@ func displayOf(doc map[string]any) (name, description string) {
 	return name, description
 }
 
+// Exists reports whether a file backs the dashboard name, in any format.
+func (s *Store) Exists(name string) bool {
+	_, _, err := s.resolve(name)
+	return err == nil
+}
+
 // Get returns the raw file content and its format.
 func (s *Store) Get(name string) ([]byte, Format, error) {
 	path, format, err := s.resolve(name)

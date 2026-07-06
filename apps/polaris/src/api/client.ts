@@ -70,11 +70,24 @@ const CONTENT_TYPES = {
 
 export class APIError extends Error {
   issues: string[];
+  status: number;
 
-  constructor(message: string, issues: string[] = []) {
+  constructor(message: string, issues: string[] = [], status = 0) {
     super(message);
     this.issues = issues;
+    this.status = status;
   }
+}
+
+/** True for errors a retry cannot fix (4xx client errors). */
+export function isClientError(error: unknown): boolean {
+  return (
+    error instanceof APIError && error.status >= 400 && error.status < 500
+  );
+}
+
+export function isNotFound(error: unknown): boolean {
+  return error instanceof APIError && error.status === 404;
 }
 
 async function errorFrom(response: Response): Promise<APIError> {
@@ -93,6 +106,7 @@ async function errorFrom(response: Response): Promise<APIError> {
   return new APIError(
     body.error ?? `HTTP ${response.status}`,
     body.issues ?? [],
+    response.status,
   );
 }
 
@@ -232,10 +246,18 @@ export async function putDashboard(
   name: string,
   content: string,
   format: DashboardFile["format"],
+  options: { createOnly?: boolean } = {},
 ): Promise<void> {
+  const headers: Record<string, string> = {
+    "Content-Type": CONTENT_TYPES[format],
+  };
+  if (options.createOnly) {
+    // The backend then refuses to overwrite an existing dashboard (409).
+    headers["If-None-Match"] = "*";
+  }
   const response = await fetch(`/api/dashboards/${dashboardPath(name)}`, {
     method: "PUT",
-    headers: { "Content-Type": CONTENT_TYPES[format] },
+    headers,
     body: content,
   });
   if (!response.ok) {

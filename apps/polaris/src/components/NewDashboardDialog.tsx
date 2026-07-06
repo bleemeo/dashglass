@@ -26,7 +26,7 @@ import {
   fetchGrafanaComDashboard,
   putDashboard,
 } from "../api/client";
-import { useCapabilities } from "../api/hooks";
+import { useCapabilities, useDashboards } from "../api/hooks";
 import { toaster } from "./toaster";
 
 /** Slug per path segment: one "/" is allowed (folder/name). */
@@ -105,6 +105,7 @@ function convert(json: string): Preview {
 export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const capabilities = useCapabilities();
+  const dashboards = useDashboards();
   const grafanaCom = capabilities.data?.features?.grafanaCom ?? false;
 
   const [title, setTitle] = useState("");
@@ -134,6 +135,11 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
   const effectiveName = nameEdited
     ? name
     : slugify(effectiveTitle) || (imported?.metadata.name ?? "");
+  // Live collision check against the cached list; the backend enforces it
+  // too (create-only PUT), this is just instant feedback.
+  const nameTaken =
+    effectiveName !== "" &&
+    (dashboards.data?.some((info) => info.name === effectiveName) ?? false);
 
   const loadFromMarketplace = async () => {
     const id = parseGrafanaComID(marketplaceRef);
@@ -161,6 +167,7 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
         effectiveName,
         stringifyDashboard(dashboard, "yaml"),
         "yaml",
+        { createOnly: true },
       );
       toaster.create({
         title: imported ? "Dashboard imported" : "Dashboard created",
@@ -266,7 +273,7 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
                     }}
                   />
                 </Field.Root>
-                <Field.Root>
+                <Field.Root invalid={nameTaken}>
                   <Field.Label>File name</Field.Label>
                   <Input
                     size="sm"
@@ -277,9 +284,16 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
                       setNameEdited(true);
                     }}
                   />
-                  <Field.HelperText>
-                    The dashboard's identifier in the dashboards directory.
-                  </Field.HelperText>
+                  {nameTaken ? (
+                    <Field.ErrorText>
+                      A dashboard named "{effectiveName}" already exists —
+                      pick another file name.
+                    </Field.ErrorText>
+                  ) : (
+                    <Field.HelperText>
+                      The dashboard's identifier in the dashboards directory.
+                    </Field.HelperText>
+                  )}
                 </Field.Root>
 
                 <Collapsible.Root>
@@ -407,7 +421,7 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
               <Button
                 size="sm"
                 loading={saving}
-                disabled={effectiveTitle.trim() === ""}
+                disabled={effectiveTitle.trim() === "" || nameTaken}
                 onClick={create}
               >
                 {imported ? "Import" : "Create and edit"}

@@ -183,6 +183,13 @@ func (s *Server) putDashboard(writer http.ResponseWriter, request *http.Request)
 	}
 
 	name := request.PathValue("name")
+	// "If-None-Match: *" makes the PUT create-only, so the UI's "new
+	// dashboard" flow cannot silently overwrite an existing file.
+	if request.Header.Get("If-None-Match") == "*" && s.store.Exists(name) {
+		writeError(writer, http.StatusConflict,
+			fmt.Sprintf("dashboard %q already exists", name))
+		return
+	}
 	if err := s.store.Save(name, content, format); err != nil {
 		var validationErr *store.ValidationError
 		if errors.As(err, &validationErr) {
