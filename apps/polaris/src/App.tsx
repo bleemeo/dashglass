@@ -18,6 +18,7 @@ import {
   useDashboardEvents,
   usePermissions,
 } from "./api/hooks";
+import { AuthDisabledBanner } from "./components/AuthDisabledBanner";
 import { AdminIcon, SidebarIcon } from "./components/icons";
 import { UserMenu } from "./components/UserMenu";
 import { AdminPage } from "./pages/AdminPage";
@@ -202,23 +203,28 @@ export function App() {
       <Route
         path="*"
         element={
-          <Flex height="100vh" alignItems="stretch">
-            {kiosk ? null : <SideBar collapsed={collapsed} onToggle={toggle} />}
-            <Box flex={1} overflow="auto" padding={kiosk ? 4 : 6}>
-              <Routes>
-                {registries.pages.list().map((page) => (
-                  <Route
-                    key={page.kind}
-                    path={page.path}
-                    element={page.element}
-                  />
-                ))}
-                {isAdmin ? (
-                  <Route path="/admin" element={<AdminPage />} />
-                ) : null}
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Box>
+          <Flex direction="column" height="100vh">
+            {kiosk ? null : <AuthDisabledBanner />}
+            <Flex flex={1} alignItems="stretch" minHeight={0}>
+              {kiosk ? null : (
+                <SideBar collapsed={collapsed} onToggle={toggle} />
+              )}
+              <Box flex={1} overflow="auto" padding={kiosk ? 4 : 6}>
+                <Routes>
+                  {registries.pages.list().map((page) => (
+                    <Route
+                      key={page.kind}
+                      path={page.path}
+                      element={page.element}
+                    />
+                  ))}
+                  {isAdmin ? (
+                    <Route path="/admin" element={<AdminPage />} />
+                  ) : null}
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </Box>
+            </Flex>
           </Flex>
         }
       />
