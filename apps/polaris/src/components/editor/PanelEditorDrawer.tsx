@@ -179,15 +179,23 @@ export function PanelEditorDrawer({
   const queries = panel.spec.queries ?? [];
 
   return (
-    <Drawer.Root open size="md" onOpenChange={(event) => {
-      if (!event.open) {
-        onClose();
-      }
-    }}>
+    // Non-modal on purpose: the grid behind is the live preview, so it
+    // must stay visible (no backdrop) and interactive (hover tooltips,
+    // scroll to the edited panel) while the form is open.
+    <Drawer.Root
+      open
+      size="md"
+      modal={false}
+      closeOnInteractOutside={false}
+      onOpenChange={(event) => {
+        if (!event.open) {
+          onClose();
+        }
+      }}
+    >
       <Portal>
-        <Drawer.Backdrop />
-        <Drawer.Positioner>
-          <Drawer.Content>
+        <Drawer.Positioner pointerEvents="none">
+          <Drawer.Content pointerEvents="auto">
             <Drawer.Header>
               <Drawer.Title>
                 Panel “{panel.spec.display?.name ?? panelKey}”
