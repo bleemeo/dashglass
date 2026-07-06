@@ -80,6 +80,33 @@ const config = defineConfig({
       backgroundColor: "bg.muted",
       animation: "polaris-pulse 1.6s ease-in-out infinite",
     },
+    // Partial query failure: data stays visible, the badge carries the
+    // details in its title attribute.
+    ".polaris-panel-error-badge": {
+      position: "absolute",
+      top: "1",
+      right: "1",
+      paddingX: "1.5",
+      paddingY: "0.5",
+      fontSize: "xs",
+      color: "fg.error",
+      backgroundColor: "bg.panel",
+      borderWidth: "1px",
+      borderColor: "border.error",
+      borderRadius: "sm",
+      cursor: "help",
+    },
+    // Refetch-in-progress cue over stale data (PanelChrome).
+    ".polaris-panel-refreshing": {
+      position: "absolute",
+      top: "0",
+      left: "0",
+      right: "0",
+      height: "2px",
+      backgroundColor: "blue.solid",
+      opacity: 0.6,
+      animation: "polaris-pulse 1.6s ease-in-out infinite",
+    },
     // Plugin option editors (panels-builtin editor/controls.tsx) are
     // structure-only, like the panel chrome; this is their identity.
     ".polaris-fields": {

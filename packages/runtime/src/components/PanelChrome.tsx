@@ -49,7 +49,7 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
   } else if (data.state === "loading" && data.series.length === 0) {
     // First load only: refreshes keep the previous series on screen.
     body = <div className="polaris-panel-loading" aria-busy="true" />;
-  } else if (data.state === "error") {
+  } else if (data.state === "error" && data.series.length === 0) {
     body = (
       <div className="polaris-panel-error" role="alert">
         {data.errors.map((error, index) => (
@@ -60,16 +60,35 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
   } else {
     const Component = plugin.component;
     body = (
-      // Panel components may be React.lazy chunks (code splitting).
-      <Suspense fallback={null}>
-        <Component
-          spec={panel.spec.plugin.spec ?? {}}
-          display={panel.spec.display}
-          data={data}
-          timeRange={resolved}
-          onZoom={setRange}
-        />
-      </Suspense>
+      <>
+        {/* Panel components may be React.lazy chunks (code splitting). */}
+        <Suspense fallback={null}>
+          <Component
+            spec={panel.spec.plugin.spec ?? {}}
+            display={panel.spec.display}
+            data={data}
+            timeRange={resolved}
+            onZoom={setRange}
+          />
+        </Suspense>
+        {data.state === "error" ? (
+          // Partial failure: healthy queries keep their series on screen,
+          // the failed ones surface as a badge (details on hover).
+          <div
+            className="polaris-panel-error-badge"
+            role="alert"
+            title={data.errors.join("\n\n")}
+          >
+            {data.errors.length === 1
+              ? "1 query failed"
+              : `${data.errors.length} queries failed`}
+          </div>
+        ) : null}
+        {data.state === "loading" ? (
+          // Refetch over stale data: a quiet cue that numbers are updating.
+          <div className="polaris-panel-refreshing" aria-hidden="true" />
+        ) : null}
+      </>
     );
   }
 
