@@ -94,6 +94,8 @@ export function TimeRangeProvider({
 }: TimeRangeProviderProps) {
   const [range, setRange] = useState<TimeRange>(initialRange);
   const [epoch, setEpoch] = useState(0);
+  // Nullable on purpose: the provider works without a runtime (tests).
+  const runtime = useContext(RuntimeContext);
 
   useEffect(() => {
     if (!refreshInterval) {
@@ -111,10 +113,18 @@ export function TimeRangeProvider({
       range,
       resolved: resolveTimeRange(range),
       setRange,
-      refresh: () => setEpoch((tick) => tick + 1),
+      refresh: () => {
+        // An absolute range resolves to the same dates, so the bumped
+        // epoch alone would replay the orchestrator cache — re-execute
+        // its entries instead (this is also the errored-panel retry).
+        if (!("pastDuration" in range)) {
+          runtime?.orchestrator.invalidate();
+        }
+        setEpoch((tick) => tick + 1);
+      },
     }),
     // epoch re-resolves relative ranges against a new "now".
-    [range, epoch],
+    [range, epoch, runtime],
   );
   return <TimeRangeContext value={value}>{children}</TimeRangeContext>;
 }
@@ -136,6 +146,9 @@ export interface VariablesContextValue {
   setValue: (name: string, value: string | string[]) => void;
   /** True while ListVariable values are loading. */
   loading: boolean;
+  /** Load failures by variable name, so selector UIs can surface them
+   * (an empty dropdown alone reads as "no data", not "it broke"). */
+  errors: Record<string, string>;
 }
 
 const VariablesContext = createContext<VariablesContextValue | null>(null);
@@ -198,6 +211,7 @@ export function VariablesProvider({
     ...initialRef.current,
   }));
   const [options, setOptions] = useState<Record<string, string[]>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const listVariables = variables.filter((v) => v.kind === "ListVariable");
   const [loading, setLoading] = useState(listVariables.length > 0);
 
@@ -266,15 +280,21 @@ export function VariablesProvider({
     Promise.all(
       pending.map(async ({ variable, spec, key }) => {
         const plugin = registries.variableSources.get(variable.spec.plugin.kind);
-        const loaded = plugin
-          ? await plugin
-              .loadValues(spec, {
+        const loaded: string[] = [];
+        let error: string | null = null;
+        if (plugin) {
+          try {
+            loaded.push(
+              ...(await plugin.loadValues(spec, {
                 datasource,
                 timeRange: resolvedRef.current,
-              })
-              .catch(() => [])
-          : [];
-        return { variable, loaded, key } as const;
+              })),
+            );
+          } catch (loadError) {
+            error = String(loadError);
+          }
+        }
+        return { variable, loaded, key, error };
       }),
     ).then((results) => {
       if (cancelled) {
@@ -284,6 +304,17 @@ export function VariablesProvider({
         const next = { ...current };
         for (const { variable, loaded } of results) {
           next[variable.spec.name] = loaded;
+        }
+        return next;
+      });
+      setErrors((current) => {
+        const next = { ...current };
+        for (const { variable, error } of results) {
+          if (error === null) {
+            delete next[variable.spec.name];
+          } else {
+            next[variable.spec.name] = error;
+          }
         }
         return next;
       });
@@ -323,10 +354,11 @@ export function VariablesProvider({
       values,
       options,
       loading,
+      errors,
       setValue: (name, newValue) =>
         setValues((current) => ({ ...current, [name]: newValue })),
     }),
-    [values, options, loading],
+    [values, options, loading, errors],
   );
   return <VariablesContext value={value}>{children}</VariablesContext>;
 }

@@ -29,6 +29,7 @@ export type QueryState =
 type Listener = (state: QueryState) => void;
 
 interface Entry {
+  spec: RangeQuerySpec;
   state: QueryState;
   listeners: Set<Listener>;
   abort: AbortController;
@@ -42,17 +43,22 @@ function keyOf(spec: RangeQuerySpec): string {
 export interface QueryOrchestratorOptions {
   /** How long a result outlives its last subscriber (ms). */
   retireDelay?: number;
+  /** Per-query timeout (ms): a hung backend becomes an actionable error
+   * instead of an eternal loading state. */
+  queryTimeout?: number;
 }
 
 export class QueryOrchestrator {
   private entries = new Map<string, Entry>();
   private retireDelay: number;
+  private queryTimeout: number;
 
   constructor(
     private datasource: PrometheusDataSource,
     options: QueryOrchestratorOptions = {},
   ) {
     this.retireDelay = options.retireDelay ?? 30_000;
+    this.queryTimeout = options.queryTimeout ?? 30_000;
   }
 
   /**
@@ -66,12 +72,13 @@ export class QueryOrchestrator {
     let entry = this.entries.get(key);
     if (!entry) {
       entry = {
+        spec,
         state: { status: "loading" },
         listeners: new Set(),
         abort: new AbortController(),
       };
       this.entries.set(key, entry);
-      this.execute(key, spec, entry);
+      this.execute(entry);
     }
     if (entry.retireTimer) {
       clearTimeout(entry.retireTimer);
@@ -97,12 +104,13 @@ export class QueryOrchestrator {
     };
   }
 
-  private async execute(key: string, spec: RangeQuerySpec, entry: Entry) {
+  private async execute(entry: Entry) {
+    const timeout = AbortSignal.timeout(this.queryTimeout);
     let state: QueryState;
     try {
       const response = await this.datasource.rangeQuery({
-        ...spec,
-        signal: entry.abort.signal,
+        ...entry.spec,
+        signal: AbortSignal.any([entry.abort.signal, timeout]),
       });
       state =
         response.status === "error"
@@ -112,11 +120,35 @@ export class QueryOrchestrator {
       if (entry.abort.signal.aborted) {
         return; // Cancelled: the entry is already gone.
       }
-      state = { status: "error", error: String(error) };
+      state = timeout.aborted
+        ? {
+            status: "error",
+            error: `query timed out after ${this.queryTimeout / 1000}s`,
+          }
+        : { status: "error", error: String(error) };
     }
     entry.state = state;
     for (const listener of entry.listeners) {
       listener(state);
+    }
+  }
+
+  /**
+   * Re-executes every settled entry that still has subscribers: the manual
+   * refresh for absolute time ranges (their query keys don't change, so
+   * re-subscribing alone would just replay the cache) and the retry path
+   * for errored panels.
+   */
+  invalidate(): void {
+    for (const entry of this.entries.values()) {
+      if (entry.listeners.size === 0 || entry.state.status === "loading") {
+        continue;
+      }
+      entry.state = { status: "loading" };
+      for (const listener of entry.listeners) {
+        listener(entry.state);
+      }
+      void this.execute(entry);
     }
   }
 

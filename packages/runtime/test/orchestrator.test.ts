@@ -105,6 +105,70 @@ describe("QueryOrchestrator", () => {
     });
   });
 
+  it("invalidate re-executes settled entries with subscribers", async () => {
+    let calls = 0;
+    const orchestrator = new QueryOrchestrator(
+      fakeDatasource(async () => {
+        calls += 1;
+        // First call fails, the retry succeeds.
+        return calls === 1
+          ? { status: "error", errorType: "timeout", error: "boom" }
+          : success;
+      }),
+    );
+    const states: QueryState[] = [];
+    orchestrator.subscribeRangeQuery(spec, (state) => states.push(state));
+    await vi.waitFor(() => {
+      expect(states.at(-1)).toEqual({ status: "error", error: "boom" });
+    });
+
+    orchestrator.invalidate();
+    expect(states.at(-1)).toEqual({ status: "loading" });
+    await vi.waitFor(() => {
+      expect(states.at(-1)).toEqual({ status: "ready", response: success });
+    });
+    expect(calls).toBe(2);
+  });
+
+  it("invalidate skips entries without subscribers", async () => {
+    let calls = 0;
+    const orchestrator = new QueryOrchestrator(
+      fakeDatasource(async () => {
+        calls += 1;
+        return success;
+      }),
+      { retireDelay: 60_000 },
+    );
+    const unsubscribe = orchestrator.subscribeRangeQuery(spec, () => {});
+    await vi.waitFor(() => expect(calls).toBe(1));
+    unsubscribe();
+
+    orchestrator.invalidate();
+    expect(calls).toBe(1);
+  });
+
+  it("turns a hung request into a timeout error", async () => {
+    const orchestrator = new QueryOrchestrator(
+      fakeDatasource(
+        (params) =>
+          new Promise((_, reject) => {
+            params.signal?.addEventListener("abort", () =>
+              reject(new DOMException("aborted", "TimeoutError")),
+            );
+          }),
+      ),
+      { queryTimeout: 20 },
+    );
+    const states: QueryState[] = [];
+    orchestrator.subscribeRangeQuery(spec, (state) => states.push(state));
+    await vi.waitFor(() => {
+      expect(states.at(-1)).toEqual({
+        status: "error",
+        error: "query timed out after 0.02s",
+      });
+    });
+  });
+
   it("keeps completed results for late subscribers, then retires them", async () => {
     vi.useFakeTimers();
     try {
