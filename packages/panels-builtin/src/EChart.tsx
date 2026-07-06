@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { echarts, type EChartsCoreOption } from "./echarts-setup";
 import { useChartGroup } from "./group";
@@ -32,6 +32,26 @@ export function EChart({ option, onZoomSelect, onDoubleClick }: EChartProps) {
   doubleClickRef.current = onDoubleClick;
   const optionRef = useRef(option);
   optionRef.current = option;
+  // Legend toggles live in the chart instance, which notMerge setOption
+  // resets — remember them and merge them back into every option, so a
+  // decluttered chart survives auto-refresh, zoom and theme switches.
+  const legendSelectedRef = useRef<Record<string, boolean> | null>(null);
+  const withLegendSelection = useCallback(
+    (next: EChartsCoreOption): EChartsCoreOption => {
+      const selected = legendSelectedRef.current;
+      const legend = (next as { legend?: unknown }).legend;
+      if (
+        !selected ||
+        !legend ||
+        typeof legend !== "object" ||
+        Array.isArray(legend)
+      ) {
+        return next;
+      }
+      return { ...next, legend: { ...legend, selected } };
+    },
+    [],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -47,7 +67,17 @@ export function EChart({ option, onZoomSelect, onDoubleClick }: EChartProps) {
     }
     // Apply the current option straight away: on a group-triggered re-init
     // the option effect below won't fire (option identity is unchanged).
-    chart.setOption(optionRef.current, { notMerge: true });
+    chart.setOption(withLegendSelection(optionRef.current), { notMerge: true });
+    const rememberLegendSelection = (event: unknown) => {
+      const selected = (event as { selected?: Record<string, boolean> })
+        .selected;
+      if (selected) {
+        legendSelectedRef.current = { ...selected };
+      }
+    };
+    chart.on("legendselectchanged", rememberLegendSelection);
+    chart.on("legendselectall", rememberLegendSelection);
+    chart.on("legendinverseselect", rememberLegendSelection);
     chart.on("datazoom", (event) => {
       const range = (event as DataZoomEvent).batch?.[0];
       if (
@@ -75,7 +105,7 @@ export function EChart({ option, onZoomSelect, onDoubleClick }: EChartProps) {
     if (!chart) {
       return;
     }
-    chart.setOption(option, { notMerge: true });
+    chart.setOption(withLegendSelection(option), { notMerge: true });
     if (onZoomSelect) {
       // notMerge resets the interaction state: re-arm drag-to-select.
       chart.dispatchAction({
