@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -33,6 +34,7 @@ type Server struct {
 	oidc       *auth.OIDCAuthenticator
 	throttle   *auth.Throttle
 	settings   []Setting
+	logger     *slog.Logger
 }
 
 type Options struct {
@@ -55,6 +57,9 @@ type Options struct {
 	OIDC *auth.OIDCAuthenticator
 	// Settings is the effective configuration shown by the admin UI.
 	Settings []Setting
+	// Logger for auth diagnostics (failed logins, OIDC errors); defaults
+	// to slog.Default().
+	Logger *slog.Logger
 }
 
 func New(options Options) *Server {
@@ -68,6 +73,10 @@ func New(options Options) *Server {
 		oidc:      options.OIDC,
 		throttle:  auth.NewThrottle(),
 		settings:  options.Settings,
+		logger:    options.Logger,
+	}
+	if server.logger == nil {
+		server.logger = slog.Default()
 	}
 	if options.PrometheusURL != nil {
 		server.proxy = newPrometheusProxy(options.PrometheusURL)

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"github.com/bleemeo/polarisui/backend/internal/auth"
 )
@@ -69,6 +70,9 @@ func (s *Server) oidcCallback(writer http.ResponseWriter, request *http.Request)
 
 	user, err := s.oidc.Complete(request.Context(), request, flow)
 	if err != nil {
+		// The browser only gets a generic reason; the detail (bad token,
+		// unmapped groups, …) is for the operator's log.
+		s.logger.Warn("oidc login failed", "error", err)
 		s.oidcFail(writer, request, "access denied")
 		return
 	}
@@ -83,7 +87,8 @@ func (s *Server) oidcCallback(writer http.ResponseWriter, request *http.Request)
 
 // oidcFail redirects back to the login page with a short reason.
 func (s *Server) oidcFail(writer http.ResponseWriter, request *http.Request, reason string) {
-	http.Redirect(writer, request, "/login?error="+reason, http.StatusFound)
+	http.Redirect(writer, request,
+		"/login?error="+url.QueryEscape(reason), http.StatusFound)
 }
 
 // signValue / verifyValue sign a short-lived cookie payload with the

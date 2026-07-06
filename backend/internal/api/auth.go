@@ -76,6 +76,7 @@ func (s *Server) authLogin(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if s.throttle.Blocked(request) {
+		s.logger.Warn("login throttled", "remote", request.RemoteAddr)
 		writeError(writer, http.StatusTooManyRequests,
 			"too many failed attempts, retry in a moment")
 		return
@@ -91,6 +92,8 @@ func (s *Server) authLogin(writer http.ResponseWriter, request *http.Request) {
 	user, err := s.auth.VerifyPassword(body.Username, body.Password)
 	if err != nil {
 		s.throttle.Failure(request)
+		s.logger.Warn("login failed",
+			"username", body.Username, "remote", request.RemoteAddr)
 		writeError(writer, http.StatusUnauthorized, "invalid credentials")
 		return
 	}

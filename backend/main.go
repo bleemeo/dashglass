@@ -218,6 +218,7 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		ProxyAuth:     proxyAuth,
 		OIDC:          oidcAuth,
 		Settings:      apiSettings,
+		Logger:        logger,
 	}).Routes(mux)
 	mux.Handle("/", ui.Handler())
 
