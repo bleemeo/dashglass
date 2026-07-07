@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { EChartsCoreOption } from "../echarts-setup";
 import { withAlpha, type ChartTheme } from "../theme";
 import { thresholdStatus, thresholdsSchema } from "../thresholds";
-import { formatValue, formatValueParts, type Unit, unitSchema } from "../units";
+import { formatValue, type Unit, unitSchema } from "../units";
 
 export const gaugeSpecSchema = z.object({
   unit: unitSchema.optional(),
@@ -76,18 +76,20 @@ export function buildGaugeOption(
         max,
         startAngle: 210,
         endAngle: -30,
-        radius: "92%",
+        // Fill the tile: a large arc leaves room for the overlaid value.
+        radius: "96%",
+        center: ["50%", "56%"],
         pointer: { show: false },
         progress: {
           show: true,
-          width: 10,
+          width: 14,
           roundCap: true,
           itemStyle: { color },
         },
         axisLine: {
           roundCap: true,
           lineStyle: {
-            width: 10,
+            width: 18,
             color: gaugeTrackStops(spec, theme) ?? [[1, theme.gridline]],
           },
         },
@@ -96,31 +98,16 @@ export function buildGaugeOption(
         // Only the min and max labels, at the arc ends, for scale context.
         axisLabel: {
           show: true,
-          distance: -2,
-          fontSize: 10,
+          distance: -4,
+          fontSize: 11,
           color: theme.ink.muted,
           formatter: (tick: number) =>
             tick === min || tick === max ? formatValue(tick, unit) : "",
         },
         data: [{ value: value ?? min }],
-        detail: {
-          offsetCenter: [0, "-6%"],
-          formatter: () => {
-            const parts = formatValueParts(value, unit);
-            return parts.suffix
-              ? `{v|${parts.value}}{u|${parts.suffix}}`
-              : `{v|${parts.value}}`;
-          },
-          rich: {
-            v: { fontSize: 26, fontWeight: 600, color: theme.ink.primary },
-            u: {
-              fontSize: 14,
-              fontWeight: 500,
-              color: theme.ink.muted,
-              padding: [0, 0, 0, 3],
-            },
-          },
-        },
+        // The value is rendered as a responsive HTML overlay (see
+        // GaugeChart) so it scales with the tile; canvas text can't.
+        detail: { show: false },
       },
     ],
   };

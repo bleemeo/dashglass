@@ -7,7 +7,8 @@ import { NoData } from "../NoData";
 import { parseSpec } from "../spec";
 import { calculate } from "../stat/calculations";
 import { useChartTheme } from "../theme";
-import { buildGaugeOption, gaugeSpecSchema } from "./options";
+import { formatValueParts } from "../units";
+import { buildGaugeOption, gaugeSpecSchema, gaugeStatus } from "./options";
 
 export function GaugeChart({ spec, data }: PanelProps) {
   const theme = useChartTheme();
@@ -22,5 +23,52 @@ export function GaugeChart({ spec, data }: PanelProps) {
   if (data.state === "ready" && !series) {
     return <NoData />;
   }
-  return <EChart option={option} />;
+
+  const parts = formatValueParts(value, parsed.unit ?? "none");
+  const color =
+    value !== null && parsed.thresholds?.length
+      ? theme.status[gaugeStatus(value, parsed)]
+      : theme.ink.primary;
+
+  return (
+    // The arc is canvas (ECharts); the value overlays as HTML so it scales
+    // with the tile and stays crisp. The overlay sits at the arc center
+    // (matching options.ts center: ["50%", "56%"]).
+    <div
+      className="polaris-gauge"
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        containerType: "size",
+      }}
+    >
+      <EChart option={option} />
+      <div
+        className="polaris-gauge-value"
+        style={{
+          position: "absolute",
+          top: "56%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: 3,
+          fontWeight: 600,
+          lineHeight: 1,
+          color,
+          pointerEvents: "none",
+        }}
+      >
+        <span style={{ fontSize: "clamp(22px, 26cqmin, 60px)" }}>
+          {parts.value}
+        </span>
+        {parts.suffix ? (
+          <span style={{ fontSize: "clamp(12px, 11cqmin, 28px)", opacity: 0.6 }}>
+            {parts.suffix}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
 }

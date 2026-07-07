@@ -126,12 +126,12 @@ export function StatChart({ spec, data }: PanelProps) {
           color: statValueColor(value, parsed, theme),
         }}
       >
-        <span style={{ fontSize: "clamp(20px, 13cqmin, 48px)" }}>
+        <span style={{ fontSize: "clamp(32px, 38cqmin, 104px)" }}>
           {parts.value}
         </span>
         {parts.suffix ? (
           <span
-            style={{ fontSize: "clamp(11px, 5cqmin, 22px)", opacity: 0.6 }}
+            style={{ fontSize: "clamp(15px, 15cqmin, 42px)", opacity: 0.6 }}
           >
             {parts.suffix}
           </span>
