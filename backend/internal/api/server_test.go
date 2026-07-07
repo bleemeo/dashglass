@@ -247,3 +247,49 @@ func TestProxyUnconfigured(t *testing.T) {
 		t.Errorf("status = %d, want 503", response.StatusCode)
 	}
 }
+
+func TestPrometheusHealth(t *testing.T) {
+	decode := func(response *http.Response) struct {
+		Configured bool   `json:"configured"`
+		Reachable  bool   `json:"reachable"`
+		Error      string `json:"error"`
+	} {
+		var body struct {
+			Configured bool   `json:"configured"`
+			Reachable  bool   `json:"reachable"`
+			Error      string `json:"error"`
+		}
+		if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		return body
+	}
+
+	// Not configured.
+	server := newTestServer(t, Options{})
+	body := decode(doRequest(t, http.MethodGet, server.URL+"/api/prometheus/health", "", ""))
+	if body.Configured || body.Reachable {
+		t.Errorf("unconfigured health = %+v", body)
+	}
+
+	// Configured and answering.
+	upstream := httptest.NewServer(http.HandlerFunc(
+		func(writer http.ResponseWriter, _ *http.Request) {
+			writer.Write([]byte(`{"status":"success","data":{"resultType":"scalar"}}`))
+		}))
+	defer upstream.Close()
+	upstreamURL, _ := url.Parse(upstream.URL)
+	up := newTestServer(t, Options{PrometheusURL: upstreamURL})
+	body = decode(doRequest(t, http.MethodGet, up.URL+"/api/prometheus/health", "", ""))
+	if !body.Configured || !body.Reachable {
+		t.Errorf("reachable health = %+v", body)
+	}
+
+	// Configured but the target is down.
+	dead, _ := url.Parse("http://127.0.0.1:0")
+	down := newTestServer(t, Options{PrometheusURL: dead})
+	body = decode(doRequest(t, http.MethodGet, down.URL+"/api/prometheus/health", "", ""))
+	if !body.Configured || body.Reachable || body.Error == "" {
+		t.Errorf("unreachable health = %+v", body)
+	}
+}

@@ -5,6 +5,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/bleemeo/polarisui/backend/internal/auth"
@@ -35,6 +37,7 @@ type Server struct {
 	throttle   *auth.Throttle
 	settings   []Setting
 	logger     *slog.Logger
+	promURL    *url.URL // for the reachability probe (nil = not configured)
 }
 
 type Options struct {
@@ -79,6 +82,7 @@ func New(options Options) *Server {
 		server.logger = slog.Default()
 	}
 	if options.PrometheusURL != nil {
+		server.promURL = options.PrometheusURL
 		server.proxy = newPrometheusProxy(options.PrometheusURL)
 	}
 	if options.GrafanaComURL != "" {
@@ -103,6 +107,7 @@ func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/dashboards/{name...}", s.requireRole(auth.RoleViewer, s.getDashboard))
 	mux.HandleFunc("PUT /api/dashboards/{name...}", s.requireRole(auth.RoleEditor, s.putDashboard))
 	mux.HandleFunc("DELETE /api/dashboards/{name...}", s.requireRole(auth.RoleEditor, s.deleteDashboard))
+	mux.HandleFunc("GET /api/prometheus/health", s.requireRole(auth.RoleViewer, s.prometheusHealth))
 	mux.HandleFunc("GET /api/events", s.requireRole(auth.RoleViewer, s.events))
 	mux.HandleFunc("GET /api/grafana-com/{id}", s.requireRole(auth.RoleEditor, s.grafanaComDownload))
 	mux.HandleFunc("/api/v1/", s.requireRole(auth.RoleViewer, s.prometheus))
@@ -272,4 +277,53 @@ func (s *Server) prometheus(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	s.proxy.ServeHTTP(writer, request)
+}
+
+// prometheusHealth reports whether a Prometheus is configured and, if so,
+// whether it currently answers — so the UI can explain "No data" instead
+// of leaving the user guessing.
+func (s *Server) prometheusHealth(writer http.ResponseWriter, request *http.Request) {
+	if s.promURL == nil {
+		writeJSON(writer, http.StatusOK,
+			map[string]any{"configured": false, "reachable": false})
+		return
+	}
+	reachable, reason := s.probePrometheus(request.Context())
+	body := map[string]any{"configured": true, "reachable": reachable}
+	if reason != "" {
+		body["error"] = reason
+	}
+	writeJSON(writer, http.StatusOK, body)
+}
+
+// probePrometheus runs a trivial instant query ("1") against the target,
+// which every Prometheus-API backend answers, with a short timeout.
+func (s *Server) probePrometheus(ctx context.Context) (bool, string) {
+	probe := *s.promURL
+	probe.Path = strings.TrimRight(probe.Path, "/") + "/api/v1/query"
+	probe.RawQuery = url.Values{"query": {"1"}}.Encode()
+	// Credentials travel as a header, never in the request URL.
+	userinfo := probe.User
+	probe.User = nil
+
+	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, probe.String(), nil)
+	if err != nil {
+		return false, err.Error()
+	}
+	if userinfo != nil {
+		password, _ := userinfo.Password()
+		req.SetBasicAuth(userinfo.Username(), password)
+	}
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, "cannot reach Prometheus: " + err.Error()
+	}
+	defer response.Body.Close()
+	io.Copy(io.Discard, response.Body)
+	if response.StatusCode >= 200 && response.StatusCode < 300 {
+		return true, ""
+	}
+	return false, fmt.Sprintf("Prometheus returned HTTP %d", response.StatusCode)
 }
