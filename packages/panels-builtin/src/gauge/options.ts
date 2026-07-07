@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { EChartsCoreOption } from "../echarts-setup";
 import { withAlpha, type ChartTheme } from "../theme";
 import { thresholdStatus, thresholdsSchema } from "../thresholds";
-import { formatValue, type Unit, unitSchema } from "../units";
+import { formatValue, formatValueParts, type Unit, unitSchema } from "../units";
 
 export const gaugeSpecSchema = z.object({
   unit: unitSchema.optional(),
@@ -44,10 +44,10 @@ export function gaugeTrackStops(
   let zoneColor = theme.status.good;
   for (const threshold of thresholds) {
     const at = Math.min(Math.max((threshold.value - min) / span, 0), 1);
-    stops.push([at, withAlpha(zoneColor, 0.25)]);
+    stops.push([at, withAlpha(zoneColor, 0.4)]);
     zoneColor = theme.status[threshold.status];
   }
-  stops.push([1, withAlpha(zoneColor, 0.25)]);
+  stops.push([1, withAlpha(zoneColor, 0.4)]);
   return stops;
 }
 
@@ -76,30 +76,50 @@ export function buildGaugeOption(
         max,
         startAngle: 210,
         endAngle: -30,
+        radius: "92%",
         pointer: { show: false },
         progress: {
           show: true,
-          width: 12,
+          width: 10,
           roundCap: true,
           itemStyle: { color },
         },
         axisLine: {
           roundCap: true,
           lineStyle: {
-            width: 12,
+            width: 10,
             color: gaugeTrackStops(spec, theme) ?? [[1, theme.gridline]],
           },
         },
         axisTick: { show: false },
         splitLine: { show: false },
-        axisLabel: { show: false },
+        // Only the min and max labels, at the arc ends, for scale context.
+        axisLabel: {
+          show: true,
+          distance: -2,
+          fontSize: 10,
+          color: theme.ink.muted,
+          formatter: (tick: number) =>
+            tick === min || tick === max ? formatValue(tick, unit) : "",
+        },
         data: [{ value: value ?? min }],
         detail: {
-          offsetCenter: [0, 0],
-          fontSize: 24,
-          fontWeight: 600,
-          color: theme.ink.primary,
-          formatter: () => formatValue(value, unit),
+          offsetCenter: [0, "-6%"],
+          formatter: () => {
+            const parts = formatValueParts(value, unit);
+            return parts.suffix
+              ? `{v|${parts.value}}{u|${parts.suffix}}`
+              : `{v|${parts.value}}`;
+          },
+          rich: {
+            v: { fontSize: 26, fontWeight: 600, color: theme.ink.primary },
+            u: {
+              fontSize: 14,
+              fontWeight: 500,
+              color: theme.ink.muted,
+              padding: [0, 0, 0, 3],
+            },
+          },
         },
       },
     ],

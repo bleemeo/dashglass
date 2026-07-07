@@ -127,9 +127,9 @@ describe("gauge", () => {
     expect(stops.map(([at]) => at)).toEqual([0.7, 0.9, 1]);
     // Tinted status colors, in zone order: good, warning, critical.
     expect(stops.map(([, color]) => color)).toEqual([
-      withAlpha(lightChartTheme.status.good, 0.25),
-      withAlpha(lightChartTheme.status.warning, 0.25),
-      withAlpha(lightChartTheme.status.critical, 0.25),
+      withAlpha(lightChartTheme.status.good, 0.4),
+      withAlpha(lightChartTheme.status.warning, 0.4),
+      withAlpha(lightChartTheme.status.critical, 0.4),
     ]);
     // No thresholds → no zones (plain gridline track).
     expect(gaugeTrackStops({}, lightChartTheme)).toBeNull();

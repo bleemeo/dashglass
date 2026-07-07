@@ -30,7 +30,10 @@ describe("StatChart", () => {
         timeRange={{ start: new Date(0), end: new Date(1000) }}
       />,
     );
-    expect(screen.getByText("2 KiB")).toBeDefined();
+    // Value and unit render as separate spans (large number, small unit).
+    const valueEl = document.querySelector(".polaris-stat-value");
+    expect(valueEl?.textContent).toContain("2");
+    expect(valueEl?.textContent).toContain("KiB");
     expect(document.querySelector(".polaris-stat-sparkline")).not.toBeNull();
   });
 

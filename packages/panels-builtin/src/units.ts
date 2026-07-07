@@ -109,3 +109,21 @@ export function formatValue(
       return toFixed(value, decimals);
   }
 }
+
+/**
+ * Splits a formatted value into its numeric part and unit suffix, so a
+ * KPI can render the number large and the unit small (e.g. "6.29" + "d",
+ * "65.9" + "%"). The suffix is empty for unit-less values.
+ */
+export function formatValueParts(
+  value: number | null | undefined,
+  unit: Unit = "none",
+  decimals?: number,
+): { value: string; suffix: string } {
+  const formatted = formatValue(value, unit, decimals);
+  const match = /^(-?[\d.]+)\s*(.*)$/.exec(formatted);
+  if (!match) {
+    return { value: formatted, suffix: "" };
+  }
+  return { value: match[1]!, suffix: match[2]! };
+}

@@ -7,7 +7,7 @@ import { NoData } from "../NoData";
 import { parseSpec } from "../spec";
 import { seriesColor, useChartTheme, type ChartTheme } from "../theme";
 import { thresholdStatus, thresholdsSchema } from "../thresholds";
-import { formatValue, unitSchema } from "../units";
+import { formatValueParts, unitSchema } from "../units";
 import { calculate, calculationSchema } from "./calculations";
 
 export const statSpecSchema = z.object({
@@ -99,13 +99,18 @@ export function StatChart({ spec, data }: PanelProps) {
     return <NoData />;
   }
 
+  const parts = formatValueParts(value, parsed.unit ?? "none", parsed.decimals);
   return (
     <div
       className="polaris-stat"
       style={{
+        // Container queries so the number fits the panel, not the window.
+        containerType: "size",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
+        alignItems: "center",
+        gap: 6,
         height: "100%",
         padding: "0 8px",
       }}
@@ -113,13 +118,24 @@ export function StatChart({ spec, data }: PanelProps) {
       <div
         className="polaris-stat-value"
         style={{
-          fontSize: "clamp(20px, 5vw, 42px)",
+          display: "flex",
+          alignItems: "baseline",
+          gap: 4,
           fontWeight: 600,
           lineHeight: 1.1,
           color: statValueColor(value, parsed, theme),
         }}
       >
-        {formatValue(value, parsed.unit ?? "none", parsed.decimals)}
+        <span style={{ fontSize: "clamp(20px, 13cqmin, 48px)" }}>
+          {parts.value}
+        </span>
+        {parts.suffix ? (
+          <span
+            style={{ fontSize: "clamp(11px, 5cqmin, 22px)", opacity: 0.6 }}
+          >
+            {parts.suffix}
+          </span>
+        ) : null}
       </div>
       {parsed.sparkline && series ? (
         <Sparkline series={series} theme={theme} />
