@@ -112,8 +112,9 @@ function SideBar({
             borderRadius="md"
             justifyContent={collapsed ? "center" : "flex-start"}
             fontWeight={active ? "semibold" : "normal"}
-            backgroundColor={active ? "bg.muted" : "transparent"}
-            _hover={{ backgroundColor: "bg.muted" }}
+            color={active ? "brand.fg" : undefined}
+            backgroundColor={active ? "brand.subtle" : "transparent"}
+            _hover={{ backgroundColor: active ? "brand.subtle" : "bg.muted" }}
             title={collapsed ? page.nav?.title : undefined}
           >
             <Link to={page.path}>
@@ -132,10 +133,15 @@ function SideBar({
           borderRadius="md"
           justifyContent={collapsed ? "center" : "flex-start"}
           fontWeight={location.pathname.startsWith("/admin") ? "semibold" : "normal"}
+          color={location.pathname.startsWith("/admin") ? "brand.fg" : undefined}
           backgroundColor={
-            location.pathname.startsWith("/admin") ? "bg.muted" : "transparent"
+            location.pathname.startsWith("/admin") ? "brand.subtle" : "transparent"
           }
-          _hover={{ backgroundColor: "bg.muted" }}
+          _hover={{
+            backgroundColor: location.pathname.startsWith("/admin")
+              ? "brand.subtle"
+              : "bg.muted",
+          }}
           title={collapsed ? "Admin" : undefined}
         >
           <Link to="/admin">

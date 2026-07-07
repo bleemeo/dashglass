@@ -151,6 +151,7 @@ export function RenameDashboardDialog({
               </Button>
               <Button
                 size="sm"
+                colorPalette="brand"
                 loading={renaming}
                 disabled={target === "" || target === name || taken}
                 onClick={() => void rename()}

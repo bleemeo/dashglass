@@ -11,9 +11,34 @@ const config = defineConfig({
   theme: {
     tokens: {
       colors: {
+        // Brand blue — matches the first categorical chart slot. The full
+        // scale + the semantic tokens below make `colorPalette="brand"`
+        // work on any Chakra component (buttons, badges, focus rings…).
         brand: {
+          50: { value: "#eff6fd" },
+          100: { value: "#d8e9fb" },
+          200: { value: "#b3d1f6" },
+          300: { value: "#7fb2ef" },
+          400: { value: "#4a90e2" },
           500: { value: "#2a78d6" },
           600: { value: "#2263b2" },
+          700: { value: "#1c4f97" },
+          800: { value: "#17407a" },
+          900: { value: "#14356b" },
+          950: { value: "#0d2444" },
+        },
+      },
+    },
+    semanticTokens: {
+      colors: {
+        brand: {
+          solid: { value: { base: "{colors.brand.600}", _dark: "{colors.brand.500}" } },
+          contrast: { value: "#ffffff" },
+          fg: { value: { base: "{colors.brand.700}", _dark: "{colors.brand.300}" } },
+          muted: { value: { base: "{colors.brand.100}", _dark: "{colors.brand.900}" } },
+          subtle: { value: { base: "{colors.brand.50}", _dark: "{colors.brand.950}" } },
+          emphasized: { value: { base: "{colors.brand.700}", _dark: "{colors.brand.400}" } },
+          focusRing: { value: { base: "{colors.brand.500}", _dark: "{colors.brand.400}" } },
         },
       },
     },

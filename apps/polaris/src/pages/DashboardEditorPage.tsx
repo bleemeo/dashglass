@@ -331,6 +331,7 @@ function EditorView({
               </Button>
               <Button
                 size="sm"
+                colorPalette="brand"
                 disabled={readonly || !dirty}
                 loading={save.isPending}
                 title="⌘S"

@@ -119,6 +119,7 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
               </Button>
               <Button
                 size="sm"
+                colorPalette="brand"
                 loading={pending}
                 disabled={current === "" || next === "" || next !== confirm}
                 onClick={() => void submit()}

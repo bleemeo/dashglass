@@ -157,7 +157,12 @@ function UserDialog({
               <Button size="sm" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button size="sm" loading={pending} onClick={() => void submit()}>
+              <Button
+                size="sm"
+                colorPalette="brand"
+                loading={pending}
+                onClick={() => void submit()}
+              >
                 {confirmLabel}
               </Button>
             </Dialog.Footer>
@@ -263,7 +268,7 @@ function UsersTab() {
         <Text fontSize="sm" color="fg.muted">
           {users.data?.length ?? 0} local user(s)
         </Text>
-        <Button size="sm" onClick={() => setCreating(true)}>
+        <Button size="sm" colorPalette="brand" onClick={() => setCreating(true)}>
           <PlusIcon /> {authEnabled ? "Add user" : "Create the first user"}
         </Button>
       </Flex>

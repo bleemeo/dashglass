@@ -193,6 +193,7 @@ export function AddToDashboardDialog({
               </Button>
               <Button
                 size="sm"
+                colorPalette="brand"
                 disabled={effectiveTarget === ""}
                 loading={saving}
                 onClick={() => void add()}

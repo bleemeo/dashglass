@@ -205,9 +205,7 @@ export function LoginPage() {
           asChild
           size="md"
           width="full"
-          bg="brand.600"
-          color="white"
-          _hover={{ bg: "brand.500" }}
+          colorPalette="brand"
         >
           <a href="/api/auth/oidc/login">Sign in with SSO</a>
         </Button>
@@ -278,9 +276,7 @@ export function LoginPage() {
           size="md"
           width="full"
           marginTop={1}
-          bg="brand.600"
-          color="white"
-          _hover={{ bg: "brand.500" }}
+          colorPalette="brand"
           loading={pending}
           disabled={username === "" || password === ""}
         >

@@ -99,6 +99,7 @@ export function EditDashboardPage() {
           </Button>
           <Button
             size="sm"
+            colorPalette="brand"
             disabled={readonly || content === null || !dirty}
             loading={save.isPending}
             title="⌘S"

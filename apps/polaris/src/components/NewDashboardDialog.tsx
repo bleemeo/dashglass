@@ -420,6 +420,7 @@ export function NewDashboardDialog({ onClose }: { onClose: () => void }) {
               </Button>
               <Button
                 size="sm"
+                colorPalette="brand"
                 loading={saving}
                 disabled={effectiveTitle.trim() === "" || nameTaken}
                 onClick={create}

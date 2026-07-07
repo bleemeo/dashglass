@@ -429,6 +429,7 @@ export function VariablesEditorDialog({
               </Button>
               <Button
                 size="sm"
+                colorPalette="brand"
                 disabled={problems.size > 0}
                 onClick={() => {
                   onSave(list.map(normalize));
