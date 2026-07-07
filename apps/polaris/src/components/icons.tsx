@@ -38,6 +38,14 @@ export function CodeIcon() {
   );
 }
 
+export function KioskIcon() {
+  return (
+    <svg {...common} aria-hidden>
+      <path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3" />
+    </svg>
+  );
+}
+
 export function ClockIcon() {
   return (
     <svg {...common} aria-hidden>

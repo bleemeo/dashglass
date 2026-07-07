@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { Box, Button, CloseButton, Flex, Text } from "@chakra-ui/react";
+import { Box, Button, CloseButton, Flex, IconButton, Text } from "@chakra-ui/react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { parseDashboard, type Dashboard, type Duration } from "@polarisui/model";
@@ -26,7 +26,7 @@ import {
   variablesFromParams,
 } from "../components/URLStateSync";
 import { VariablesToolbar } from "../components/VariablesToolbar";
-import { CodeIcon, EditIcon } from "../components/icons";
+import { CodeIcon, EditIcon, KioskIcon } from "../components/icons";
 
 function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string }) {
   const navigate = useNavigate();
@@ -111,6 +111,23 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
                       refreshInterval={refreshInterval}
                       onRefreshIntervalChange={setRefreshInterval}
                     />
+                    {viewedPanel ? null : (
+                      <IconButton
+                        size="sm"
+                        variant="ghost"
+                        color="fg.muted"
+                        aria-label="Kiosk mode"
+                        title="Kiosk mode — chrome-less view for wall screens (Esc to exit)"
+                        onClick={() =>
+                          setSearchParams((params) => {
+                            params.set("kiosk", "1");
+                            return params;
+                          })
+                        }
+                      >
+                        <KioskIcon />
+                      </IconButton>
+                    )}
                     {viewedPanel ? (
                       <Button
                         size="sm"
