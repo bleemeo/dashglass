@@ -6,7 +6,6 @@ import {
   Button,
   CloseButton,
   Flex,
-  Heading,
   IconButton,
   Input,
   InputGroup,
@@ -19,6 +18,7 @@ import { Link, useSearchParams } from "react-router";
 
 import type { DashboardInfo } from "../api/client";
 import { DashboardPreview } from "../components/DashboardPreview";
+import { TopBar } from "../components/TopBar";
 
 import { getDashboardFile, putDashboard } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -265,26 +265,25 @@ export function DashboardsPage() {
 
   return (
     <Flex direction="column" gap={4}>
-      <Flex justifyContent="space-between" alignItems="flex-start" gap={4}>
-        <Box>
-          <Heading size="lg">Dashboards</Heading>
-          <Text fontSize="sm" color="fg.muted" marginTop={1}>
-            {dashboards.data?.length
-              ? `${dashboards.data.length} dashboard${dashboards.data.length > 1 ? "s" : ""} · stored as files, versioned in git`
-              : "File-backed dashboards, versioned in git"}
-          </Text>
-        </Box>
-        {readonly ? null : (
-          <Button
-            size="sm"
-            colorPalette="brand"
-            flexShrink={0}
-            onClick={() => setCreating(true)}
-          >
-            <PlusIcon /> New dashboard
-          </Button>
-        )}
-      </Flex>
+      <TopBar
+        crumbs={[{ label: "Dashboards" }]}
+        actions={
+          readonly ? undefined : (
+            <Button
+              size="sm"
+              colorPalette="brand"
+              onClick={() => setCreating(true)}
+            >
+              <PlusIcon /> New dashboard
+            </Button>
+          )
+        }
+      />
+      <Text fontSize="sm" color="fg.muted">
+        {dashboards.data?.length
+          ? `${dashboards.data.length} dashboard${dashboards.data.length > 1 ? "s" : ""} · stored as files, versioned in git`
+          : "File-backed dashboards, versioned in git"}
+      </Text>
       {creating ? (
         <NewDashboardDialog onClose={() => setCreating(false)} />
       ) : null}

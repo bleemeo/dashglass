@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Button, Flex, Heading, Text } from "@chakra-ui/react";
+import { Button, Flex, Text } from "@chakra-ui/react";
 import { useNavigate, useParams } from "react-router";
 
 import { APIError, isNotFound } from "../api/client";
 import { DashboardCodeEditor } from "../components/DashboardCodeEditor";
+import { TopBar } from "../components/TopBar";
 import { DashboardNotFound } from "../components/DashboardNotFound";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { toaster } from "../components/toaster";
@@ -82,14 +83,14 @@ export function EditDashboardPage() {
 
   return (
     <Flex direction="column" gap={3} height="100%">
-      <Flex justifyContent="space-between" alignItems="center">
-        <Heading size="lg">
-          {name}{" "}
-          <Text as="span" fontSize="sm" color="fg.muted">
-            ({file.data?.format})
-          </Text>
-        </Heading>
-        <Flex gap={2}>
+      <TopBar
+        crumbs={[
+          { label: "Dashboards", to: "/" },
+          { label: name, to: `/d/${encodeURIComponent(name)}` },
+          { label: `Code (${file.data?.format})` },
+        ]}
+        actions={
+          <>
           <Button
             size="sm"
             variant="outline"
@@ -107,8 +108,9 @@ export function EditDashboardPage() {
           >
             Save
           </Button>
-        </Flex>
-      </Flex>
+          </>
+        }
+      />
       <UnsavedChangesGuard when={dirty} bypass={justSaved} />
 
       {readonly ? (

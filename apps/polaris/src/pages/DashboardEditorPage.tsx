@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 
-import { Box, Button, Flex, Heading, Input, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Input, Text } from "@chakra-ui/react";
 import { GridLayout, useContainerWidth } from "react-grid-layout";
 import { Link, useNavigate, useParams } from "react-router";
 import "react-grid-layout/css/styles.css";
@@ -43,6 +43,7 @@ import {
 } from "../api/hooks";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TimeRangeControls } from "../components/TimeRangeControls";
+import { TopBar } from "../components/TopBar";
 import { UnsavedChangesGuard } from "../components/UnsavedChangesGuard";
 import { VariablesToolbar } from "../components/VariablesToolbar";
 import { PanelEditorDrawer } from "../components/editor/PanelEditorDrawer";
@@ -281,66 +282,70 @@ function EditorView({
           reflects immediately in the preview toolbar and panels. */}
       <VariablesProvider variables={draft.spec.variables}>
         <Flex direction="column" gap={3} height="100%">
-          <Flex justifyContent="space-between" alignItems="center" gap={2}>
-            <Heading size="lg">
-              {draft.spec.display?.name ?? name}{" "}
-              <Text as="span" fontSize="sm" color="fg.muted">
-                — editing
-              </Text>
-            </Heading>
-            <Flex gap={2}>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={past.current.length === 0}
-                title="⌘Z"
-                onClick={undo}
-              >
-                Undo
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={future.current.length === 0}
-                title="⇧⌘Z"
-                onClick={redo}
-              >
-                Redo
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() =>
-                  void navigate(`/d/${encodeURIComponent(name)}/code`)
-                }
-              >
-                <CodeIcon /> Edit as code
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (dirty) {
-                    setConfirmDiscard(true);
-                  } else {
-                    void navigate(`/d/${encodeURIComponent(name)}`);
+          <TopBar
+            crumbs={[
+              { label: "Dashboards", to: "/" },
+              {
+                label: draft.spec.display?.name ?? name,
+                to: `/d/${encodeURIComponent(name)}`,
+              },
+              { label: "Edit" },
+            ]}
+            actions={
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={past.current.length === 0}
+                  title="⌘Z"
+                  onClick={undo}
+                >
+                  Undo
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={future.current.length === 0}
+                  title="⇧⌘Z"
+                  onClick={redo}
+                >
+                  Redo
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    void navigate(`/d/${encodeURIComponent(name)}/code`)
                   }
-                }}
-              >
-                {dirty ? "Discard" : "Back"}
-              </Button>
-              <Button
-                size="sm"
-                colorPalette="brand"
-                disabled={readonly || !dirty}
-                loading={save.isPending}
-                title="⌘S"
-                onClick={doSave}
-              >
-                Save
-              </Button>
-            </Flex>
-          </Flex>
+                >
+                  <CodeIcon /> Edit as code
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (dirty) {
+                      setConfirmDiscard(true);
+                    } else {
+                      void navigate(`/d/${encodeURIComponent(name)}`);
+                    }
+                  }}
+                >
+                  {dirty ? "Discard" : "Back"}
+                </Button>
+                <Button
+                  size="sm"
+                  colorPalette="brand"
+                  disabled={readonly || !dirty}
+                  loading={save.isPending}
+                  title="⌘S"
+                  onClick={doSave}
+                >
+                  Save
+                </Button>
+              </>
+            }
+          />
 
           {/* Preview controls: the grid below is the live preview, so the
               range and variable values must be steerable while editing. */}

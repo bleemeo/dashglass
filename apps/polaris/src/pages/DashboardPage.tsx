@@ -1,13 +1,6 @@
 import { useMemo, useState } from "react";
 
-import {
-  Box,
-  Button,
-  CloseButton,
-  Flex,
-  Heading,
-  Text,
-} from "@chakra-ui/react";
+import { Box, Button, CloseButton, Flex, Text } from "@chakra-ui/react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { parseDashboard, type Dashboard, type Duration } from "@polarisui/model";
@@ -26,6 +19,7 @@ import { DashboardNotFound } from "../components/DashboardNotFound";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useKeyShortcut } from "../hooks/useShortcuts";
 import { TimeRangeControls } from "../components/TimeRangeControls";
+import { TopBar } from "../components/TopBar";
 import {
   URLStateSync,
   rangeFromParams,
@@ -97,53 +91,53 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
         <URLStateSync />
         <ChartGroupProvider value={`dashboard-${name}`}>
           <Flex direction="column" gap={4} height="100%">
-            <Flex
-              justifyContent="space-between"
-              alignItems="center"
-              wrap="wrap"
-              gap={2}
-            >
-              <Heading size="lg">
-                {dashboard.spec.display?.name ?? dashboard.metadata.name}
-                {viewedPanel ? (
-                  <Text as="span" fontSize="sm" color="fg.muted">
-                    {" "}
-                    / {viewedPanel.spec.display?.name ?? viewedKey}
-                  </Text>
-                ) : null}
-              </Heading>
-              {kiosk ? null : (
-                <Flex gap={2} alignItems="center">
-                  <TimeRangeControls
-                    refreshInterval={refreshInterval}
-                    onRefreshIntervalChange={setRefreshInterval}
-                  />
-                  {viewedPanel ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      title="Esc"
-                      onClick={() => setViewedPanel(null)}
-                    >
-                      Back to dashboard
-                    </Button>
-                  ) : canEdit ? (
-                    <>
-                      <Button size="sm" variant="outline" asChild>
-                        <Link to={`/d/${encodeURIComponent(name)}/edit`}>
-                          <EditIcon /> Edit
-                        </Link>
+            {kiosk ? null : (
+              <TopBar
+                crumbs={[
+                  { label: "Dashboards", to: "/" },
+                  {
+                    label: dashboard.spec.display?.name ?? dashboard.metadata.name,
+                    ...(viewedPanel
+                      ? { onClick: () => setViewedPanel(null) }
+                      : {}),
+                  },
+                  ...(viewedPanel
+                    ? [{ label: viewedPanel.spec.display?.name ?? viewedKey! }]
+                    : []),
+                ]}
+                actions={
+                  <>
+                    <TimeRangeControls
+                      refreshInterval={refreshInterval}
+                      onRefreshIntervalChange={setRefreshInterval}
+                    />
+                    {viewedPanel ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        title="Esc"
+                        onClick={() => setViewedPanel(null)}
+                      >
+                        Back to dashboard
                       </Button>
-                      <Button size="sm" variant="ghost" asChild>
-                        <Link to={`/d/${encodeURIComponent(name)}/code`}>
-                          <CodeIcon /> Code
-                        </Link>
-                      </Button>
-                    </>
-                  ) : null}
-                </Flex>
-              )}
-            </Flex>
+                    ) : canEdit ? (
+                      <>
+                        <Button size="sm" variant="outline" asChild>
+                          <Link to={`/d/${encodeURIComponent(name)}/edit`}>
+                            <EditIcon /> Edit
+                          </Link>
+                        </Button>
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link to={`/d/${encodeURIComponent(name)}/code`}>
+                            <CodeIcon /> Code
+                          </Link>
+                        </Button>
+                      </>
+                    ) : null}
+                  </>
+                }
+              />
+            )}
             {kiosk ? null : (
               <VariablesToolbar variables={dashboard.spec.variables ?? []} />
             )}

@@ -7,7 +7,6 @@ import {
   Dialog,
   Field,
   Flex,
-  Heading,
   Input,
   NativeSelect,
   Portal,
@@ -28,6 +27,7 @@ import {
 } from "../api/client";
 import { usePermissions } from "../api/hooks";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { TopBar } from "../components/TopBar";
 import { PlusIcon } from "../components/icons";
 import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -460,7 +460,7 @@ export function AdminPage() {
   usePageTitle("Admin");
   return (
     <Flex direction="column" gap={4}>
-      <Heading size="lg">Admin</Heading>
+      <TopBar crumbs={[{ label: "Admin" }]} />
       <Tabs.Root defaultValue="users" size="sm">
         <Tabs.List marginBottom={4}>
           <Tabs.Trigger value="users">Users</Tabs.Trigger>

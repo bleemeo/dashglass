@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Box, Button, Flex, Heading, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Text } from "@chakra-ui/react";
 import { useSearchParams } from "react-router";
 
 import type { Panel, Duration } from "@polarisui/model";
@@ -14,6 +14,7 @@ import {
 import { usePermissions } from "../api/hooks";
 import { AddToDashboardDialog } from "../components/AddToDashboardDialog";
 import { LazyPromQLEditor } from "../components/LazyPromQLEditor";
+import { TopBar } from "../components/TopBar";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { TimeRangeControls } from "../components/TimeRangeControls";
 import { rangeFromParams, rangeToParams } from "../components/URLStateSync";
@@ -168,13 +169,15 @@ export function ExplorePage() {
       <VariablesProvider variables={[]}>
         <ExploreURLSync query={query} />
         <Flex direction="column" gap={4} height="100%">
-          <Flex justifyContent="space-between" alignItems="center">
-            <Heading size="lg">Explore</Heading>
-            <TimeRangeControls
-              refreshInterval={refreshInterval}
-              onRefreshIntervalChange={setRefreshInterval}
-            />
-          </Flex>
+          <TopBar
+            crumbs={[{ label: "Explore" }]}
+            actions={
+              <TimeRangeControls
+                refreshInterval={refreshInterval}
+                onRefreshIntervalChange={setRefreshInterval}
+              />
+            }
+          />
 
           <Flex gap={2} alignItems="flex-start">
             <Box flex={1} fontSize="sm">
