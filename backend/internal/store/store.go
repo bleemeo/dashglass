@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
@@ -23,6 +24,11 @@ type Info struct {
 	Format      Format `json:"format"`
 	DisplayName string `json:"displayName,omitempty"`
 	Description string `json:"description,omitempty"`
+	// Panels is the number of panels defined in the dashboard (list-view
+	// metadata; 0 for invalid files).
+	Panels int `json:"panels,omitempty"`
+	// Modified is the file's last-modified time (RFC3339), for the list view.
+	Modified string `json:"modified,omitempty"`
 	// Invalid flags files that fail validation; they are still listed so
 	// the UI can surface the problem instead of silently hiding the file.
 	Invalid bool `json:"invalid,omitempty"`
@@ -105,13 +111,18 @@ func (s *Store) List() ([]Info, error) {
 		}
 		name := prefix + strings.TrimSuffix(fileName, filepath.Ext(fileName))
 		info := Info{Name: name, Format: format}
-		content, err := os.ReadFile(filepath.Join(s.dir, prefix, fileName))
+		path := filepath.Join(s.dir, prefix, fileName)
+		if stat, err := os.Stat(path); err == nil {
+			info.Modified = stat.ModTime().UTC().Format(time.RFC3339)
+		}
+		content, err := os.ReadFile(path)
 		if err != nil {
 			info.Invalid = true
 		} else if doc, err := s.validate(content, format); err != nil {
 			info.Invalid = true
 		} else {
 			info.DisplayName, info.Description = displayOf(doc)
+			info.Panels = panelCountOf(doc)
 		}
 		infos = append(infos, info)
 	}
@@ -149,6 +160,12 @@ func displayOf(doc map[string]any) (name, description string) {
 	name, _ = display["name"].(string)
 	description, _ = display["description"].(string)
 	return name, description
+}
+
+func panelCountOf(doc map[string]any) int {
+	spec, _ := doc["spec"].(map[string]any)
+	panels, _ := spec["panels"].(map[string]any)
+	return len(panels)
 }
 
 // Exists reports whether a file backs the dashboard name, in any format.
