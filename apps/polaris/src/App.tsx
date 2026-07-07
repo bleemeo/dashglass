@@ -20,6 +20,7 @@ import {
 } from "./api/hooks";
 import { AuthDisabledBanner } from "./components/AuthDisabledBanner";
 import { PrometheusStatusBanner } from "./components/PrometheusStatusBanner";
+import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { AdminIcon, SidebarIcon } from "./components/icons";
 import { UserMenu } from "./components/UserMenu";
 import { AdminPage } from "./pages/AdminPage";
@@ -234,6 +235,7 @@ export function App() {
                 </Routes>
               </Box>
             </Flex>
+            {kiosk ? null : <ShortcutsHelp />}
           </Flex>
         }
       />
