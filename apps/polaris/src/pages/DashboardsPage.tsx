@@ -7,13 +7,18 @@ import {
   CloseButton,
   Flex,
   Heading,
+  IconButton,
   Input,
   InputGroup,
   Link as ChakraLink,
+  SimpleGrid,
   Table,
   Text,
 } from "@chakra-ui/react";
 import { Link, useSearchParams } from "react-router";
+
+import type { DashboardInfo } from "../api/client";
+import { DashboardPreview } from "../components/DashboardPreview";
 
 import { getDashboardFile, putDashboard } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -31,6 +36,200 @@ import {
   useDeleteDashboard,
   usePermissions,
 } from "../api/hooks";
+
+type DashboardView = "cards" | "table";
+const VIEW_KEY = "polaris-dashboards-view";
+
+function readView(): DashboardView {
+  try {
+    return window.localStorage.getItem(VIEW_KEY) === "table" ? "table" : "cards";
+  } catch {
+    return "cards";
+  }
+}
+
+function folderOf(name: string): string {
+  return name.includes("/") ? name.split("/")[0]! : "";
+}
+
+/** Root dashboards first, then folders alphabetically, names within. */
+function byFolderThenName(a: DashboardInfo, b: DashboardInfo): number {
+  const fa = folderOf(a.name);
+  const fb = folderOf(b.name);
+  return fa === fb ? a.name.localeCompare(b.name) : fa.localeCompare(fb);
+}
+
+/** Contiguous folder groups (input must be pre-sorted by byFolderThenName). */
+function groupByFolder(
+  list: DashboardInfo[],
+): { folder: string; items: DashboardInfo[] }[] {
+  const groups: { folder: string; items: DashboardInfo[] }[] = [];
+  for (const item of list) {
+    const folder = folderOf(item.name);
+    const last = groups.at(-1);
+    if (last && last.folder === folder) {
+      last.items.push(item);
+    } else {
+      groups.push({ folder, items: [item] });
+    }
+  }
+  return groups;
+}
+
+function panelsLabel(count: number): string {
+  return `${count} panel${count === 1 ? "" : "s"}`;
+}
+
+function GridViewIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="3" y="3" width="8" height="8" rx="1.5" />
+      <rect x="13" y="3" width="8" height="8" rx="1.5" />
+      <rect x="3" y="13" width="8" height="8" rx="1.5" />
+      <rect x="13" y="13" width="8" height="8" rx="1.5" />
+    </svg>
+  );
+}
+
+function ListViewIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+    </svg>
+  );
+}
+
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: DashboardView;
+  onChange: (view: DashboardView) => void;
+}) {
+  return (
+    <Flex borderWidth="1px" borderRadius="md" padding="1px" flexShrink={0}>
+      <IconButton
+        size="xs"
+        variant={view === "cards" ? "subtle" : "ghost"}
+        colorPalette={view === "cards" ? "brand" : undefined}
+        color={view === "cards" ? undefined : "fg.muted"}
+        aria-label="Card view"
+        title="Card view"
+        onClick={() => onChange("cards")}
+      >
+        <GridViewIcon />
+      </IconButton>
+      <IconButton
+        size="xs"
+        variant={view === "table" ? "subtle" : "ghost"}
+        colorPalette={view === "table" ? "brand" : undefined}
+        color={view === "table" ? undefined : "fg.muted"}
+        aria-label="Table view"
+        title="Table view"
+        onClick={() => onChange("table")}
+      >
+        <ListViewIcon />
+      </IconButton>
+    </Flex>
+  );
+}
+
+function DashboardCard({
+  dashboard,
+  readonly,
+  onRename,
+  onDelete,
+}: {
+  dashboard: DashboardInfo;
+  readonly: boolean;
+  onRename: (name: string) => void;
+  onDelete: (name: string) => void;
+}) {
+  const title = dashboard.displayName || dashboard.name.split("/").at(-1);
+  const panels = dashboard.panels ?? 0;
+  return (
+    <Flex
+      direction="column"
+      borderWidth="1px"
+      borderRadius="lg"
+      overflow="hidden"
+      transition="border-color 0.15s, box-shadow 0.15s"
+      _hover={{ borderColor: "brand.emphasized", boxShadow: "sm" }}
+    >
+      <ChakraLink
+        asChild
+        display="block"
+        _hover={{ textDecoration: "none" }}
+      >
+        <Link to={`/d/${encodeURIComponent(dashboard.name)}`}>
+          <Box height="128px" backgroundColor="bg.subtle" padding={2}>
+            <DashboardPreview preview={dashboard.preview} />
+          </Box>
+          <Box
+            paddingX={3}
+            paddingTop={3}
+            paddingBottom={1}
+            borderTopWidth="1px"
+          >
+            <Flex alignItems="center" gap={2}>
+              <Text fontWeight="medium" color="fg" truncate>
+                {title}
+              </Text>
+              {dashboard.invalid ? (
+                <Badge colorPalette="red" flexShrink={0}>
+                  invalid
+                </Badge>
+              ) : null}
+            </Flex>
+            {dashboard.description ? (
+              <Text
+                fontSize="xs"
+                color="fg.muted"
+                lineClamp={2}
+                marginTop={0.5}
+              >
+                {dashboard.description}
+              </Text>
+            ) : null}
+          </Box>
+        </Link>
+      </ChakraLink>
+      <Flex
+        alignItems="center"
+        justifyContent="space-between"
+        paddingX={3}
+        paddingBottom={2}
+        marginTop="auto"
+      >
+        <Text fontSize="xs" color="fg.muted">
+          {dashboard.invalid ? "invalid" : panelsLabel(panels)}
+          {dashboard.modified ? ` · ${relativeTime(dashboard.modified)}` : ""}
+        </Text>
+        {readonly ? null : (
+          <Flex>
+            <Button
+              size="2xs"
+              variant="ghost"
+              onClick={() => onRename(dashboard.name)}
+            >
+              Rename
+            </Button>
+            <Button
+              size="2xs"
+              variant="ghost"
+              colorPalette="red"
+              onClick={() => onDelete(dashboard.name)}
+            >
+              Delete
+            </Button>
+          </Flex>
+        )}
+      </Flex>
+    </Flex>
+  );
+}
 
 export function DashboardsPage() {
   const dashboards = useDashboards();
@@ -51,7 +250,18 @@ export function DashboardsPage() {
   const filterRef = useRef<HTMLInputElement>(null);
   useKeyShortcut("/", () => filterRef.current?.focus());
 
+  const [view, setView] = useState<DashboardView>(readView);
+  const chooseView = (next: DashboardView) => {
+    setView(next);
+    try {
+      window.localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // Not persisting the view is fine.
+    }
+  };
+
   const visible = filterDashboards(dashboards.data ?? [], query);
+  const groups = groupByFolder([...visible].sort(byFolderThenName));
 
   return (
     <Flex direction="column" gap={4}>
@@ -132,6 +342,7 @@ export function DashboardsPage() {
       ) : null}
 
       {dashboards.data?.length ? (
+        <Flex justifyContent="space-between" alignItems="center" gap={3}>
         <InputGroup
           maxWidth="320px"
           endElement={
@@ -162,6 +373,8 @@ export function DashboardsPage() {
             }}
           />
         </InputGroup>
+        <ViewToggle view={view} onChange={chooseView} />
+        </Flex>
       ) : null}
 
       {dashboards.isLoading ? <Text>Loading…</Text> : null}
@@ -209,7 +422,39 @@ export function DashboardsPage() {
         </Flex>
       ) : null}
 
-      {visible.length ? (
+      {visible.length && view === "cards" ? (
+        <Flex direction="column" gap={6}>
+          {groups.map((group) => (
+            <Box key={group.folder || "__root"}>
+              {group.folder ? (
+                <Text
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  color="fg.muted"
+                  marginBottom={2}
+                >
+                  {group.folder}/
+                </Text>
+              ) : null}
+              <SimpleGrid minChildWidth="260px" gap={4}>
+                {group.items.map((dashboard) => (
+                  <DashboardCard
+                    key={dashboard.name}
+                    dashboard={dashboard}
+                    readonly={readonly}
+                    onRename={setRenaming}
+                    onDelete={setDeleting}
+                  />
+                ))}
+              </SimpleGrid>
+            </Box>
+          ))}
+        </Flex>
+      ) : null}
+
+      {visible.length && view === "table" ? (
         <Table.Root size="sm">
           <Table.Header>
             <Table.Row>

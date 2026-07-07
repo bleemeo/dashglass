@@ -4,6 +4,15 @@
  * behind a façade.
  */
 
+/** One panel's placement + kind, in grid units (24 columns). */
+export interface PreviewItem {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  kind?: string;
+}
+
 export interface DashboardInfo {
   name: string;
   format: "json" | "yaml" | "toml";
@@ -13,6 +22,8 @@ export interface DashboardInfo {
   panels?: number;
   /** File last-modified time (RFC3339). */
   modified?: string;
+  /** Compact layout summary for a schematic thumbnail. */
+  preview?: PreviewItem[];
   invalid?: boolean;
 }
 
