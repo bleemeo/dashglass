@@ -4,6 +4,7 @@
 package store
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -29,9 +30,21 @@ type Info struct {
 	Panels int `json:"panels,omitempty"`
 	// Modified is the file's last-modified time (RFC3339), for the list view.
 	Modified string `json:"modified,omitempty"`
+	// Preview is a compact layout summary (grid rectangles + panel kind)
+	// for rendering a schematic thumbnail in the list view.
+	Preview []PreviewItem `json:"preview,omitempty"`
 	// Invalid flags files that fail validation; they are still listed so
 	// the UI can surface the problem instead of silently hiding the file.
 	Invalid bool `json:"invalid,omitempty"`
+}
+
+// PreviewItem is one panel's placement + kind, in grid units (24 columns).
+type PreviewItem struct {
+	X    int    `json:"x"`
+	Y    int    `json:"y"`
+	W    int    `json:"w"`
+	H    int    `json:"h"`
+	Kind string `json:"kind,omitempty"`
 }
 
 // Store reads and writes dashboard files in a single directory.
@@ -123,6 +136,7 @@ func (s *Store) List() ([]Info, error) {
 		} else {
 			info.DisplayName, info.Description = displayOf(doc)
 			info.Panels = panelCountOf(doc)
+			info.Preview = previewOf(doc)
 		}
 		infos = append(infos, info)
 	}
@@ -166,6 +180,74 @@ func panelCountOf(doc map[string]any) int {
 	spec, _ := doc["spec"].(map[string]any)
 	panels, _ := spec["panels"].(map[string]any)
 	return len(panels)
+}
+
+// toInt reads a numeric doc value (json.Number after normalization, or a
+// plain Go number) as an int.
+func toInt(v any) int {
+	switch n := v.(type) {
+	case json.Number:
+		i, _ := n.Int64()
+		return int(i)
+	case float64:
+		return int(n)
+	case int64:
+		return int(n)
+	case int:
+		return n
+	}
+	return 0
+}
+
+// previewMaxItems bounds the per-dashboard preview payload.
+const previewMaxItems = 60
+
+// previewOf flattens the Grid layouts into placement rectangles + panel
+// kinds, stacking sections vertically so a multi-section dashboard reads
+// top-to-bottom in the thumbnail.
+func previewOf(doc map[string]any) []PreviewItem {
+	spec, _ := doc["spec"].(map[string]any)
+	panels, _ := spec["panels"].(map[string]any)
+	layouts, _ := spec["layouts"].([]any)
+
+	items := []PreviewItem{}
+	yOffset := 0
+	for _, raw := range layouts {
+		layout, _ := raw.(map[string]any)
+		if kind, _ := layout["kind"].(string); kind != "Grid" {
+			continue
+		}
+		lspec, _ := layout["spec"].(map[string]any)
+		gridItems, _ := lspec["items"].([]any)
+		maxBottom := 0
+		for _, rawItem := range gridItems {
+			item, _ := rawItem.(map[string]any)
+			x, y := toInt(item["x"]), toInt(item["y"])
+			w, h := toInt(item["width"]), toInt(item["height"])
+			kind := ""
+			if content, ok := item["content"].(map[string]any); ok {
+				if ref, ok := content["$ref"].(string); ok {
+					key := ref[strings.LastIndex(ref, "/")+1:]
+					if panel, ok := panels[key].(map[string]any); ok {
+						if pspec, ok := panel["spec"].(map[string]any); ok {
+							if plugin, ok := pspec["plugin"].(map[string]any); ok {
+								kind, _ = plugin["kind"].(string)
+							}
+						}
+					}
+				}
+			}
+			items = append(items, PreviewItem{X: x, Y: y + yOffset, W: w, H: h, Kind: kind})
+			if y+h > maxBottom {
+				maxBottom = y + h
+			}
+			if len(items) >= previewMaxItems {
+				return items
+			}
+		}
+		yOffset += maxBottom
+	}
+	return items
 }
 
 // Exists reports whether a file backs the dashboard name, in any format.
