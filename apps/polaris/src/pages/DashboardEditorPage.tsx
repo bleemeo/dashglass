@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 
-import { Box, Button, Flex, Input, Text } from "@chakra-ui/react";
+import { Box, Button, chakra, Flex, Input, Text } from "@chakra-ui/react";
 import { GridLayout, useContainerWidth } from "react-grid-layout";
 import { Link, useNavigate, useParams } from "react-router";
 import "react-grid-layout/css/styles.css";
@@ -105,12 +105,37 @@ function SectionEditor({
           value={layout.spec.display?.title ?? ""}
           onChange={(event) => onTitleChange(event.target.value)}
         />
-        <Button size="xs" variant="outline" onClick={onAddPanel}>
-          <PlusIcon /> Panel
+        <Button
+          size="sm"
+          variant="outline"
+          colorPalette="brand"
+          onClick={onAddPanel}
+        >
+          <PlusIcon /> Add panel
         </Button>
       </Flex>
       <Box ref={containerRef}>
-        {mounted ? (
+        {layout.spec.items.length === 0 ? (
+          <chakra.button
+            type="button"
+            onClick={onAddPanel}
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            gap={2}
+            width="full"
+            minHeight="120px"
+            borderWidth="1px"
+            borderStyle="dashed"
+            borderColor="border"
+            borderRadius="lg"
+            color="fg.muted"
+            transition="border-color 0.15s, color 0.15s"
+            _hover={{ borderColor: "brand.emphasized", color: "fg" }}
+          >
+            <PlusIcon /> Add a panel
+          </chakra.button>
+        ) : mounted ? (
           <GridLayout
             width={width}
             layout={rglLayout}
@@ -421,12 +446,13 @@ function EditorView({
               />
             ))}
             <Button
-              size="xs"
+              size="sm"
               variant="outline"
+              colorPalette="brand"
               alignSelf="flex-start"
               onClick={() => applyEdit(addLayout(draft))}
             >
-              <PlusIcon /> Section
+              <PlusIcon /> Add section
             </Button>
           </Flex>
 

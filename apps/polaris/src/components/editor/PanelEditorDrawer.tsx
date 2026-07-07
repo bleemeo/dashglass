@@ -18,6 +18,7 @@ import type { Panel, Query } from "@polarisui/model";
 import { PROMETHEUS_QUERY_KIND, useRuntime } from "@polarisui/runtime";
 
 import { LazyPromQLEditor } from "../LazyPromQLEditor";
+import { PlusIcon } from "../icons";
 
 function emptyQuery(): Query {
   return {
@@ -308,20 +309,21 @@ export function PanelEditorDrawer({
                     />
                   ))}
                   <Button
-                    size="xs"
+                    size="sm"
                     variant="outline"
+                    colorPalette="brand"
                     alignSelf="flex-start"
                     onClick={() =>
                       updateSpec({ queries: [...queries, emptyQuery()] })
                     }
                   >
-                    Add query
+                    <PlusIcon /> Add query
                   </Button>
                 </Flex>
               </Flex>
             </Drawer.Body>
             <Drawer.Footer>
-              <Button size="sm" onClick={onClose}>
+              <Button size="sm" colorPalette="brand" onClick={onClose}>
                 Done
               </Button>
             </Drawer.Footer>
