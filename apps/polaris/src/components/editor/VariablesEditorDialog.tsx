@@ -125,6 +125,7 @@ function normalize(variable: Variable): Variable {
         ? { defaultValue: variable.spec.defaultValue }
         : {}),
       ...(variable.spec.allowAllValue ? { allowAllValue: true } : {}),
+      ...(variable.spec.allowMultiple ? { allowMultiple: true } : {}),
       plugin,
     },
   };
@@ -319,6 +320,17 @@ function VariableRow({
               <Checkbox.HiddenInput />
               <Checkbox.Control />
               <Checkbox.Label>Allow "All"</Checkbox.Label>
+            </Checkbox.Root>
+            <Checkbox.Root
+              size="sm"
+              checked={variable.spec.allowMultiple ?? false}
+              onCheckedChange={(event) =>
+                setSpec({ allowMultiple: event.checked === true })
+              }
+            >
+              <Checkbox.HiddenInput />
+              <Checkbox.Control />
+              <Checkbox.Label>Allow multiple</Checkbox.Label>
             </Checkbox.Root>
           </Flex>
           <Field.Root>
