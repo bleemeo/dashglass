@@ -35,7 +35,11 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
 
   const kind = panel.spec.plugin.kind;
   const plugin = registries.panels.get(kind);
-  const title = panel.spec.display?.name ?? panelKey;
+  // Visible title only when the panel actually has one; the panel key is
+  // an internal identifier, not a fallback label. The header itself stays
+  // (drag handle in the editor, fullscreen affordance) — it just shows no
+  // text when untitled.
+  const title = panel.spec.display?.name;
 
   let body;
   if (!plugin) {
@@ -96,7 +100,7 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
     <section
       className="polaris-panel"
       style={chromeStyle}
-      aria-label={title}
+      aria-label={title ?? panelKey}
       data-panel-key={panelKey}
     >
       <header className="polaris-panel-header">

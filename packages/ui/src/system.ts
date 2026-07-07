@@ -79,6 +79,9 @@ const config = defineConfig({
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
+      // Keep the header (drag handle / fullscreen affordance) at a stable
+      // height even when the panel has no title.
+      minHeight: "1.25em",
     },
     // Panel title as a button (fullscreen view); inherits the title look.
     ".polaris-panel-expand": {
