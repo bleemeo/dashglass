@@ -25,6 +25,33 @@ export function Field({
   );
 }
 
+export function TextField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <Field label={label}>
+      {(id) => (
+        <input
+          id={id}
+          className="polaris-field-input"
+          type="text"
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      )}
+    </Field>
+  );
+}
+
 export function SelectField({
   label,
   value,

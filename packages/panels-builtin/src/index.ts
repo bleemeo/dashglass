@@ -3,8 +3,10 @@ import { lazy } from "react";
 import type { PanelRegistry } from "@polarisui/runtime";
 
 import { BarEditor } from "./bar/editor";
+import { ClockEditor } from "./clock/editor";
 import { GaugeEditor } from "./gauge/editor";
 import { HeatmapEditor } from "./heatmap/editor";
+import { ImageEditor } from "./image/editor";
 import { MarkdownEditor } from "./markdown/editor";
 import { StatEditor } from "./stat/editor";
 import { TableEditor } from "./table/editor";
@@ -88,6 +90,26 @@ export function registerBuiltinPanels(panels: PanelRegistry): void {
     ),
     editor: MarkdownEditor,
   });
+  panels.register({
+    kind: "Image",
+    displayName: "Image",
+    component: lazy(() =>
+      import("./image/ImagePanel").then((module) => ({
+        default: module.ImagePanel,
+      })),
+    ),
+    editor: ImageEditor,
+  });
+  panels.register({
+    kind: "Clock",
+    displayName: "Clock",
+    component: lazy(() =>
+      import("./clock/ClockPanel").then((module) => ({
+        default: module.ClockPanel,
+      })),
+    ),
+    editor: ClockEditor,
+  });
 }
 
 export {
@@ -150,6 +172,14 @@ export {
   markdownSpecSchema,
   type MarkdownSpec,
 } from "./markdown/options";
+export { imageSpecSchema, type ImageSpec } from "./image/options";
+export {
+  clockSpecSchema,
+  formatClock,
+  CLOCK_FORMATS,
+  type ClockSpec,
+  type ClockFormat,
+} from "./clock/options";
 export { TimeSeriesEditor } from "./time-series/editor";
 export { StatEditor } from "./stat/editor";
 export { GaugeEditor } from "./gauge/editor";
