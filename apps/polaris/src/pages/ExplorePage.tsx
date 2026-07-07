@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Box, Button, Flex, Heading } from "@chakra-ui/react";
+import { Box, Button, Flex, Heading, Text } from "@chakra-ui/react";
 import { useSearchParams } from "react-router";
 
 import type { Panel, Duration } from "@polarisui/model";
@@ -38,6 +38,57 @@ function explorePanel(query: string): Panel {
       ],
     },
   };
+}
+
+// Starter queries shown on the empty Explore page.
+const EXAMPLE_QUERIES = [
+  "up",
+  "rate(node_cpu_seconds_total[5m])",
+  "node_memory_MemAvailable_bytes",
+  "sum by (job) (up)",
+  "topk(5, node_load1)",
+];
+
+const RECENT_KEY = "polaris-explore-recent";
+const RECENT_MAX = 8;
+
+function loadRecent(): string[] {
+  try {
+    const raw = window.localStorage.getItem(RECENT_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((x): x is string => typeof x === "string").slice(0, RECENT_MAX)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecent(list: string[]): void {
+  try {
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)));
+  } catch {
+    // Not persisting recent queries is fine.
+  }
+}
+
+/** A clickable PromQL query chip (examples / recent). */
+function QueryChip({ query, onRun }: { query: string; onRun: (q: string) => void }) {
+  return (
+    <Button
+      size="xs"
+      variant="outline"
+      fontFamily="mono"
+      fontWeight="normal"
+      maxWidth="100%"
+      title={query}
+      onClick={() => onRun(query)}
+    >
+      <Box as="span" truncate>
+        {query}
+      </Box>
+    </Button>
+  );
 }
 
 /**
@@ -85,10 +136,29 @@ export function ExplorePage() {
     "off",
   );
   const [adding, setAdding] = useState(false);
+  const [recent, setRecent] = useState<string[]>(loadRecent);
   // Viewers (and provisioned readonly) can explore but not write.
   const { canEdit } = usePermissions();
   const panel = useMemo(() => (query ? explorePanel(query) : null), [query]);
-  const run = () => setQuery(draft.trim() || null);
+
+  const runQuery = (expr: string) => {
+    const trimmed = expr.trim();
+    if (trimmed === "") {
+      setQuery(null);
+      return;
+    }
+    setDraft(trimmed);
+    setQuery(trimmed);
+    setRecent((current) => {
+      const next = [trimmed, ...current.filter((q) => q !== trimmed)].slice(
+        0,
+        RECENT_MAX,
+      );
+      saveRecent(next);
+      return next;
+    });
+  };
+  const run = () => runQuery(draft);
 
   return (
     <TimeRangeProvider
@@ -116,7 +186,7 @@ export function ExplorePage() {
                 placeholder="PromQL expression — Ctrl/Cmd-Enter to run"
               />
             </Box>
-            <Button size="sm" onClick={run}>
+            <Button size="sm" colorPalette="brand" onClick={run}>
               Run
             </Button>
             {canEdit ? (
@@ -141,7 +211,49 @@ export function ExplorePage() {
             <Box height="400px" borderWidth="1px" borderRadius="md" padding={2}>
               <PanelChrome panelKey="explore" panel={panel} />
             </Box>
-          ) : null}
+          ) : (
+            <Flex direction="column" gap={5} paddingTop={2} maxWidth="720px">
+              <Box>
+                <Text fontSize="sm" fontWeight="medium" marginBottom={2}>
+                  Examples
+                </Text>
+                <Flex wrap="wrap" gap={2}>
+                  {EXAMPLE_QUERIES.map((q) => (
+                    <QueryChip key={q} query={q} onRun={runQuery} />
+                  ))}
+                </Flex>
+              </Box>
+              {recent.length > 0 ? (
+                <Box>
+                  <Flex
+                    alignItems="center"
+                    justifyContent="space-between"
+                    marginBottom={2}
+                  >
+                    <Text fontSize="sm" fontWeight="medium">
+                      Recent
+                    </Text>
+                    <Button
+                      size="2xs"
+                      variant="ghost"
+                      color="fg.muted"
+                      onClick={() => {
+                        setRecent([]);
+                        saveRecent([]);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </Flex>
+                  <Flex wrap="wrap" gap={2}>
+                    {recent.map((q) => (
+                      <QueryChip key={q} query={q} onRun={runQuery} />
+                    ))}
+                  </Flex>
+                </Box>
+              ) : null}
+            </Flex>
+          )}
         </Flex>
       </VariablesProvider>
     </TimeRangeProvider>
