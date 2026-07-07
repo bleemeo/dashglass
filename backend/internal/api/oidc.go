@@ -31,7 +31,7 @@ func (s *Server) oidcLogin(writer http.ResponseWriter, request *http.Request) {
 		Value:    signValue(payload, secret),
 		Path:     "/api/auth/oidc",
 		HttpOnly: true,
-		Secure:   request.TLS != nil,
+		Secure:   secureRequest(request),
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(auth.FlowCookieTTL.Seconds()),
 	})
@@ -76,7 +76,7 @@ func (s *Server) oidcCallback(writer http.ResponseWriter, request *http.Request)
 		s.oidcFail(writer, request, "access denied")
 		return
 	}
-	session, err := auth.NewExternalSessionCookie(user.Username, user.Role, secret, request.TLS != nil)
+	session, err := auth.NewExternalSessionCookie(user.Username, user.Role, secret, secureRequest(request))
 	if err != nil {
 		s.oidcFail(writer, request, "server error")
 		return

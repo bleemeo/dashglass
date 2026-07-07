@@ -248,6 +248,18 @@ func TestProxyUnconfigured(t *testing.T) {
 	}
 }
 
+func TestSecureRequest(t *testing.T) {
+	plain := httptest.NewRequest(http.MethodGet, "/", nil)
+	if secureRequest(plain) {
+		t.Error("plain HTTP must not be marked secure")
+	}
+	forwarded := httptest.NewRequest(http.MethodGet, "/", nil)
+	forwarded.Header.Set("X-Forwarded-Proto", "https")
+	if !secureRequest(forwarded) {
+		t.Error("X-Forwarded-Proto: https must be marked secure (TLS-terminating proxy)")
+	}
+}
+
 func TestPrometheusHealth(t *testing.T) {
 	decode := func(response *http.Response) struct {
 		Configured bool   `json:"configured"`

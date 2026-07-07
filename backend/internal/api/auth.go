@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/bleemeo/polarisui/backend/internal/auth"
 )
@@ -14,6 +15,15 @@ import (
 var anonymous = auth.User{Username: "anonymous", Role: auth.RoleAdmin}
 
 var errUnauthenticated = errors.New("authentication required")
+
+// secureRequest reports whether the session cookie should carry the
+// Secure flag: the connection is TLS, or a proxy terminated TLS and said
+// so via X-Forwarded-Proto. (A spoofed header can only make the cookie
+// stricter, never leak it, so trusting it here is safe.)
+func secureRequest(r *http.Request) bool {
+	return r.TLS != nil ||
+		strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
+}
 
 // authenticate resolves the request identity. A configured reverse proxy
 // is the identity source and takes precedence over local sessions; the
@@ -103,7 +113,7 @@ func (s *Server) authLogin(writer http.ResponseWriter, request *http.Request) {
 		writeError(writer, http.StatusInternalServerError, err.Error())
 		return
 	}
-	cookie, err := auth.NewSessionCookie(user, secret, request.TLS != nil)
+	cookie, err := auth.NewSessionCookie(user, secret, secureRequest(request))
 	if err != nil {
 		writeError(writer, http.StatusInternalServerError, err.Error())
 		return
@@ -166,7 +176,7 @@ func (s *Server) authChangePassword(writer http.ResponseWriter, request *http.Re
 		writeError(writer, http.StatusInternalServerError, err.Error())
 		return
 	}
-	cookie, err := auth.NewSessionCookie(updated, secret, request.TLS != nil)
+	cookie, err := auth.NewSessionCookie(updated, secret, secureRequest(request))
 	if err != nil {
 		writeError(writer, http.StatusInternalServerError, err.Error())
 		return
