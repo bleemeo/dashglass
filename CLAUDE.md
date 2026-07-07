@@ -135,7 +135,9 @@ Apache-2.0 license (LICENSE, §12 resolved), `packages/ui` (theme +
 light/dark/system color mode), the form-based dashboard editor
 (`/d/:name/edit`; as-code editor moved to `/d/:name/code`; pure document
 edit ops in `packages/model/src/edit.ts`), bundle code-splitting
-(initial load 195 kB gzip), Docker packaging (Dockerfile + compose with
+(entry chunk ~151 kB gzip; every route page is lazy so the model's
+YAML/TOML parsers, ECharts, CodeMirror and react-grid-layout load
+on demand, not on the /login first paint), Docker packaging (Dockerfile + compose with
 a demo Prometheus), the three extra panel kinds (BarChart, HeatmapChart,
 Markdown), and the Grafana importer (packages/grafana-import + "Import
 from Grafana" in the app).

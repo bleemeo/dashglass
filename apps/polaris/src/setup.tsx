@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { lazy } from "react";
 
 import {
   HTTPPrometheusDataSource,
@@ -8,13 +8,25 @@ import { registerBuiltinPanels } from "@polarisui/panels-builtin";
 import { createRegistries } from "@polarisui/runtime";
 
 import { DashboardsIcon, ExploreIcon } from "./components/icons";
-import { DashboardPage } from "./pages/DashboardPage";
-import { DashboardsPage } from "./pages/DashboardsPage";
-import { EditDashboardPage } from "./pages/EditDashboardPage";
-import { ExplorePage } from "./pages/ExplorePage";
 
-// The visual editor (react-grid-layout, panel forms) only loads when a
-// dashboard is actually edited.
+// Every route page is code-split so the entry (and the /login first paint)
+// stays lean: the dashboard model's YAML/TOML parsers, react-grid-layout
+// and the panel forms only load once a page that needs them is visited.
+// A single Suspense boundary in App covers all of these.
+const DashboardsPage = lazy(() =>
+  import("./pages/DashboardsPage").then((m) => ({ default: m.DashboardsPage })),
+);
+const ExplorePage = lazy(() =>
+  import("./pages/ExplorePage").then((m) => ({ default: m.ExplorePage })),
+);
+const DashboardPage = lazy(() =>
+  import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
+);
+const EditDashboardPage = lazy(() =>
+  import("./pages/EditDashboardPage").then((m) => ({
+    default: m.EditDashboardPage,
+  })),
+);
 const DashboardEditorPage = lazy(() =>
   import("./pages/DashboardEditorPage").then((module) => ({
     default: module.DashboardEditorPage,
@@ -51,11 +63,7 @@ export function createAppSetup() {
   registries.pages.register({
     kind: "dashboard-edit",
     path: "/d/:name/edit",
-    element: (
-      <Suspense fallback={null}>
-        <DashboardEditorPage />
-      </Suspense>
-    ),
+    element: <DashboardEditorPage />,
   });
   registries.pages.register({
     kind: "dashboard-code",

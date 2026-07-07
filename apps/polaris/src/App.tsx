@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 
 import {
   Box,
@@ -23,9 +23,13 @@ import { PrometheusStatusBanner } from "./components/PrometheusStatusBanner";
 import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { AdminIcon, SidebarIcon } from "./components/icons";
 import { UserMenu } from "./components/UserMenu";
-import { AdminPage } from "./pages/AdminPage";
 import { LoginPage } from "./pages/LoginPage";
 import { usePageTitle } from "./hooks/usePageTitle";
+
+// Admin is a rarely-visited, admin-only route: keep it out of the entry.
+const AdminPage = lazy(() =>
+  import("./pages/AdminPage").then((m) => ({ default: m.AdminPage })),
+);
 
 const SIDEBAR_KEY = "polaris-sidebar-collapsed";
 
@@ -220,19 +224,22 @@ export function App() {
                 <SideBar collapsed={collapsed} onToggle={toggle} />
               )}
               <Box flex={1} overflow="auto" padding={kiosk ? 4 : 6}>
-                <Routes>
-                  {registries.pages.list().map((page) => (
-                    <Route
-                      key={page.kind}
-                      path={page.path}
-                      element={page.element}
-                    />
-                  ))}
-                  {isAdmin ? (
-                    <Route path="/admin" element={<AdminPage />} />
-                  ) : null}
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
+                {/* One boundary for every code-split route page. */}
+                <Suspense fallback={null}>
+                  <Routes>
+                    {registries.pages.list().map((page) => (
+                      <Route
+                        key={page.kind}
+                        path={page.path}
+                        element={page.element}
+                      />
+                    ))}
+                    {isAdmin ? (
+                      <Route path="/admin" element={<AdminPage />} />
+                    ) : null}
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Suspense>
               </Box>
             </Flex>
             {kiosk ? null : <ShortcutsHelp />}
