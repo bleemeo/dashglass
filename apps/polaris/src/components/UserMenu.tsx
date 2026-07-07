@@ -4,7 +4,7 @@ import { Badge, Box, Button, Menu, Portal, Text } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 
-import { logout } from "../api/client";
+import { logout, logoutEverywhere } from "../api/client";
 import { usePermissions } from "../api/hooks";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
@@ -51,6 +51,12 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
 
   const signOut = async () => {
     await logout();
+    await queryClient.invalidateQueries();
+    void navigate("/login");
+  };
+
+  const signOutEverywhere = async () => {
+    await logoutEverywhere();
     await queryClient.invalidateQueries();
     void navigate("/login");
   };
@@ -130,14 +136,19 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
                   Change password
                 </Menu.Item>
               ) : null}
-              <Menu.Item
-                value="sign-out"
-                color="fg.error"
-                _hover={{ backgroundColor: "bg.error" }}
-                onClick={() => void signOut()}
-              >
+              <Menu.Item value="sign-out" onClick={() => void signOut()}>
                 Sign out
               </Menu.Item>
+              {authKind === "builtin" ? (
+                <Menu.Item
+                  value="sign-out-all"
+                  color="fg.error"
+                  _hover={{ backgroundColor: "bg.error" }}
+                  onClick={() => void signOutEverywhere()}
+                >
+                  Sign out everywhere
+                </Menu.Item>
+              ) : null}
             </Menu.Content>
           </Menu.Positioner>
         </Portal>

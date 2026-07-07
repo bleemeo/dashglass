@@ -130,6 +130,29 @@ func (s *Server) authLogout(writer http.ResponseWriter, _ *http.Request) {
 	writer.WriteHeader(http.StatusNoContent)
 }
 
+// authLogoutAll revokes every session of the current local user by
+// bumping its session version (the stateless cookies then fail to
+// verify), and clears this one — a "sign out everywhere" for a lost or
+// shared device.
+func (s *Server) authLogoutAll(writer http.ResponseWriter, request *http.Request) {
+	if s.proxyAuth != nil || s.oidc != nil || s.auth == nil || !s.auth.Enabled() {
+		writeError(writer, http.StatusBadRequest,
+			"sessions are managed by your identity provider")
+		return
+	}
+	user, err := s.authenticate(request)
+	if err != nil {
+		writeError(writer, http.StatusUnauthorized, "authentication required")
+		return
+	}
+	if err := s.auth.Update(user.Username, nil, nil); err != nil {
+		writeError(writer, http.StatusInternalServerError, err.Error())
+		return
+	}
+	http.SetCookie(writer, auth.ClearSessionCookie())
+	writer.WriteHeader(http.StatusNoContent)
+}
+
 // authChangePassword lets a signed-in local user change their own
 // password without asking an admin. The session-version bump revokes
 // every outstanding session, so a fresh cookie is issued for this one.

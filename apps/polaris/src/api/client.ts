@@ -157,6 +157,14 @@ export async function logout(): Promise<void> {
   }
 }
 
+/** Revokes every session of the current local user (bumps its version). */
+export async function logoutEverywhere(): Promise<void> {
+  const response = await fetch("/api/auth/logout-all", { method: "POST" });
+  if (!response.ok && response.status !== 401) {
+    throw await errorFrom(response);
+  }
+}
+
 /** Self-service password change; the session stays alive (fresh cookie). */
 export async function changePassword(
   current: string,

@@ -170,6 +170,43 @@ func newJar() (http.CookieJar, error) {
 	return cookiejar.New(nil)
 }
 
+func TestLogoutEverywhereRevokesOtherSessions(t *testing.T) {
+	server, _ := newAuthServer(t)
+	if _, err := server.Client().Post(
+		server.URL+"/api/admin/users", "application/json",
+		strings.NewReader(`{"username":"lionel","password":"password123","role":"admin"}`),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	signIn := func() *http.Client {
+		jar, _ := cookiejar.New(nil)
+		client := &http.Client{Jar: jar}
+		doJSON(t, client, http.MethodPost, server.URL+"/api/auth/login",
+			`{"username":"lionel","password":"password123"}`)
+		return client
+	}
+	deviceA := signIn()
+	deviceB := signIn()
+
+	// Both sessions work.
+	for _, client := range []*http.Client{deviceA, deviceB} {
+		if r := doJSON(t, client, http.MethodGet, server.URL+"/api/dashboards", ""); r.StatusCode != http.StatusOK {
+			t.Fatalf("session should be valid: %d", r.StatusCode)
+		}
+	}
+
+	// Sign out everywhere from device A.
+	if r := doJSON(t, deviceA, http.MethodPost, server.URL+"/api/auth/logout-all", ""); r.StatusCode != http.StatusNoContent {
+		t.Fatalf("logout-all: %d, want 204", r.StatusCode)
+	}
+
+	// Device B (a different session) is now revoked too.
+	if r := doJSON(t, deviceB, http.MethodGet, server.URL+"/api/dashboards", ""); r.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("other session after logout-all: %d, want 401", r.StatusCode)
+	}
+}
+
 func TestSelfServicePasswordChange(t *testing.T) {
 	server, _ := newAuthServer(t)
 	client := server.Client()

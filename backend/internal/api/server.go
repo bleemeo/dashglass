@@ -98,6 +98,7 @@ func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/capabilities", s.capabilities)
 	mux.HandleFunc("POST /api/auth/login", s.authLogin)
 	mux.HandleFunc("POST /api/auth/logout", s.authLogout)
+	mux.HandleFunc("POST /api/auth/logout-all", s.authLogoutAll)
 	mux.HandleFunc("POST /api/auth/password", s.authChangePassword)
 	mux.HandleFunc("GET /api/auth/me", s.authMe)
 	mux.HandleFunc("GET /api/auth/oidc/login", s.oidcLogin)
