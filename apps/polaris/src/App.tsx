@@ -19,6 +19,7 @@ import {
   usePermissions,
 } from "./api/hooks";
 import { AuthDisabledBanner } from "./components/AuthDisabledBanner";
+import { PrometheusStatusBanner } from "./components/PrometheusStatusBanner";
 import { AdminIcon, SidebarIcon } from "./components/icons";
 import { UserMenu } from "./components/UserMenu";
 import { AdminPage } from "./pages/AdminPage";
@@ -212,6 +213,7 @@ export function App() {
         element={
           <Flex direction="column" height="100vh">
             {kiosk ? null : <AuthDisabledBanner />}
+            {kiosk ? null : <PrometheusStatusBanner />}
             <Flex flex={1} alignItems="stretch" minHeight={0}>
               {kiosk ? null : (
                 <SideBar collapsed={collapsed} onToggle={toggle} />

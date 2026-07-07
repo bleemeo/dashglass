@@ -10,6 +10,7 @@ import {
   deleteDashboard,
   fetchAuthMe,
   fetchCapabilities,
+  fetchPrometheusHealth,
   getDashboardFile,
   listDashboards,
   putDashboard,
@@ -63,6 +64,22 @@ export function usePermissions() {
 
 export function useDashboards() {
   return useQuery({ queryKey: ["dashboards"], queryFn: listDashboards });
+}
+
+/**
+ * Prometheus reachability, for the connection banner. Gated on being
+ * allowed to call the API (a pre-login 401 would bounce to the login
+ * page); polled so a recovered/lost connection is reflected.
+ */
+export function usePrometheusHealth() {
+  const { loading, authEnabled, authenticated } = usePermissions();
+  return useQuery({
+    queryKey: ["prometheus", "health"],
+    queryFn: fetchPrometheusHealth,
+    enabled: !loading && (!authEnabled || authenticated),
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
 }
 
 export function useDashboardFile(name: string) {

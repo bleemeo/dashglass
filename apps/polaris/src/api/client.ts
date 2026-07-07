@@ -230,6 +230,20 @@ export async function adminConfig(): Promise<AdminConfig> {
   return response.json() as Promise<AdminConfig>;
 }
 
+export interface PrometheusHealth {
+  configured: boolean;
+  reachable: boolean;
+  error?: string;
+}
+
+export async function fetchPrometheusHealth(): Promise<PrometheusHealth> {
+  const response = await fetch("/api/prometheus/health");
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<PrometheusHealth>;
+}
+
 export async function fetchCapabilities(): Promise<Capabilities> {
   const response = await fetch("/api/capabilities");
   if (!response.ok) {
