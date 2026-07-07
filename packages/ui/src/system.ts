@@ -135,6 +135,11 @@ const config = defineConfig({
       opacity: 0.6,
       animation: "polaris-pulse 1.6s ease-in-out infinite",
     },
+    // Table panel: row hover cue (cells carry their own theme colors;
+    // this only tints the row background on hover).
+    ".polaris-table tbody tr:hover td": {
+      backgroundColor: "bg.muted",
+    },
     // Plugin option editors (panels-builtin editor/controls.tsx) are
     // structure-only, like the panel chrome; this is their identity.
     ".polaris-fields": {

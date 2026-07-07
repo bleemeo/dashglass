@@ -5,15 +5,30 @@ import type { PanelProps, TimeSeries } from "@polarisui/runtime";
 
 import { NoData } from "../NoData";
 import { parseSpec } from "../spec";
-import { useChartTheme } from "../theme";
+import { seriesColor, useChartTheme, withAlpha, type ChartTheme } from "../theme";
+import { thresholdStatus, thresholdsSchema } from "../thresholds";
 import { formatValue, unitSchema } from "../units";
 import { calculate } from "../stat/calculations";
 
 export const tableSpecSchema = z.object({
   unit: unitSchema.optional(),
+  thresholds: thresholdsSchema.optional(),
 });
 
 export type TableSpec = z.infer<typeof tableSpecSchema>;
+
+/** Value cell color: the status ramp when thresholds are set, neutral
+ * otherwise — mirrors the stat/gauge coloring so a table reads the same. */
+export function tableValueColor(
+  value: number | null,
+  spec: TableSpec,
+  theme: ChartTheme,
+): string {
+  if (value === null || !spec.thresholds?.length) {
+    return theme.ink.primary;
+  }
+  return theme.status[thresholdStatus(value, spec.thresholds)];
+}
 
 /** Label columns: the union of label names across series, minus __name__. */
 export function tableColumns(series: TimeSeries[]): string[] {
@@ -121,6 +136,14 @@ export function TablePanel({ spec, data }: PanelProps) {
       : unsorted;
   }, [data.series, sort]);
 
+  // Largest magnitude in the value column: the inline bars encode each
+  // value relative to it, so the fullest row is instantly scannable.
+  const maxAbs = useMemo(
+    () =>
+      Math.max(0, ...rows.map((row) => (row.value === null ? 0 : Math.abs(row.value)))),
+    [rows],
+  );
+
   if (data.state === "ready" && data.series.length === 0) {
     return <NoData />;
   }
@@ -141,7 +164,11 @@ export function TablePanel({ spec, data }: PanelProps) {
   // border model — collapsed borders don't stick with the header.
   const headerStyle: React.CSSProperties = {
     ...cellStyle,
-    color: theme.ink.secondary,
+    color: theme.ink.muted,
+    fontWeight: 500,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
     position: "sticky",
     top: 0,
     backgroundColor: theme.surface,
@@ -183,24 +210,54 @@ export function TablePanel({ spec, data }: PanelProps) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, index) => (
-            <tr key={`${row.key}-${index}`}>
-              {columns.map((column) => (
-                <td key={column} style={cellStyle}>
-                  {row.labels[column] ?? ""}
+          {rows.map((row, index) => {
+            const frac =
+              row.value !== null && maxAbs > 0
+                ? Math.min(Math.abs(row.value) / maxAbs, 1)
+                : 0;
+            const barColor = parsed.thresholds?.length
+              ? theme.status[thresholdStatus(row.value ?? 0, parsed.thresholds)]
+              : seriesColor(theme, 0);
+            return (
+              <tr key={`${row.key}-${index}`}>
+                {columns.map((column) => (
+                  <td key={column} style={cellStyle}>
+                    {row.labels[column] ?? ""}
+                  </td>
+                ))}
+                <td
+                  style={{
+                    ...cellStyle,
+                    position: "relative",
+                    textAlign: "right",
+                    fontVariantNumeric: "tabular-nums",
+                    color: tableValueColor(row.value, parsed, theme),
+                    fontWeight: 500,
+                  }}
+                >
+                  {/* Magnitude bar: a low-alpha fill sized to the value,
+                      grown from the left, under the right-aligned number. */}
+                  {frac > 0 ? (
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        top: 1,
+                        bottom: 1,
+                        width: `${frac * 100}%`,
+                        backgroundColor: withAlpha(barColor, 0.16),
+                        borderRadius: 2,
+                      }}
+                    />
+                  ) : null}
+                  <span style={{ position: "relative" }}>
+                    {formatValue(row.value, parsed.unit ?? "none")}
+                  </span>
                 </td>
-              ))}
-              <td
-                style={{
-                  ...cellStyle,
-                  textAlign: "right",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {formatValue(row.value, parsed.unit ?? "none")}
-              </td>
-            </tr>
-          ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

@@ -1,6 +1,7 @@
 import type { PanelSpecEditorProps } from "@polarisui/runtime";
 
 import { SelectField, UNIT_OPTIONS, withSpecValue } from "../editor/controls";
+import { ThresholdsEditor } from "../editor/ThresholdsEditor";
 import { parseSpec } from "../spec";
 import { tableSpecSchema } from "./TablePanel";
 
@@ -14,6 +15,12 @@ export function TableEditor({ spec: rawSpec, onChange }: PanelSpecEditorProps) {
         value={spec.unit ?? ""}
         options={UNIT_OPTIONS}
         onChange={(unit) => onChange(withSpecValue(rawSpec, "unit", unit))}
+      />
+      <ThresholdsEditor
+        thresholds={spec.thresholds ?? []}
+        onChange={(thresholds) =>
+          onChange(withSpecValue(rawSpec, "thresholds", thresholds))
+        }
       />
     </div>
   );

@@ -12,6 +12,7 @@ import {
   lightChartTheme,
   sortTableRows,
   statValueColor,
+  tableValueColor,
   withAlpha,
   type TooltipParam,
 } from "../src";
@@ -262,6 +263,31 @@ describe("statValueColor", () => {
       lightChartTheme.status.warning,
     );
     expect(statValueColor(95, { thresholds }, lightChartTheme)).toBe(
+      lightChartTheme.status.critical,
+    );
+  });
+});
+
+describe("tableValueColor", () => {
+  const thresholds = [
+    { value: 70, status: "warning" as const },
+    { value: 90, status: "critical" as const },
+  ];
+
+  it("stays neutral without thresholds or without a value", () => {
+    expect(tableValueColor(95, {}, lightChartTheme)).toBe(
+      lightChartTheme.ink.primary,
+    );
+    expect(tableValueColor(null, { thresholds }, lightChartTheme)).toBe(
+      lightChartTheme.ink.primary,
+    );
+  });
+
+  it("uses the status ramp when thresholds are set", () => {
+    expect(tableValueColor(50, { thresholds }, lightChartTheme)).toBe(
+      lightChartTheme.status.good,
+    );
+    expect(tableValueColor(95, { thresholds }, lightChartTheme)).toBe(
       lightChartTheme.status.critical,
     );
   });

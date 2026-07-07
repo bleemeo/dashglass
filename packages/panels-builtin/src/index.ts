@@ -158,6 +158,7 @@ export {
 export {
   sortTableRows,
   tableSpecSchema,
+  tableValueColor,
   type TableRow,
   type TableSpec,
 } from "./table/TablePanel";

@@ -42,6 +42,11 @@ spec:
           kind: Table
           spec:
             unit: percentunit
+            thresholds:
+              - value: 0.8
+                status: warning
+              - value: 0.9
+                status: critical
         queries:
           - kind: TimeSeriesQuery
             spec:

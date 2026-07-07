@@ -100,6 +100,15 @@ export function buildBarOption(
           // Rounded data end only (anchored baseline stays square).
           borderRadius: horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0],
         },
+        // The value at the bar end, so magnitude reads without the axis.
+        label: {
+          show: true,
+          position: horizontal ? "right" : "top",
+          color: theme.ink.secondary,
+          fontSize: 11,
+          formatter: (params: { value: unknown }) =>
+            formatValue(typeof params.value === "number" ? params.value : null, unit),
+        },
       },
     ],
   };
