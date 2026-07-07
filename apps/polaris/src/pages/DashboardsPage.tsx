@@ -4,6 +4,7 @@ import {
   Badge,
   Box,
   Button,
+  chakra,
   CloseButton,
   Flex,
   IconButton,
@@ -14,11 +15,18 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { Link, useSearchParams } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate, useSearchParams } from "react-router";
+
+import { stringifyDashboard } from "@polarisui/model";
 
 import type { DashboardInfo } from "../api/client";
 import { DashboardPreview } from "../components/DashboardPreview";
 import { TopBar } from "../components/TopBar";
+import {
+  DASHBOARD_EXAMPLES,
+  type DashboardExample,
+} from "../lib/examples";
 
 import { getDashboardFile, putDashboard } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -78,6 +86,50 @@ function groupByFolder(
 
 function panelsLabel(count: number): string {
   return `${count} panel${count === 1 ? "" : "s"}`;
+}
+
+/** A single entry in the empty-state launchpad. */
+function LaunchCard({
+  title,
+  description,
+  badge,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  badge?: string;
+  onClick: () => void;
+}) {
+  return (
+    <chakra.button
+      type="button"
+      display="flex"
+      flexDirection="column"
+      alignItems="flex-start"
+      gap={1}
+      textAlign="left"
+      padding={4}
+      borderWidth="1px"
+      borderRadius="lg"
+      transition="border-color 0.15s, box-shadow 0.15s"
+      _hover={{ borderColor: "brand.emphasized", boxShadow: "sm" }}
+      onClick={onClick}
+    >
+      <Flex alignItems="center" gap={2} width="full">
+        <Text fontWeight="medium" color="fg">
+          {title}
+        </Text>
+        {badge ? (
+          <Badge colorPalette="brand" size="xs">
+            {badge}
+          </Badge>
+        ) : null}
+      </Flex>
+      <Text fontSize="sm" color="fg.muted">
+        {description}
+      </Text>
+    </chakra.button>
+  );
 }
 
 function GridViewIcon() {
@@ -250,6 +302,28 @@ export function DashboardsPage() {
   const filterRef = useRef<HTMLInputElement>(null);
   useKeyShortcut("/", () => filterRef.current?.focus());
 
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const createExample = async (example: DashboardExample) => {
+    try {
+      await putDashboard(
+        example.key,
+        stringifyDashboard(example.build(), "yaml"),
+        "yaml",
+        { createOnly: true },
+      );
+      await queryClient.invalidateQueries({ queryKey: ["dashboards"] });
+      toaster.create({ title: `"${example.title}" created`, type: "success" });
+      void navigate(`/d/${encodeURIComponent(example.key)}`);
+    } catch (error) {
+      toaster.create({
+        title: "Could not create the example",
+        description: String(error),
+        type: "error",
+      });
+    }
+  };
+
   const [view, setView] = useState<DashboardView>(readView);
   const chooseView = (next: DashboardView) => {
     setView(next);
@@ -384,24 +458,43 @@ export function DashboardsPage() {
         <Flex
           direction="column"
           alignItems="center"
-          gap={3}
+          gap={5}
           paddingY={16}
-          color="fg.muted"
+          textAlign="center"
         >
-          <DashboardsIcon />
-          <Text>No dashboards yet.</Text>
-          {readonly ? (
-            <Text fontSize="sm">
-              Drop a file in the dashboards directory to get started.
+          <Flex direction="column" alignItems="center" gap={2} color="fg.muted">
+            <DashboardsIcon />
+            <Text fontWeight="medium" color="fg">
+              No dashboards yet
             </Text>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setCreating(true)}
-            >
-              <PlusIcon /> Create your first dashboard
-            </Button>
+            <Text fontSize="sm">
+              {readonly
+                ? "Drop a file in the dashboards directory to get started."
+                : "Create one, import from Grafana, or start from an example."}
+            </Text>
+          </Flex>
+          {readonly ? null : (
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={3} maxWidth="760px">
+              <LaunchCard
+                title="Blank dashboard"
+                description="Start from scratch in the visual editor."
+                onClick={() => setCreating(true)}
+              />
+              <LaunchCard
+                title="Import from Grafana"
+                description="Paste a JSON export or a grafana.com URL."
+                onClick={() => setCreating(true)}
+              />
+              {DASHBOARD_EXAMPLES.map((example) => (
+                <LaunchCard
+                  key={example.key}
+                  title={example.title}
+                  description={example.description}
+                  badge="Example"
+                  onClick={() => void createExample(example)}
+                />
+              ))}
+            </SimpleGrid>
           )}
         </Flex>
       ) : null}
