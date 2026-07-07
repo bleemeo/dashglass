@@ -9,6 +9,10 @@ export interface DashboardInfo {
   format: "json" | "yaml" | "toml";
   displayName?: string;
   description?: string;
+  /** Number of panels (list-view metadata). */
+  panels?: number;
+  /** File last-modified time (RFC3339). */
+  modified?: string;
   invalid?: boolean;
 }
 

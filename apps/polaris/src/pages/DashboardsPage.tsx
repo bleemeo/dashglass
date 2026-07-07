@@ -24,6 +24,7 @@ import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useKeyShortcut } from "../hooks/useShortcuts";
 import { filterDashboards } from "../lib/dashboardFilter";
+import { relativeTime } from "../lib/relativeTime";
 
 import {
   useDashboards,
@@ -64,7 +65,12 @@ export function DashboardsPage() {
           </Text>
         </Box>
         {readonly ? null : (
-          <Button size="sm" flexShrink={0} onClick={() => setCreating(true)}>
+          <Button
+            size="sm"
+            colorPalette="brand"
+            flexShrink={0}
+            onClick={() => setCreating(true)}
+          >
             <PlusIcon /> New dashboard
           </Button>
         )}
@@ -209,7 +215,8 @@ export function DashboardsPage() {
             <Table.Row>
               <Table.ColumnHeader>Name</Table.ColumnHeader>
               <Table.ColumnHeader>Description</Table.ColumnHeader>
-              <Table.ColumnHeader>Format</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="right">Panels</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="right">Updated</Table.ColumnHeader>
               <Table.ColumnHeader textAlign="right"></Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
@@ -235,7 +242,7 @@ export function DashboardsPage() {
                 if (folder !== "" && folder !== previousFolder) {
                   rows.push(
                     <Table.Row key={`folder-${folder}`}>
-                      <Table.Cell colSpan={4} paddingTop={4}>
+                      <Table.Cell colSpan={5} paddingTop={4}>
                         <Text
                           fontSize="xs"
                           fontWeight="semibold"
@@ -267,8 +274,20 @@ export function DashboardsPage() {
                 <Table.Cell color="fg.muted">
                   {dashboard.description ?? ""}
                 </Table.Cell>
-                <Table.Cell>
-                  <Badge>{dashboard.format}</Badge>
+                <Table.Cell
+                  textAlign="right"
+                  color="fg.muted"
+                  fontVariantNumeric="tabular-nums"
+                >
+                  {dashboard.invalid ? "—" : (dashboard.panels ?? 0)}
+                </Table.Cell>
+                <Table.Cell
+                  textAlign="right"
+                  color="fg.muted"
+                  whiteSpace="nowrap"
+                  title={dashboard.modified ?? ""}
+                >
+                  {relativeTime(dashboard.modified)}
                 </Table.Cell>
                 <Table.Cell textAlign="right">
                   {readonly ? null : (
