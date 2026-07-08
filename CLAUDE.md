@@ -147,10 +147,17 @@ a Docker smoke test (`scripts/docker-smoke.sh`) that exercises the
 non-root container's auth surface. Chained dashboard variables work
 (matchers interpolated with current values; dependent lists reload).
 
-Dashboard history is done (`backend/internal/history`, read-only git
-log/show/diff; History drawer + restore-via-PUT on the dashboard view;
-`features.history` capability gates the UI, absent without git or a
-work tree).
+Git integration is done (`backend/internal/history`): history (log/
+show/diff, History drawer + restore-via-PUT, `features.history`
+capability), opt-in commit-on-save (`git.commit_on_save`; commits
+authored by the acting user, X-Commit-Message header), and remote sync
+(`internal/history/sync.go`: interval pull + push-after-commit, rebase
+on divergence, credentials via the GIT_ASKPASS `askpass` subcommand —
+never on a command line). Runtime admin config is in place: Admin →
+Datasource (Prometheus URL + basic/bearer, hot-swapped proxy) and
+Admin → Git sync tabs, persisted in `settings.yaml` next to auth.yaml
+(0600, secrets write-only); anything provisioned by flag/env/file is
+locked in the UI (`internal/config/state.go`).
 
 Not started: annotations, the bleemeo-panel embedding POC (DESIGN.md
 §9), and the public-naming check ("Polaris" trademark, §12). Auth
