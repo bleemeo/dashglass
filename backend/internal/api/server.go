@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/bleemeo/polarisui/backend/internal/auth"
+	"github.com/bleemeo/polarisui/backend/internal/history"
 	"github.com/bleemeo/polarisui/backend/internal/store"
 	"github.com/bleemeo/polarisui/backend/internal/watch"
 )
@@ -38,6 +39,7 @@ type Server struct {
 	settings   []Setting
 	logger     *slog.Logger
 	promURL    *url.URL // for the reachability probe (nil = not configured)
+	history    *history.Service // nil = dashboards dir is not a git work tree
 }
 
 type Options struct {
@@ -63,6 +65,9 @@ type Options struct {
 	// Logger for auth diagnostics (failed logins, OIDC errors); defaults
 	// to slog.Default().
 	Logger *slog.Logger
+	// History serves the read-only git history of dashboard files; nil
+	// hides the feature (no git, or the directory is not a work tree).
+	History *history.Service
 }
 
 func New(options Options) *Server {
@@ -77,6 +82,7 @@ func New(options Options) *Server {
 		throttle:  auth.NewThrottle(),
 		settings:  options.Settings,
 		logger:    options.Logger,
+		history:   options.History,
 	}
 	if server.logger == nil {
 		server.logger = slog.Default()
@@ -108,6 +114,7 @@ func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/dashboards/{name...}", s.requireRole(auth.RoleViewer, s.getDashboard))
 	mux.HandleFunc("PUT /api/dashboards/{name...}", s.requireRole(auth.RoleEditor, s.putDashboard))
 	mux.HandleFunc("DELETE /api/dashboards/{name...}", s.requireRole(auth.RoleEditor, s.deleteDashboard))
+	mux.HandleFunc("GET /api/history/{name...}", s.requireRole(auth.RoleViewer, s.dashboardHistory))
 	mux.HandleFunc("GET /api/prometheus/health", s.requireRole(auth.RoleViewer, s.prometheusHealth))
 	mux.HandleFunc("GET /api/events", s.requireRole(auth.RoleViewer, s.events))
 	mux.HandleFunc("GET /api/grafana-com/{id}", s.requireRole(auth.RoleEditor, s.grafanaComDownload))
@@ -151,7 +158,10 @@ func (s *Server) capabilities(writer http.ResponseWriter, _ *http.Request) {
 		"formats":    store.Formats,
 		"auth":       map[string]any{"kind": authKind},
 		"prometheus": s.proxy != nil,
-		"features":   map[string]any{"grafanaCom": s.grafanaCom != nil},
+		"features": map[string]any{
+			"grafanaCom": s.grafanaCom != nil,
+			"history":    s.history != nil,
+		},
 	})
 }
 

@@ -14,8 +14,13 @@ import {
 } from "@polarisui/runtime";
 
 import { isNotFound } from "../api/client";
-import { useDashboardFile, usePermissions } from "../api/hooks";
+import {
+  useCapabilities,
+  useDashboardFile,
+  usePermissions,
+} from "../api/hooks";
 import { DashboardNotFound } from "../components/DashboardNotFound";
+import { HistoryDrawer } from "../components/HistoryDrawer";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useKeyShortcut } from "../hooks/useShortcuts";
 import { TimeRangeControls } from "../components/TimeRangeControls";
@@ -26,7 +31,12 @@ import {
   variablesFromParams,
 } from "../components/URLStateSync";
 import { VariablesToolbar } from "../components/VariablesToolbar";
-import { CodeIcon, EditIcon, KioskIcon } from "../components/icons";
+import {
+  CodeIcon,
+  EditIcon,
+  HistoryIcon,
+  KioskIcon,
+} from "../components/icons";
 
 function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string }) {
   const navigate = useNavigate();
@@ -36,6 +46,9 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
   );
   usePageTitle(dashboard.spec.display?.name ?? name);
   const { canEdit } = usePermissions();
+  const capabilities = useCapabilities();
+  const hasHistory = capabilities.data?.features?.history === true;
+  const [historyOpen, setHistoryOpen] = useState(false);
   useKeyShortcut("e", () => {
     if (canEdit) {
       void navigate(`/d/${encodeURIComponent(name)}/edit`);
@@ -111,6 +124,18 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
                       refreshInterval={refreshInterval}
                       onRefreshIntervalChange={setRefreshInterval}
                     />
+                    {viewedPanel || !hasHistory ? null : (
+                      <IconButton
+                        size="sm"
+                        variant="ghost"
+                        color="fg.muted"
+                        aria-label="History"
+                        title="History — versions of this dashboard in git"
+                        onClick={() => setHistoryOpen(true)}
+                      >
+                        <HistoryIcon />
+                      </IconButton>
+                    )}
                     {viewedPanel ? null : (
                       <IconButton
                         size="sm"
@@ -158,6 +183,13 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
             {kiosk ? null : (
               <VariablesToolbar variables={dashboard.spec.variables ?? []} />
             )}
+            {hasHistory ? (
+              <HistoryDrawer
+                name={name}
+                open={historyOpen}
+                onClose={() => setHistoryOpen(false)}
+              />
+            ) : null}
             {viewedKey && viewedPanel ? (
               <Box flex={1} minHeight={0} position="relative">
                 <PanelChrome panelKey={viewedKey} panel={viewedPanel} />

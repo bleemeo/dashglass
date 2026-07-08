@@ -19,6 +19,7 @@ import (
 	"github.com/bleemeo/polarisui/backend/internal/api"
 	"github.com/bleemeo/polarisui/backend/internal/auth"
 	"github.com/bleemeo/polarisui/backend/internal/config"
+	"github.com/bleemeo/polarisui/backend/internal/history"
 	"github.com/bleemeo/polarisui/backend/internal/store"
 	"github.com/bleemeo/polarisui/backend/internal/ui"
 	"github.com/bleemeo/polarisui/backend/internal/watch"
@@ -206,6 +207,13 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		)
 	}
 
+	// Read-only git history: available whenever the dashboards directory
+	// lives inside a git work tree (the GitOps setup this tool is for).
+	historyService := history.Detect(dashboardStore.Dir())
+	if historyService == nil {
+		logger.Info("dashboard history disabled (dashboards directory is not in a git work tree)")
+	}
+
 	mux := http.NewServeMux()
 	api.New(api.Options{
 		Store:         dashboardStore,
@@ -219,6 +227,7 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		OIDC:          oidcAuth,
 		Settings:      apiSettings,
 		Logger:        logger,
+		History:       historyService,
 	}).Routes(mux)
 	mux.Handle("/", ui.Handler())
 

@@ -256,6 +256,12 @@ func (s *Store) Exists(name string) bool {
 	return err == nil
 }
 
+// FilePath returns the absolute path and format of the file backing a
+// dashboard name (for read-only integrations like the git history).
+func (s *Store) FilePath(name string) (string, Format, error) {
+	return s.resolve(name)
+}
+
 // Get returns the raw file content and its format.
 func (s *Store) Get(name string) ([]byte, Format, error) {
 	path, format, err := s.resolve(name)

@@ -33,7 +33,16 @@ export interface Capabilities {
   formats: string[];
   prometheus: boolean;
   auth?: { kind: "none" | "builtin" | "proxy" | "oidc" };
-  features?: { grafanaCom?: boolean };
+  features?: { grafanaCom?: boolean; history?: boolean };
+}
+
+/** One entry of a dashboard file's git history. */
+export interface HistoryCommit {
+  hash: string;
+  author: string;
+  /** Author date, RFC3339. */
+  date: string;
+  subject: string;
 }
 
 export type Role = "viewer" | "editor" | "admin";
@@ -296,6 +305,51 @@ export async function getDashboardFile(name: string): Promise<DashboardFile> {
   const format = (response.headers.get("X-Dashboard-Format") ??
     "yaml") as DashboardFile["format"];
   return { content: await response.text(), format };
+}
+
+/** Commits touching the dashboard's file, most recent first. */
+export async function listHistory(name: string): Promise<HistoryCommit[]> {
+  const response = await fetch(`/api/history/${dashboardPath(name)}`);
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<HistoryCommit[]>;
+}
+
+/** The dashboard file as it was at a commit (for preview/restore). */
+export async function getHistoryVersion(
+  name: string,
+  hash: string,
+): Promise<DashboardFile> {
+  const response = await fetch(
+    `/api/history/${dashboardPath(name)}?at=${encodeURIComponent(hash)}`,
+  );
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  const format = (response.headers.get("X-Dashboard-Format") ??
+    "yaml") as DashboardFile["format"];
+  return { content: await response.text(), format };
+}
+
+/** Unified diff from a commit to another (or to the current file). */
+export async function getHistoryDiff(
+  name: string,
+  from: string,
+  to?: string,
+): Promise<string> {
+  const params = new URLSearchParams({ from });
+  if (to) {
+    params.set("to", to);
+  }
+  const response = await fetch(
+    `/api/history/${dashboardPath(name)}?${params}`,
+  );
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  const body = (await response.json()) as { diff: string };
+  return body.diff;
 }
 
 export async function putDashboard(

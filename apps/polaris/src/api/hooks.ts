@@ -13,6 +13,7 @@ import {
   fetchPrometheusHealth,
   getDashboardFile,
   listDashboards,
+  listHistory,
   putDashboard,
   type DashboardFile,
 } from "./client";
@@ -86,6 +87,15 @@ export function useDashboardFile(name: string) {
   return useQuery({
     queryKey: ["dashboards", name],
     queryFn: () => getDashboardFile(name),
+  });
+}
+
+/** Git history of a dashboard file (only fetched while the drawer is open). */
+export function useDashboardHistory(name: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["dashboards", name, "history"],
+    queryFn: () => listHistory(name),
+    enabled,
   });
 }
 
