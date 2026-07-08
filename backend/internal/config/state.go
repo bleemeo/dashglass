@@ -22,6 +22,9 @@ type GitState struct {
 	RemoteURL string `yaml:"remote_url,omitempty"`
 	Username  string `yaml:"username,omitempty"`
 	Token     string `yaml:"token,omitempty"`
+	// SSHKeyFile points at the pasted private key (written 0600 next to
+	// this state file) for ssh remotes.
+	SSHKeyFile string `yaml:"ssh_key_file,omitempty"`
 	// IntervalSeconds between pull cycles (0 = default).
 	IntervalSeconds int `yaml:"interval_seconds,omitempty"`
 }
@@ -39,6 +42,17 @@ type PrometheusState struct {
 // server-managed state and live together (e.g. /data in the container).
 func StatePath(authFile string) string {
 	return filepath.Join(filepath.Dir(authFile), "settings.yaml")
+}
+
+// SSHKeyPath is where a UI-pasted git SSH key is persisted (0600).
+func SSHKeyPath(stateFile string) string {
+	return filepath.Join(filepath.Dir(stateFile), "git_ssh_key")
+}
+
+// KnownHostsPath is the polaris-managed known-hosts file for git-over-
+// SSH: host keys get pinned there first-use, not in the user's ~/.ssh.
+func KnownHostsPath(stateFile string) string {
+	return filepath.Join(filepath.Dir(stateFile), "git_known_hosts")
 }
 
 // LoadState reads the state file; a missing file is an empty state.

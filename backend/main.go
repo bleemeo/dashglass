@@ -271,9 +271,11 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		interval := history.DefaultSyncInterval
 		if gitProvisioned {
 			remote = &history.Remote{
-				URL:      gitRemoteConfig.URL,
-				Username: gitRemoteConfig.Username,
-				Password: gitRemoteConfig.Token,
+				URL:               gitRemoteConfig.URL,
+				Username:          gitRemoteConfig.Username,
+				Password:          gitRemoteConfig.Token,
+				SSHKeyFile:        gitRemoteConfig.SSHKeyFile,
+				SSHKnownHostsFile: config.KnownHostsPath(stateFile),
 			}
 			if gitRemoteConfig.Interval != "" {
 				parsed, err := time.ParseDuration(gitRemoteConfig.Interval)
@@ -288,9 +290,11 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 			)
 		} else if runtimeState.Git.RemoteURL != "" {
 			remote = &history.Remote{
-				URL:      runtimeState.Git.RemoteURL,
-				Username: runtimeState.Git.Username,
-				Password: runtimeState.Git.Token,
+				URL:               runtimeState.Git.RemoteURL,
+				Username:          runtimeState.Git.Username,
+				Password:          runtimeState.Git.Token,
+				SSHKeyFile:        runtimeState.Git.SSHKeyFile,
+				SSHKnownHostsFile: config.KnownHostsPath(stateFile),
 			}
 			if runtimeState.Git.IntervalSeconds > 0 {
 				interval = time.Duration(runtimeState.Git.IntervalSeconds) * time.Second

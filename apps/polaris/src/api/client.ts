@@ -299,7 +299,7 @@ export interface GitSyncStatus {
   lastError?: string;
 }
 
-/** The git sync configuration, as shown to admins (no token). */
+/** The git sync configuration, as shown to admins (no secrets). */
 export interface AdminGit {
   gitAvailable: boolean;
   commitOnSave: boolean;
@@ -308,16 +308,19 @@ export interface AdminGit {
   enabled: boolean;
   url?: string;
   username?: string;
+  auth?: "https" | "ssh";
+  sshKeySet?: boolean;
   intervalSeconds?: number;
   status?: GitSyncStatus;
 }
 
-/** Git remote edit/test payload; the token is write-only (empty = keep
- * the stored one, as long as the host is unchanged). */
+/** Git remote edit/test payload; token and sshKey are write-only (empty
+ * = keep the stored one, as long as the host is unchanged). */
 export interface GitRemoteInput {
   url: string;
   username?: string;
   token?: string;
+  sshKey?: string;
   intervalSeconds?: number;
 }
 

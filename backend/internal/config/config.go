@@ -50,6 +50,9 @@ type GitRemoteConfig struct {
 	URL      string `yaml:"url"`
 	Username string `yaml:"username"`
 	Token    string `yaml:"token"`
+	// SSHKeyFile is the private-key path for ssh remotes (a mounted
+	// deploy key, for instance).
+	SSHKeyFile string `yaml:"ssh_key_file"`
 	// Interval between pull cycles (Go duration, default 60s); pushes
 	// happen right after each commit-on-save.
 	Interval string `yaml:"interval"`

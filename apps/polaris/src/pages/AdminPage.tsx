@@ -13,6 +13,7 @@ import {
   Table,
   Tabs,
   Text,
+  Textarea,
 } from "@chakra-ui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -676,23 +677,29 @@ function GitSyncStatusView({ view }: { view: AdminGit }) {
   );
 }
 
+/** Matches git's scp-like remote syntax (git@github.com:acme/x). */
+function isSSHRemote(url: string): boolean {
+  return url.startsWith("ssh://") || /^(?:[\w.-]+@)?[\w.-]+:[^/]/.test(url);
+}
+
 /** Editable git sync remote; locked when provisioned in polaris.yaml. */
 function GitForm({ view }: { view: AdminGit }) {
   const queryClient = useQueryClient();
   const [url, setUrl] = useState(view.url ?? "");
   const [username, setUsername] = useState(view.username ?? "");
   const [token, setToken] = useState("");
+  const [sshKey, setSshKey] = useState("");
   const [interval, setIntervalSeconds] = useState(
     String(view.intervalSeconds ?? 60),
   );
   const [test, setTest] = useState<{ reachable: boolean; error?: string } | null>(
     null,
   );
+  const ssh = isSSHRemote(url.trim());
 
   const input = () => ({
     url: url.trim(),
-    username,
-    token,
+    ...(ssh ? { sshKey } : { username, token }),
     intervalSeconds: Number(interval) || 0,
   });
   const invalidate = () => {
@@ -737,9 +744,9 @@ function GitForm({ view }: { view: AdminGit }) {
   return (
     <Flex direction="column" gap={4} maxWidth="480px">
       <Text fontSize="sm" color="fg.muted">
-        Push dashboard commits to a git remote and pull external changes
-        (HTTPS + token). The token is stored server-side and never sent
-        to browsers.
+        Push dashboard commits to a git remote and pull external changes.
+        HTTPS (username + token) and SSH (deploy key) are supported;
+        credentials are stored server-side and never sent to browsers.
       </Text>
       {view.enabled && !view.commitOnSave ? (
         <Text fontSize="sm" color="fg.muted">
@@ -751,30 +758,57 @@ function GitForm({ view }: { view: AdminGit }) {
         <Field.Label>Remote URL</Field.Label>
         <Input
           size="sm"
-          placeholder="https://github.com/acme/dashboards.git"
+          placeholder="https://github.com/acme/dashboards.git or git@github.com:acme/dashboards.git"
           value={url}
           onChange={(event) => setUrl(event.target.value)}
         />
       </Field.Root>
-      <Field.Root>
-        <Field.Label>Username</Field.Label>
-        <Input
-          size="sm"
-          placeholder="x-access-token, oauth2, a bot account…"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-        />
-      </Field.Root>
-      <Field.Root>
-        <Field.Label>Token</Field.Label>
-        <Input
-          size="sm"
-          type="password"
-          placeholder={view.enabled ? "(unchanged)" : ""}
-          value={token}
-          onChange={(event) => setToken(event.target.value)}
-        />
-      </Field.Root>
+      {ssh ? (
+        <Field.Root>
+          <Field.Label>SSH private key</Field.Label>
+          <Textarea
+            size="sm"
+            fontFamily="mono"
+            fontSize="xs"
+            rows={6}
+            placeholder={
+              view.enabled && view.auth === "ssh"
+                ? "(unchanged)"
+                : "-----BEGIN OPENSSH PRIVATE KEY-----"
+            }
+            value={sshKey}
+            onChange={(event) => setSshKey(event.target.value)}
+          />
+          <Field.HelperText>
+            An unencrypted deploy key with read/write access. The host key
+            is pinned on first use.
+          </Field.HelperText>
+        </Field.Root>
+      ) : (
+        <>
+          <Field.Root>
+            <Field.Label>Username</Field.Label>
+            <Input
+              size="sm"
+              placeholder="x-access-token, oauth2, a bot account…"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+            />
+          </Field.Root>
+          <Field.Root>
+            <Field.Label>Token</Field.Label>
+            <Input
+              size="sm"
+              type="password"
+              placeholder={
+                view.enabled && view.auth !== "ssh" ? "(unchanged)" : ""
+              }
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+            />
+          </Field.Root>
+        </>
+      )}
       <Field.Root>
         <Field.Label>Pull interval (seconds)</Field.Label>
         <Input

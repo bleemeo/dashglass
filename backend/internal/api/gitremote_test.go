@@ -113,6 +113,88 @@ func TestGitRemoteConfigure(t *testing.T) {
 	}
 }
 
+func TestGitRemoteSSH(t *testing.T) {
+	dir := gitDir(t)
+	dashboards, _ := store.New(dir)
+	service := history.Detect(dir)
+	syncer := history.NewSyncer(service, nil, time.Hour)
+	stateFile := filepath.Join(t.TempDir(), "settings.yaml")
+	server := newTestServer(t, Options{
+		Store:     dashboards,
+		Hub:       watch.NewHub(),
+		History:   service,
+		Syncer:    syncer,
+		StateFile: stateFile,
+	})
+	putJSON := func(body map[string]any) *http.Response {
+		raw, _ := json.Marshal(body)
+		return doRequest(t, http.MethodPut, server.URL+"/api/admin/git",
+			"application/json", string(raw))
+	}
+	key := "-----BEGIN OPENSSH PRIVATE KEY-----\nAAAA-not-a-real-key\n-----END OPENSSH PRIVATE KEY-----"
+
+	// An SSH remote without a key is refused with a clear message.
+	response := putJSON(map[string]any{"url": "git@github.com:acme/dash.git"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("keyless ssh PUT status = %d, want 400", response.StatusCode)
+	}
+	// Garbage in the key field is caught before anything is written.
+	response = putJSON(map[string]any{
+		"url": "git@github.com:acme/dash.git", "sshKey": "ceci n'est pas une clé"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("garbage key PUT status = %d, want 400", response.StatusCode)
+	}
+
+	// A pasted key lands 0600 next to the state file.
+	response = putJSON(map[string]any{
+		"url": "git@github.com:acme/dash.git", "sshKey": key})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("ssh PUT status = %d", response.StatusCode)
+	}
+	keyPath := filepath.Join(filepath.Dir(stateFile), "git_ssh_key")
+	info, err := os.Stat(keyPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("key file mode = %v, want 0600", info.Mode().Perm())
+	}
+	view := getGit(t, server.URL)
+	if view["auth"] != "ssh" || view["sshKeySet"] != true {
+		t.Fatalf("ssh view = %v", view)
+	}
+	if raw, _ := json.Marshal(view); strings.Contains(string(raw), "PRIVATE KEY") {
+		t.Fatal("key leaked in the git view")
+	}
+	if syncer.Remote().SSHKeyFile != keyPath {
+		t.Fatalf("syncer key file = %q", syncer.Remote().SSHKeyFile)
+	}
+
+	// Same-host edit with an empty key keeps the stored one.
+	response = putJSON(map[string]any{"url": "git@github.com:acme/other.git"})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("same-host edit status = %d", response.StatusCode)
+	}
+	if syncer.Remote().SSHKeyFile != keyPath {
+		t.Fatal("key must be kept on a same-host edit")
+	}
+	// A different host requires a fresh key.
+	response = putJSON(map[string]any{"url": "git@elsewhere.example.org:x.git"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("cross-host edit status = %d, want 400", response.StatusCode)
+	}
+
+	// Switching to HTTPS drops the managed key file.
+	response = putJSON(map[string]any{
+		"url": "https://git.example.com/dash.git", "username": "bot", "token": "pat"})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("https switch status = %d", response.StatusCode)
+	}
+	if _, err := os.Stat(keyPath); !os.IsNotExist(err) {
+		t.Fatal("managed key file should be removed after switching to https")
+	}
+}
+
 func TestGitRemoteProvisionedIsLocked(t *testing.T) {
 	dir := gitDir(t)
 	dashboards, _ := store.New(dir)

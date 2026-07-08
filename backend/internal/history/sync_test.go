@@ -161,6 +161,43 @@ func TestSyncRebasesDivergedHistories(t *testing.T) {
 	}
 }
 
+func TestRemoteEnv(t *testing.T) {
+	// SSH remote: a pinned GIT_SSH_COMMAND, no askpass.
+	env := remoteEnv(&Remote{
+		URL:               "git@github.com:acme/dash.git",
+		SSHKeyFile:        "/data/git_ssh_key",
+		SSHKnownHostsFile: "/data/git_known_hosts",
+	})
+	if len(env) != 1 || !strings.HasPrefix(env[0], "GIT_SSH_COMMAND=") {
+		t.Fatalf("ssh env = %v", env)
+	}
+	for _, needle := range []string{
+		"-i '/data/git_ssh_key'",
+		"UserKnownHostsFile='/data/git_known_hosts'",
+		"StrictHostKeyChecking=accept-new",
+		"BatchMode=yes",
+		"IdentitiesOnly=yes",
+	} {
+		if !strings.Contains(env[0], needle) {
+			t.Fatalf("ssh command misses %q: %s", needle, env[0])
+		}
+	}
+
+	// HTTPS remote: askpass variables, no ssh command.
+	env = remoteEnv(&Remote{URL: "https://x/y.git", Username: "bot", Password: "tok"})
+	joined := strings.Join(env, "\n")
+	if !strings.Contains(joined, "GIT_ASKPASS=") ||
+		!strings.Contains(joined, "POLARIS_ASKPASS_PASSWORD=tok") ||
+		strings.Contains(joined, "GIT_SSH_COMMAND") {
+		t.Fatalf("https env = %v", env)
+	}
+
+	// No credentials at all: nothing to inject.
+	if env := remoteEnv(&Remote{URL: "https://x/y.git"}); len(env) != 0 {
+		t.Fatalf("bare env = %v", env)
+	}
+}
+
 func TestSyncDisabled(t *testing.T) {
 	dir, _ := initRepo(t)
 	syncer := NewSyncer(Detect(dir), nil, 0)

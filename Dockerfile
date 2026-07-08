@@ -22,8 +22,10 @@ RUN rm -rf internal/ui/dist
 COPY --from=web-builder /src/apps/polaris/dist internal/ui/dist
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /polaris .
 
-# Stage 3: minimal runtime image.
+# Stage 3: minimal runtime image. git + ssh power the dashboard history
+# and remote sync features (absent binaries just disable them).
 FROM alpine:3.22
+RUN apk add --no-cache git openssh-client
 RUN adduser -D -H -u 1000 polaris
 COPY --from=go-builder /polaris /usr/local/bin/polaris
 # /data holds server-managed state (auth.yaml); owned by the non-root user

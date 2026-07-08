@@ -15,13 +15,21 @@ const networkTimeout = 60 * time.Second
 // DefaultSyncInterval is the pull-loop period when none is configured.
 const DefaultSyncInterval = 60 * time.Second
 
-// Remote is a git remote synced by the Syncer. Credentials are HTTPS
-// username + token (PAT), handed to git through the askpass mechanism —
-// never on the command line, never written to the repository config.
+// Remote is a git remote synced by the Syncer. Credentials are either
+// HTTPS username + token (handed to git through the askpass mechanism)
+// or an SSH private key file (via GIT_SSH_COMMAND) — never on a command
+// line, never written to the repository config.
 type Remote struct {
 	URL      string
 	Username string
 	Password string
+	// SSHKeyFile is the private-key path for ssh:// (or scp-like)
+	// remotes; empty falls back to the ambient ssh configuration.
+	SSHKeyFile string
+	// SSHKnownHostsFile pins host keys first-use (accept-new) in a
+	// polaris-managed file, leaving the user's known_hosts alone. Only
+	// used when SSHKeyFile is set.
+	SSHKnownHostsFile string
 }
 
 // SyncStatus is one snapshot of the sync loop, for the admin UI.
@@ -138,29 +146,38 @@ func (y *Syncer) Run(ctx context.Context) {
 	}
 }
 
-// askpassEnv passes remote credentials to git: GIT_ASKPASS points back
-// at the polaris binary (the "askpass" subcommand), which answers the
-// username/password prompts from these variables. Nothing credential-
-// shaped appears on any command line or in the repository config.
-func askpassEnv(remote *Remote) []string {
-	if remote.Username == "" && remote.Password == "" {
-		return nil
+// remoteEnv passes remote credentials to git. HTTPS: GIT_ASKPASS points
+// back at the polaris binary (the "askpass" subcommand), which answers
+// the username/password prompts from these variables. SSH: a pinned
+// GIT_SSH_COMMAND selects the configured key (IdentitiesOnly), never
+// prompts (BatchMode) and pins host keys first-use in the polaris-
+// managed known-hosts file. Nothing credential-shaped appears on any
+// command line or in the repository config.
+func remoteEnv(remote *Remote) []string {
+	var env []string
+	if remote.SSHKeyFile != "" {
+		env = append(env, "GIT_SSH_COMMAND="+fmt.Sprintf(
+			"ssh -F /dev/null -o IdentitiesOnly=yes -o BatchMode=yes"+
+				" -o StrictHostKeyChecking=accept-new"+
+				" -o UserKnownHostsFile='%s' -i '%s'",
+			remote.SSHKnownHostsFile, remote.SSHKeyFile))
 	}
-	exe, err := os.Executable()
-	if err != nil {
-		return nil
+	if remote.Username != "" || remote.Password != "" {
+		if exe, err := os.Executable(); err == nil {
+			env = append(env,
+				"GIT_ASKPASS="+exe,
+				"POLARIS_ASKPASS_USERNAME="+remote.Username,
+				"POLARIS_ASKPASS_PASSWORD="+remote.Password,
+			)
+		}
 	}
-	return []string{
-		"GIT_ASKPASS=" + exe,
-		"POLARIS_ASKPASS_USERNAME=" + remote.Username,
-		"POLARIS_ASKPASS_PASSWORD=" + remote.Password,
-	}
+	return env
 }
 
 // TestRemote checks that the remote answers (git ls-remote) with the
 // given credentials, without touching the local repository.
 func (s *Service) TestRemote(remote *Remote) error {
-	_, err := s.gitEnv(askpassEnv(remote), networkTimeout,
+	_, err := s.gitEnv(remoteEnv(remote), networkTimeout,
 		"ls-remote", "--heads", "--", remote.URL)
 	return err
 }
@@ -207,7 +224,7 @@ func (y *Syncer) cycle(remote *Remote) (SyncStatus, error) {
 		return status, fmt.Errorf("detached HEAD: check out a branch to sync")
 	}
 
-	env := askpassEnv(remote)
+	env := remoteEnv(remote)
 	push := func() error {
 		_, err := s.gitEnv(env, networkTimeout,
 			"push", "--", remote.URL, "HEAD:refs/heads/"+status.Branch)
