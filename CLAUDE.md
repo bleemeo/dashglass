@@ -1,4 +1,4 @@
-# Polaris — notes for coding agents
+# Dashglass — notes for coding agents
 
 Lightweight, Prometheus-only dashboarding (the dashboard part of Grafana,
 nothing else) with GitOps-first file storage. **Read DESIGN.md before any
@@ -21,17 +21,17 @@ pnpm monorepo (TypeScript, React 19, strict tsconfig) + a Go backend:
 - `packages/panels-builtin` — panel plugins: TimeSeriesChart, StatChart,
   GaugeChart, Table, BarChart, HeatmapChart, Markdown (ECharts via
   `echarts/core`; Stat/Table/Markdown are plain HTML/SVG) + their
-  options-form editors (plain HTML `polaris-field*`
+  options-form editors (plain HTML `dashglass-field*`
   controls). Chart theme tokens live here (`ChartThemeProvider`).
 - `packages/promql-editor` — CodeMirror PromQL editor
   (`@prometheus-io/codemirror-promql`).
-- `packages/grafana-import` — best-effort Grafana JSON → Polaris dashboard
+- `packages/grafana-import` — best-effort Grafana JSON → Dashglass dashboard
   converter (walker + one migration entry per panel kind; unknown kinds
   imported as-is and rendered as unknown panels).
-- `packages/ui` — Chakra system (`polarisSystem`, styles the runtime's
-  `polaris-*` class names via semantic tokens) + color mode
+- `packages/ui` — Chakra system (`dashglassSystem`, styles the runtime's
+  `dashglass-*` class names via semantic tokens) + color mode
   (`ColorModeProvider`, light/dark/system, `.dark` root class).
-- `apps/polaris` — OSS app shell: assembles registries, TanStack Query for
+- `apps/dashglass` — OSS app shell: assembles registries, TanStack Query for
   management CRUD, SSE → cache invalidation, form-based dashboard editor
   (`/d/:name/edit`, react-grid-layout v2) and as-code editor
   (`/d/:name/code`).
@@ -41,7 +41,7 @@ pnpm monorepo (TypeScript, React 19, strict tsconfig) + a Go backend:
   download proxy (`/api/grafana-com/{id}`, numeric-id-only to rule out
   SSRF, `-disable-grafana-com` for air-gapped installs), and auth
   (`internal/auth`: local users/roles/sessions, reverse-proxy headers,
-  OIDC) driven by `internal/config` (`polaris.yaml`, `${ENV}` expansion).
+  OIDC) driven by `internal/config` (`dashglass.yaml`, `${ENV}` expansion).
 - `dashboards/` — sample dashboard files used in dev.
 
 ## Commands
@@ -50,10 +50,10 @@ pnpm monorepo (TypeScript, React 19, strict tsconfig) + a Go backend:
 pnpm test                    # all workspace tests (vitest)
 pnpm typecheck               # all packages + app (tsc)
 cd backend && go test ./...  # backend tests
-./polaris lint [paths...]    # validate dashboard files (CI); default ./dashboards
-./polaris user add <name> [role]  # break-glass local user (admin UI is primary)
-pnpm --filter polaris dev    # vite on :3000, proxies /api to :8080
-pnpm build-binary            # app build → embed → ./polaris binary
+./dashglass lint [paths...]    # validate dashboard files (CI); default ./dashboards
+./dashglass user add <name> [role]  # break-glass local user (admin UI is primary)
+pnpm --filter dashglass dev    # vite on :3000, proxies /api to :8080
+pnpm build-binary            # app build → embed → ./dashglass binary
 ```
 
 Dev backend: `cd backend && go run . -prometheus-url <url>
@@ -106,7 +106,7 @@ session's scratchpad).
   (`--virtual-time-budget` hangs).
 - jsonschema/v6 (Go): `ErrorKind.LocalizedString` needs a non-nil
   `message.Printer`.
-- **Kill leftover `./polaris` processes when a served UI looks stale.** A
+- **Kill leftover `./dashglass` processes when a served UI looks stale.** A
   binary from a previous session can hold `127.0.0.1:8080` (IPv4) while
   docker compose only gets the IPv6 side — the browser then reaches the
   old process and curl/localhost may reach the new one. `lsof -nP
@@ -160,7 +160,7 @@ Admin → Git sync tabs, persisted in `settings.yaml` next to auth.yaml
 locked in the UI (`internal/config/state.go`).
 
 Not started: annotations, the bleemeo-panel embedding POC (DESIGN.md
-§9), and the public-naming check ("Polaris" trademark, §12). Auth
+§9), and the public-naming check ("Dashglass" trademark, §12). Auth
 (DESIGN.md §7.4): local users + 3 roles + admin UI done (phase 1);
 reverse-proxy headers (phase 2) and native OIDC (phase 3,
 authorization-code + PKCE, groups→role mapping) done; LDAP not started.

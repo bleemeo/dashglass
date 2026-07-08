@@ -187,7 +187,7 @@ func TestRemoteEnv(t *testing.T) {
 	env = remoteEnv(&Remote{URL: "https://x/y.git", Username: "bot", Password: "tok"})
 	joined := strings.Join(env, "\n")
 	if !strings.Contains(joined, "GIT_ASKPASS=") ||
-		!strings.Contains(joined, "POLARIS_ASKPASS_PASSWORD=tok") ||
+		!strings.Contains(joined, "DASHGLASS_ASKPASS_PASSWORD=tok") ||
 		strings.Contains(joined, "GIT_SSH_COMMAND") {
 		t.Fatalf("https env = %v", env)
 	}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { TimeSeries } from "@polarisui/runtime";
+import type { TimeSeries } from "@dashglass/runtime";
 
 import type { EChartsCoreOption } from "../echarts-setup";
 import type { ChartTheme } from "../theme";

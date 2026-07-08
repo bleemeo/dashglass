@@ -12,7 +12,7 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 
-	"github.com/bleemeo/polarisui/backend/schema"
+	"github.com/bleemeo/dashglass/backend/schema"
 )
 
 // ValidationError carries the individual issues found in a document so the
@@ -101,7 +101,7 @@ func validateContent(schema *jsonschema.Schema, content []byte, format Format) (
 }
 
 // Validator checks dashboard documents without a backing directory —
-// the `polaris lint` path, where files come from the CLI arguments.
+// the `dashglass lint` path, where files come from the CLI arguments.
 type Validator struct {
 	schema *jsonschema.Schema
 }

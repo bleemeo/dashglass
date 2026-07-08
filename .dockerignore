@@ -6,7 +6,7 @@ coverage
 **/coverage
 *.log
 .DS_Store
-/polaris
+/dashglass
 backend/internal/ui/dist/*
 Dockerfile
 docker-compose.yml

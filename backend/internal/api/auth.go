@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bleemeo/polarisui/backend/internal/auth"
+	"github.com/bleemeo/dashglass/backend/internal/auth"
 )
 
 // anonymous is the implicit identity while authentication is disabled:
@@ -27,7 +27,7 @@ func secureRequest(r *http.Request) bool {
 
 // authenticate resolves the request identity. A configured reverse proxy
 // is the identity source and takes precedence over local sessions; the
-// headers are evaluated per request (no Polaris session in that mode).
+// headers are evaluated per request (no Dashglass session in that mode).
 func (s *Server) authenticate(r *http.Request) (auth.User, error) {
 	if s.proxyAuth != nil {
 		return s.proxyAuth.Identify(r)

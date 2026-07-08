@@ -4,7 +4,7 @@ import {
   panelKeyFromRef,
   type Dashboard,
   type GridLayout,
-} from "@polarisui/model";
+} from "@dashglass/model";
 
 import { VariablesProvider } from "../context";
 import { PanelChrome } from "./PanelChrome";
@@ -33,9 +33,9 @@ function GridSection({
 }) {
   const title = layout.spec.display?.title;
   return (
-    <section className="polaris-grid-section">
-      {title ? <h2 className="polaris-grid-title">{title}</h2> : null}
-      <div className="polaris-grid" style={gridStyle}>
+    <section className="dashglass-grid-section">
+      {title ? <h2 className="dashglass-grid-title">{title}</h2> : null}
+      <div className="dashglass-grid" style={gridStyle}>
         {layout.spec.items.map((item, index) => {
           const panelKey = panelKeyFromRef(item.content.$ref);
           const panel = dashboard.spec.panels[panelKey];
@@ -45,7 +45,7 @@ function GridSection({
           return (
             <div
               key={`${panelKey}-${index}`}
-              className="polaris-grid-item"
+              className="dashglass-grid-item"
               style={{
                 gridColumn: `${item.x + 1} / span ${item.width}`,
                 gridRow: `${item.y + 1} / span ${item.height}`,
@@ -84,7 +84,7 @@ export function DashboardGrid({
   onPanelExpand,
 }: DashboardRendererProps) {
   return (
-    <div className="polaris-dashboard">
+    <div className="dashglass-dashboard">
       {dashboard.spec.layouts.map((layout, index) => (
         <GridSection
           key={index}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { AuthProvider } from "@polarisui/runtime";
+import type { AuthProvider } from "@dashglass/runtime";
 
 import { HTTPPrometheusDataSource, labelValuesVariableSource } from "../src";
 

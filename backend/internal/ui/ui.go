@@ -1,6 +1,6 @@
 // Package ui embeds the built SPA so the backend ships as a single binary.
 // The dist directory currently holds a placeholder; the real build lands
-// there once apps/polaris exists (copied by its build step).
+// there once apps/dashglass exists (copied by its build step).
 package ui
 
 import (

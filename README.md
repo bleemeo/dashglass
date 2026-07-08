@@ -1,10 +1,10 @@
-# Polaris
+# Dashglass
 
 Lightweight, Prometheus-native dashboards with first-class GitOps support:
 dashboards are edited in the UI and stored as JSON/YAML/TOML files you can
 version, review and deploy through git.
 
-![Polaris dashboard](docs/screenshot-light.png)
+![Dashglass dashboard](docs/screenshot-light.png)
 
 - **Just the dashboards** — the dashboard part of Grafana, nothing else:
   one small Go binary, no database, no bundled kitchen sink.
@@ -31,7 +31,7 @@ With Docker Compose (includes a demo Prometheus scraping itself, so the
 sample dashboards have data out of the box):
 
 ```sh
-git clone https://github.com/bleemeo/polarisui && cd polarisui
+git clone https://github.com/bleemeo/dashglass && cd dashglass
 docker compose up
 # open http://localhost:8080
 ```
@@ -45,7 +45,7 @@ Or as a single binary against your own Prometheus:
 
 ```sh
 pnpm install && pnpm build-binary
-./polaris -prometheus-url http://localhost:9090 -dashboards-dir ./dashboards
+./dashglass -prometheus-url http://localhost:9090 -dashboards-dir ./dashboards
 ```
 
 ### First run and authentication
@@ -55,13 +55,13 @@ reach it has full (admin) access**. To enable authentication, create the
 first admin user from **Admin → Create the first user** — everyone is
 then asked to sign in. Alternatives for automated deploys:
 
-- `POLARIS_BOOTSTRAP_ADMIN_PASSWORD=…` creates an `admin` user at startup;
-- `./polaris user add <name> [role]` is the break-glass CLI.
+- `DASHGLASS_BOOTSTRAP_ADMIN_PASSWORD=…` creates an `admin` user at startup;
+- `./dashglass user add <name> [role]` is the break-glass CLI.
 
 Local users get one of three roles (viewer / editor / admin). Reverse-proxy
 header authentication and native OIDC (authorization code + PKCE, with
-groups → role mapping) are configured through `polaris.yaml` — see
-[polaris.example.yaml](./polaris.example.yaml) for the annotated reference.
+groups → role mapping) are configured through `dashglass.yaml` — see
+[dashglass.example.yaml](./dashglass.example.yaml) for the annotated reference.
 
 ## Repository layout
 
@@ -75,9 +75,9 @@ groups → role mapping) are configured through `polaris.yaml` — see
   native HTTP API paths.
 - `packages/promql-editor` — CodeMirror PromQL editor with live
   autocompletion.
-- `packages/grafana-import` — best-effort Grafana JSON → Polaris converter.
+- `packages/grafana-import` — best-effort Grafana JSON → Dashglass converter.
 - `packages/ui` — Chakra theme, color mode and shared styling.
-- `apps/polaris` — the open-source app shell (dashboard list, viewer,
+- `apps/dashglass` — the open-source app shell (dashboard list, viewer,
   form-based and as-code editors, Explore, admin).
 - `backend/` — Go server: SPA hosting, Prometheus proxy, dashboard file
   management (CRUD + validation + fsnotify/SSE live reload), auth.
@@ -104,21 +104,21 @@ App development (vite dev server on :3000, proxying /api to the backend
 on :8080):
 
 ```sh
-pnpm --filter polaris dev
+pnpm --filter dashglass dev
 ```
 
 Full single-binary build (SPA embedded):
 
 ```sh
 pnpm build-binary
-./polaris -prometheus-url http://localhost:9090 -dashboards-dir ./dashboards
+./dashglass -prometheus-url http://localhost:9090 -dashboards-dir ./dashboards
 ```
 
 The dashboard JSON Schema used by the backend is generated from the Zod
 schemas (`pnpm generate-schema` in `packages/model`); regenerate it after
-changing the model. `./polaris lint [paths...]` validates dashboard files
+changing the model. `./dashglass lint [paths...]` validates dashboard files
 (used in CI).
 
 ## License
 
-Polaris is licensed under the [Apache License 2.0](LICENSE).
+Dashglass is licensed under the [Apache License 2.0](LICENSE).

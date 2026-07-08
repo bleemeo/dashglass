@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bleemeo/polarisui/backend/internal/store"
+	"github.com/bleemeo/dashglass/backend/internal/store"
 )
 
 // maxCommitMessage bounds the user-supplied commit subject.
@@ -28,7 +28,7 @@ func (s *Server) commitDashboard(request *http.Request, path, defaultMessage str
 		message = message[:maxCommitMessage]
 	}
 	user := s.usernameOf(request)
-	if err := s.history.Commit(path, message, user, user+"@polaris.local"); err != nil {
+	if err := s.history.Commit(path, message, user, user+"@dashglass.local"); err != nil {
 		s.logger.Warn("commit-on-save failed", "path", path, "error", err)
 		return
 	}

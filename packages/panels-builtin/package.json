@@ -1,5 +1,5 @@
 {
-  "name": "@polarisui/panels-builtin",
+  "name": "@dashglass/panels-builtin",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "private": true,
@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@polarisui/runtime": "workspace:*",
+    "@dashglass/runtime": "workspace:*",
     "echarts": "^6.1.0",
     "react-markdown": "^10.1.0",
     "zod": "^4.4.3"

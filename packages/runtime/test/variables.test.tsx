@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 afterEach(cleanup);
 
-import type { Variable } from "@polarisui/model";
+import type { Variable } from "@dashglass/model";
 
 import {
   RuntimeProvider,

@@ -1,4 +1,4 @@
-import type { PanelSpecEditorProps } from "@polarisui/runtime";
+import type { PanelSpecEditorProps } from "@dashglass/runtime";
 
 import { Field, withSpecValue } from "../editor/controls";
 import { parseSpec } from "../spec";
@@ -11,12 +11,12 @@ export function MarkdownEditor({
   const spec = parseSpec(markdownSpecSchema, rawSpec);
 
   return (
-    <div className="polaris-fields">
+    <div className="dashglass-fields">
       <Field label="Content (Markdown)">
         {(id) => (
           <textarea
             id={id}
-            className="polaris-field-input"
+            className="dashglass-field-input"
             rows={10}
             value={spec.content ?? ""}
             onChange={(event) =>

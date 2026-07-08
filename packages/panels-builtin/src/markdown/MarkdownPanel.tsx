@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 
-import type { PanelProps } from "@polarisui/runtime";
+import type { PanelProps } from "@dashglass/runtime";
 
 import { parseSpec } from "../spec";
 import { markdownSpecSchema } from "./options";
@@ -14,7 +14,7 @@ export function MarkdownPanel({ spec }: PanelProps) {
   const parsed = useMemo(() => parseSpec(markdownSpecSchema, spec), [spec]);
 
   return (
-    <div className="polaris-markdown">
+    <div className="dashglass-markdown">
       <ReactMarkdown>{parsed.content ?? ""}</ReactMarkdown>
     </div>
   );

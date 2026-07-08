@@ -1,4 +1,4 @@
-import type { PanelSpecEditorProps } from "@polarisui/runtime";
+import type { PanelSpecEditorProps } from "@dashglass/runtime";
 
 import { SelectField, UNIT_OPTIONS, withSpecValue } from "../editor/controls";
 import { ThresholdsEditor } from "../editor/ThresholdsEditor";
@@ -9,7 +9,7 @@ export function TableEditor({ spec: rawSpec, onChange }: PanelSpecEditorProps) {
   const spec = parseSpec(tableSpecSchema, rawSpec);
 
   return (
-    <div className="polaris-fields">
+    <div className="dashglass-fields">
       <SelectField
         label="Unit"
         value={spec.unit ?? ""}

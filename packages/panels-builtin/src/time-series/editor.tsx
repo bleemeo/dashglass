@@ -1,4 +1,4 @@
-import type { PanelSpecEditorProps } from "@polarisui/runtime";
+import type { PanelSpecEditorProps } from "@dashglass/runtime";
 
 import {
   CheckboxField,
@@ -17,7 +17,7 @@ export function TimeSeriesEditor({
   const spec = parseSpec(timeSeriesSpecSchema, rawSpec);
 
   return (
-    <div className="polaris-fields">
+    <div className="dashglass-fields">
       <SelectField
         label="Unit"
         value={spec.unit ?? ""}

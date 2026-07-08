@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import type { PanelProps } from "@polarisui/runtime";
+import type { PanelProps } from "@dashglass/runtime";
 
 import { parseSpec } from "../spec";
 import { clockSpecSchema, formatClock } from "./options";

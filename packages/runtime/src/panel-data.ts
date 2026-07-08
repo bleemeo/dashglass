@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { Panel } from "@polarisui/model";
+import type { Panel } from "@dashglass/model";
 
 import { useRuntime, useTimeRange, useVariables } from "./context";
 import { stepForRange, toTimeSeries, type TimeSeries } from "./datasource";
@@ -9,7 +9,7 @@ import type { QueryState, RangeQuerySpec } from "./orchestrator";
 import type { PanelData } from "./registries";
 
 /**
- * The query kind the runtime executes natively. Polaris is
+ * The query kind the runtime executes natively. Dashglass is
  * Prometheus-native by design; if a second query family ever appears this
  * becomes a query-plugin registry.
  */

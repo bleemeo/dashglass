@@ -293,7 +293,7 @@ func (s *Store) saveLocked() error {
 	if err != nil {
 		return err
 	}
-	header := "# Managed by Polaris — do not edit by hand (see DESIGN.md §7.4).\n"
+	header := "# Managed by Dashglass — do not edit by hand (see DESIGN.md §7.4).\n"
 	temp, err := os.CreateTemp(filepath.Dir(s.path), ".auth-*.tmp")
 	if err != nil {
 		return err

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bleemeo/polarisui/backend/internal/store"
-	"github.com/bleemeo/polarisui/backend/internal/watch"
+	"github.com/bleemeo/dashglass/backend/internal/store"
+	"github.com/bleemeo/dashglass/backend/internal/watch"
 )
 
 const validYAML = `

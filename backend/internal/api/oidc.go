@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/bleemeo/polarisui/backend/internal/auth"
+	"github.com/bleemeo/dashglass/backend/internal/auth"
 )
 
-const oidcFlowCookie = "polaris_oidc_flow"
+const oidcFlowCookie = "dashglass_oidc_flow"
 
 // oidcLogin starts the authorization-code flow: it stashes the flow
 // secrets (state, nonce, PKCE verifier) in a short-lived signed cookie and

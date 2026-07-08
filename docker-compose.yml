@@ -1,5 +1,5 @@
 services:
-  polaris:
+  dashglass:
     build: .
     command:
       - -prometheus-url=http://prometheus:9090
@@ -8,7 +8,7 @@ services:
       - "8080:8080"
     volumes:
       - ./dashboards:/dashboards
-      - polaris-data:/data
+      - dashglass-data:/data
     depends_on:
       - prometheus
     healthcheck:
@@ -30,4 +30,4 @@ services:
 
 volumes:
   prometheus-data:
-  polaris-data:
+  dashglass-data:

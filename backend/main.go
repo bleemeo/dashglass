@@ -1,4 +1,4 @@
-// Polaris backend: serves the embedded SPA, proxies Prometheus and manages
+// Dashglass backend: serves the embedded SPA, proxies Prometheus and manages
 // the dashboards directory (see DESIGN.md §4 and §7.4).
 package main
 
@@ -16,13 +16,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bleemeo/polarisui/backend/internal/api"
-	"github.com/bleemeo/polarisui/backend/internal/auth"
-	"github.com/bleemeo/polarisui/backend/internal/config"
-	"github.com/bleemeo/polarisui/backend/internal/history"
-	"github.com/bleemeo/polarisui/backend/internal/store"
-	"github.com/bleemeo/polarisui/backend/internal/ui"
-	"github.com/bleemeo/polarisui/backend/internal/watch"
+	"github.com/bleemeo/dashglass/backend/internal/api"
+	"github.com/bleemeo/dashglass/backend/internal/auth"
+	"github.com/bleemeo/dashglass/backend/internal/config"
+	"github.com/bleemeo/dashglass/backend/internal/history"
+	"github.com/bleemeo/dashglass/backend/internal/store"
+	"github.com/bleemeo/dashglass/backend/internal/ui"
+	"github.com/bleemeo/dashglass/backend/internal/watch"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
@@ -52,15 +52,15 @@ func main() {
 				prompt = os.Args[2]
 			}
 			if strings.HasPrefix(prompt, "Username") {
-				fmt.Println(os.Getenv("POLARIS_ASKPASS_USERNAME"))
+				fmt.Println(os.Getenv("DASHGLASS_ASKPASS_USERNAME"))
 			} else {
-				fmt.Println(os.Getenv("POLARIS_ASKPASS_PASSWORD"))
+				fmt.Println(os.Getenv("DASHGLASS_ASKPASS_PASSWORD"))
 			}
 			os.Exit(0)
 		}
 	}
 
-	configPath := flag.String("config", "", "path to polaris.yaml (optional)")
+	configPath := flag.String("config", "", "path to dashglass.yaml (optional)")
 	listen := flag.String("listen", "", "listen address")
 	prometheusURL := flag.String("prometheus-url", "", "Prometheus base URL (credentials as URL userinfo stay server-side)")
 	dashboardsDir := flag.String("dashboards-dir", "", "directory holding dashboard files")
@@ -74,7 +74,7 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
 	if *configPath == "" {
-		*configPath = os.Getenv("POLARIS_CONFIG")
+		*configPath = os.Getenv("DASHGLASS_CONFIG")
 	}
 	cfg, err := config.Load(*configPath)
 	if err != nil {
@@ -108,22 +108,22 @@ func main() {
 
 	settings := map[string]setting{
 		"listen": resolve("listen", cfg.Listen, defaults.Listen,
-			"POLARIS_LISTEN", *listen, flagsSet["listen"]),
+			"DASHGLASS_LISTEN", *listen, flagsSet["listen"]),
 		"prometheus.url": resolve("prometheus.url", cfg.Prometheus.URL, "",
-			"POLARIS_PROMETHEUS_URL", *prometheusURL, flagsSet["prometheus-url"]),
+			"DASHGLASS_PROMETHEUS_URL", *prometheusURL, flagsSet["prometheus-url"]),
 		"dashboards.dir": resolve("dashboards.dir", cfg.Dashboards.Dir, defaults.Dashboards.Dir,
-			"POLARIS_DASHBOARDS_DIR", *dashboardsDir, flagsSet["dashboards-dir"]),
+			"DASHGLASS_DASHBOARDS_DIR", *dashboardsDir, flagsSet["dashboards-dir"]),
 		"dashboards.readonly": resolve("dashboards.readonly",
 			boolString(cfg.Dashboards.Readonly), "false",
-			"POLARIS_READONLY", boolString(*readonly), flagsSet["readonly"]),
+			"DASHGLASS_READONLY", boolString(*readonly), flagsSet["readonly"]),
 		"grafana_com.disable": resolve("grafana_com.disable",
 			boolString(cfg.GrafanaCom.Disable), "false",
-			"POLARIS_DISABLE_GRAFANA_COM", boolString(*disableGrafanaCom), flagsSet["disable-grafana-com"]),
+			"DASHGLASS_DISABLE_GRAFANA_COM", boolString(*disableGrafanaCom), flagsSet["disable-grafana-com"]),
 		"git.commit_on_save": resolve("git.commit_on_save",
 			boolString(cfg.Git.CommitOnSave), "false",
-			"POLARIS_GIT_COMMIT_ON_SAVE", boolString(*gitCommitOnSave), flagsSet["git-commit-on-save"]),
+			"DASHGLASS_GIT_COMMIT_ON_SAVE", boolString(*gitCommitOnSave), flagsSet["git-commit-on-save"]),
 		"auth.file": resolve("auth.file", cfg.Auth.File, defaults.Auth.File,
-			"POLARIS_AUTH_FILE", "", false),
+			"DASHGLASS_AUTH_FILE", "", false),
 	}
 
 	if err := run(settings, cfg.Auth.Proxy, cfg.Auth.OIDC, cfg.Git.Remote, logger); err != nil {
@@ -201,11 +201,11 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		logger.Info("OpenID Connect login enabled", "issuer", oidcConfig.Issuer)
 	}
 	// Automated deployments can seed an admin without the UI or CLI.
-	if password := os.Getenv("POLARIS_BOOTSTRAP_ADMIN_PASSWORD"); password != "" && !authStore.Enabled() {
+	if password := os.Getenv("DASHGLASS_BOOTSTRAP_ADMIN_PASSWORD"); password != "" && !authStore.Enabled() {
 		if err := authStore.Create("admin", password, auth.RoleAdmin); err != nil {
 			return fmt.Errorf("bootstrapping admin user: %w", err)
 		}
-		logger.Info("bootstrapped the admin user from POLARIS_BOOTSTRAP_ADMIN_PASSWORD")
+		logger.Info("bootstrapped the admin user from DASHGLASS_BOOTSTRAP_ADMIN_PASSWORD")
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -262,7 +262,7 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		commitOnSave = false
 	}
 
-	// Git remote sync: a polaris.yaml remote is provisioned (locked in
+	// Git remote sync: a dashglass.yaml remote is provisioned (locked in
 	// the UI); otherwise the state file may hold an admin-configured one.
 	gitProvisioned := gitRemoteConfig.URL != ""
 	var syncer *history.Syncer
@@ -349,7 +349,7 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		server.Shutdown(shutdownCtx)
 	}()
 
-	logger.Info("polaris backend listening",
+	logger.Info("dashglass backend listening",
 		"address", listen, "dashboards", dashboardStore.Dir(),
 		"prometheus", settings["prometheus.url"].value,
 		"readonly", readonly, "auth", authStore.Enabled(), "version", version)

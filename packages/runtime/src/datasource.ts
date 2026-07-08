@@ -1,4 +1,4 @@
-import { parseDuration, type Duration } from "@polarisui/model";
+import { parseDuration, type Duration } from "@dashglass/model";
 
 /**
  * The cornerstone of backend interchangeability (DESIGN.md §7.1): one

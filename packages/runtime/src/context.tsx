@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { parseDuration, type Duration, type Variable } from "@polarisui/model";
+import { parseDuration, type Duration, type Variable } from "@dashglass/model";
 
 import { anonymousAuth, type AuthProvider } from "./auth";
 import {

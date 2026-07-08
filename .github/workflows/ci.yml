@@ -38,10 +38,10 @@ jobs:
       - name: Go test
         run: cd backend && go test ./...
 
-      - name: Validate sample dashboards (polaris lint)
+      - name: Validate sample dashboards (dashglass lint)
         run: |
           pnpm build-binary
-          ./polaris lint dashboards/
+          ./dashglass lint dashboards/
           # build-binary overwrites the tracked placeholder; restore it.
           git checkout -- backend/internal/ui/dist/index.html
 
@@ -51,6 +51,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build image
-        run: docker build -t polaris-ci .
+        run: docker build -t dashglass-ci .
       - name: Smoke test (non-root container, auth surface)
-        run: bash scripts/docker-smoke.sh polaris-ci 8899
+        run: bash scripts/docker-smoke.sh dashglass-ci 8899

@@ -48,7 +48,7 @@ func (c *grafanaComClient) getJSON(url string, into any) error {
 	if err != nil {
 		return err
 	}
-	request.Header.Set("User-Agent", "polaris-dashboard-import")
+	request.Header.Set("User-Agent", "dashglass-dashboard-import")
 	response, err := c.client.Do(request)
 	if err != nil {
 		return err

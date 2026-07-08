@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { PanelProps } from "@polarisui/runtime";
+import type { PanelProps } from "@dashglass/runtime";
 
 import { EChart } from "../EChart";
 import { NoData } from "../NoData";
@@ -21,7 +21,7 @@ export function HeatmapPanel({ spec, data }: PanelProps) {
   }
   if (data.state === "ready" && option === null) {
     return (
-      <p className="polaris-panel-unknown">
+      <p className="dashglass-panel-unknown">
         No histogram buckets — the query must keep the “le” label, e.g.{" "}
         <code>sum by (le) (rate(…_bucket[5m]))</code>.
       </p>

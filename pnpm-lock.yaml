@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  apps/polaris:
+  apps/dashglass:
     dependencies:
       '@chakra-ui/react':
         specifier: ^3.36.0
@@ -34,25 +34,25 @@ importers:
       '@emotion/react':
         specifier: ^11.14.0
         version: 11.14.0(@types/react@19.2.17)(react@19.2.7)
-      '@polarisui/datasource-prometheus':
+      '@dashglass/datasource-prometheus':
         specifier: workspace:*
         version: link:../../packages/datasource-prometheus
-      '@polarisui/grafana-import':
+      '@dashglass/grafana-import':
         specifier: workspace:*
         version: link:../../packages/grafana-import
-      '@polarisui/model':
+      '@dashglass/model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@polarisui/panels-builtin':
+      '@dashglass/panels-builtin':
         specifier: workspace:*
         version: link:../../packages/panels-builtin
-      '@polarisui/promql-editor':
+      '@dashglass/promql-editor':
         specifier: workspace:*
         version: link:../../packages/promql-editor
-      '@polarisui/runtime':
+      '@dashglass/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
-      '@polarisui/ui':
+      '@dashglass/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@tanstack/react-query':
@@ -95,7 +95,7 @@ importers:
 
   packages/datasource-prometheus:
     dependencies:
-      '@polarisui/runtime':
+      '@dashglass/runtime':
         specifier: workspace:*
         version: link:../runtime
     devDependencies:
@@ -108,7 +108,7 @@ importers:
 
   packages/grafana-import:
     dependencies:
-      '@polarisui/model':
+      '@dashglass/model':
         specifier: workspace:*
         version: link:../model
     devDependencies:
@@ -143,7 +143,7 @@ importers:
 
   packages/panels-builtin:
     dependencies:
-      '@polarisui/runtime':
+      '@dashglass/runtime':
         specifier: workspace:*
         version: link:../runtime
       echarts:
@@ -223,7 +223,7 @@ importers:
 
   packages/runtime:
     dependencies:
-      '@polarisui/model':
+      '@dashglass/model':
         specifier: workspace:*
         version: link:../model
     devDependencies:

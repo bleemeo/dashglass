@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bleemeo/polarisui/backend/internal/config"
+	"github.com/bleemeo/dashglass/backend/internal/config"
 )
 
 // fakePrometheus records the Authorization header of the last request.

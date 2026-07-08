@@ -1,4 +1,4 @@
-// Package api exposes the Polaris management API: dashboard CRUD, the
+// Package api exposes the Dashglass management API: dashboard CRUD, the
 // Prometheus proxy, capabilities and the SSE event stream. This is the
 // contract a SaaS backend can implement behind a façade to serve the same
 // UI (see DESIGN.md §7.2).
@@ -18,10 +18,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bleemeo/polarisui/backend/internal/auth"
-	"github.com/bleemeo/polarisui/backend/internal/history"
-	"github.com/bleemeo/polarisui/backend/internal/store"
-	"github.com/bleemeo/polarisui/backend/internal/watch"
+	"github.com/bleemeo/dashglass/backend/internal/auth"
+	"github.com/bleemeo/dashglass/backend/internal/history"
+	"github.com/bleemeo/dashglass/backend/internal/store"
+	"github.com/bleemeo/dashglass/backend/internal/watch"
 )
 
 // maxDashboardSize bounds PUT bodies; dashboard files are small by nature.
@@ -43,7 +43,7 @@ type Server struct {
 	history      *history.Service // nil = dashboards dir is not a git work tree
 	commitOnSave bool
 	// syncer keeps a git remote converged with the local repository;
-	// gitProvisioned locks its config to polaris.yaml.
+	// gitProvisioned locks its config to dashglass.yaml.
 	syncer         *history.Syncer
 	gitProvisioned bool
 
@@ -98,7 +98,7 @@ type Options struct {
 	CommitOnSave bool
 	// Syncer pushes/pulls a git remote; nil when git is unavailable.
 	Syncer *history.Syncer
-	// GitProvisioned marks the remote as polaris.yaml-owned: the git
+	// GitProvisioned marks the remote as dashglass.yaml-owned: the git
 	// admin API then refuses runtime edits.
 	GitProvisioned bool
 }

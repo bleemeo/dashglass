@@ -21,8 +21,8 @@ const outPath = resolve(
 );
 
 const schema = {
-  $id: "https://polaris.dev/schemas/dashboard/v1",
-  title: "Polaris Dashboard",
+  $id: "https://dashglass.dev/schemas/dashboard/v1",
+  title: "Dashglass Dashboard",
   ...z.toJSONSchema(dashboardSchema, { target: "draft-2020-12" }),
 };
 

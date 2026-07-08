@@ -4,7 +4,7 @@ import "testing"
 
 func TestMapRoleHighestWins(t *testing.T) {
 	mapping := RoleMapping{
-		Admin:  []string{"polaris-admins"},
+		Admin:  []string{"dashglass-admins"},
 		Editor: []string{"family", "dev"},
 		Viewer: []string{"*"},
 	}
@@ -13,7 +13,7 @@ func TestMapRoleHighestWins(t *testing.T) {
 		want   Role
 		ok     bool
 	}{
-		{[]string{"polaris-admins", "family"}, RoleAdmin, true}, // highest wins
+		{[]string{"dashglass-admins", "family"}, RoleAdmin, true}, // highest wins
 		{[]string{"dev"}, RoleEditor, true},
 		{[]string{"random"}, RoleViewer, true},   // "*" catches anyone
 		{nil, RoleViewer, true},                  // "*" catches groupless too

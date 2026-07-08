@@ -15,7 +15,7 @@ export type ColorModePreference = "light" | "dark" | "system";
 /** What is actually applied to the page. */
 export type ResolvedColorMode = "light" | "dark";
 
-export const COLOR_MODE_STORAGE_KEY = "polaris-color-mode";
+export const COLOR_MODE_STORAGE_KEY = "dashglass-color-mode";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 

@@ -1,4 +1,4 @@
-import type { PanelSpecEditorProps } from "@polarisui/runtime";
+import type { PanelSpecEditorProps } from "@dashglass/runtime";
 
 import { SelectField, UNIT_OPTIONS, withSpecValue } from "../editor/controls";
 import { parseSpec } from "../spec";
@@ -11,7 +11,7 @@ export function HeatmapEditor({
   const spec = parseSpec(heatmapSpecSchema, rawSpec);
 
   return (
-    <div className="polaris-fields">
+    <div className="dashglass-fields">
       <SelectField
         label="Bucket unit"
         value={spec.unit ?? ""}

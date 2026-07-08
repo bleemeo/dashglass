@@ -8,4 +8,4 @@ export {
   type ResolvedColorMode,
 } from "./color-mode";
 export { ColorModeButton } from "./ColorModeButton";
-export { polarisSystem } from "./system";
+export { dashglassSystem } from "./system";

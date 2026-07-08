@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { PanelData } from "@polarisui/runtime";
+import type { PanelData } from "@dashglass/runtime";
 
 import { MarkdownPanel } from "../src/markdown/MarkdownPanel";
 

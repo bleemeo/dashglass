@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { dashboardSchema, stringifyDashboard } from "@polarisui/model";
+import { dashboardSchema, stringifyDashboard } from "@dashglass/model";
 
 import {
   importGrafanaDashboard,
@@ -156,7 +156,7 @@ describe("rewriteExpression", () => {
 });
 
 describe("unit mapping", () => {
-  it("maps rate and network units to the generic Polaris units", () => {
+  it("maps rate and network units to the generic Dashglass units", () => {
     const converted = importGrafanaDashboard({
       title: "Units",
       panels: [

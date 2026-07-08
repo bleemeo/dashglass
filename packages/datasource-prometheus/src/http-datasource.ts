@@ -6,11 +6,11 @@ import {
   type PromResponse,
   type PrometheusDataSource,
   type RangeQueryParams,
-} from "@polarisui/runtime";
+} from "@dashglass/runtime";
 
 export interface HTTPPrometheusDataSourceOptions {
   /**
-   * Base URL exposing the Prometheus HTTP API: the Polaris backend proxy
+   * Base URL exposing the Prometheus HTTP API: the Dashglass backend proxy
    * ("" for same-origin), or a Prometheus server directly.
    */
   baseURL: string;

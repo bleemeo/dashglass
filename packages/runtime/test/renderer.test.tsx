@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { Dashboard } from "@polarisui/model";
+import type { Dashboard } from "@dashglass/model";
 
 import {
   DashboardRenderer,

@@ -1,4 +1,4 @@
-import type { Variable } from "@polarisui/model";
+import type { Variable } from "@dashglass/model";
 
 import type { GrafanaTemplateVar } from "./types";
 
@@ -99,7 +99,7 @@ export function migrateVariables(
         break;
       }
       case "datasource":
-        // Polaris is single-datasource; the variable is meaningless here.
+        // Dashglass is single-datasource; the variable is meaningless here.
         break;
       default:
         warn(

@@ -1,4 +1,4 @@
-import type { PanelSpecEditorProps } from "@polarisui/runtime";
+import type { PanelSpecEditorProps } from "@dashglass/runtime";
 
 import {
   CheckboxField,
@@ -12,7 +12,7 @@ import { clockSpecSchema } from "./options";
 export function ClockEditor({ spec: rawSpec, onChange }: PanelSpecEditorProps) {
   const spec = parseSpec(clockSpecSchema, rawSpec);
   return (
-    <div className="polaris-fields">
+    <div className="dashglass-fields">
       <SelectField
         label="Format"
         value={spec.format ?? ""}

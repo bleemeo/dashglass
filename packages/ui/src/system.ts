@@ -1,9 +1,9 @@
 import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
 
 /**
- * The Polaris Chakra system: default Chakra tokens (their semantic tokens
+ * The Dashglass Chakra system: default Chakra tokens (their semantic tokens
  * already flip on the `.dark` root class that <ColorModeProvider> manages)
- * plus the visual identity of the runtime's structure-only `polaris-*`
+ * plus the visual identity of the runtime's structure-only `dashglass-*`
  * class names. Charts have their own token set (panels-builtin ChartTheme);
  * the shared accent below matches its first categorical slot.
  */
@@ -43,36 +43,36 @@ const config = defineConfig({
       },
     },
     keyframes: {
-      "polaris-pulse": {
+      "dashglass-pulse": {
         "0%, 100%": { opacity: 0.5 },
         "50%": { opacity: 1 },
       },
     },
   },
   globalCss: {
-    ".polaris-dashboard": {
+    ".dashglass-dashboard": {
       display: "flex",
       flexDirection: "column",
       gap: "6",
     },
-    ".polaris-grid-title": {
+    ".dashglass-grid-title": {
       fontSize: "md",
       fontWeight: "semibold",
       color: "fg",
       marginBottom: "2",
     },
-    ".polaris-panel": {
+    ".dashglass-panel": {
       backgroundColor: "bg.panel",
       borderWidth: "1px",
       borderColor: "border",
       borderRadius: "md",
       boxShadow: "xs",
     },
-    ".polaris-panel-header": {
+    ".dashglass-panel-header": {
       paddingX: "3",
       paddingTop: "2",
     },
-    ".polaris-panel-title": {
+    ".dashglass-panel-title": {
       fontSize: "sm",
       fontWeight: "medium",
       color: "fg",
@@ -84,33 +84,33 @@ const config = defineConfig({
       minHeight: "1.25em",
     },
     // Panel title as a button (fullscreen view); inherits the title look.
-    ".polaris-panel-expand": {
+    ".dashglass-panel-expand": {
       font: "inherit",
       color: "inherit",
       cursor: "pointer",
       _hover: { textDecoration: "underline" },
     },
-    ".polaris-panel-unknown, .polaris-panel-error": {
+    ".dashglass-panel-unknown, .dashglass-panel-error": {
       padding: "3",
       fontSize: "sm",
     },
-    ".polaris-panel-unknown": {
+    ".dashglass-panel-unknown": {
       color: "fg.muted",
     },
-    ".polaris-panel-error": {
+    ".dashglass-panel-error": {
       color: "fg.error",
     },
     // First-load placeholder (PanelChrome); refreshes keep prior data.
-    ".polaris-panel-loading": {
+    ".dashglass-panel-loading": {
       position: "absolute",
       inset: "3",
       borderRadius: "sm",
       backgroundColor: "bg.muted",
-      animation: "polaris-pulse 1.6s ease-in-out infinite",
+      animation: "dashglass-pulse 1.6s ease-in-out infinite",
     },
     // Partial query failure: data stays visible, the badge carries the
     // details in its title attribute.
-    ".polaris-panel-error-badge": {
+    ".dashglass-panel-error-badge": {
       position: "absolute",
       top: "1",
       right: "1",
@@ -125,7 +125,7 @@ const config = defineConfig({
       cursor: "help",
     },
     // Refetch-in-progress cue over stale data (PanelChrome).
-    ".polaris-panel-refreshing": {
+    ".dashglass-panel-refreshing": {
       position: "absolute",
       top: "0",
       left: "0",
@@ -133,36 +133,36 @@ const config = defineConfig({
       height: "2px",
       backgroundColor: "blue.solid",
       opacity: 0.6,
-      animation: "polaris-pulse 1.6s ease-in-out infinite",
+      animation: "dashglass-pulse 1.6s ease-in-out infinite",
     },
     // Table panel: row hover cue (cells carry their own theme colors;
     // this only tints the row background on hover).
-    ".polaris-table tbody tr:hover td": {
+    ".dashglass-table tbody tr:hover td": {
       backgroundColor: "bg.muted",
     },
     // Plugin option editors (panels-builtin editor/controls.tsx) are
     // structure-only, like the panel chrome; this is their identity.
-    ".polaris-fields": {
+    ".dashglass-fields": {
       display: "flex",
       flexDirection: "column",
       gap: "3",
     },
-    ".polaris-field": {
+    ".dashglass-field": {
       display: "flex",
       flexDirection: "column",
       gap: "1",
     },
-    ".polaris-field-inline": {
+    ".dashglass-field-inline": {
       flexDirection: "row",
       alignItems: "center",
       gap: "2",
     },
-    ".polaris-field-label": {
+    ".dashglass-field-label": {
       fontSize: "sm",
       fontWeight: "medium",
       color: "fg",
     },
-    ".polaris-field-input": {
+    ".dashglass-field-input": {
       fontSize: "sm",
       paddingX: "2",
       paddingY: "1",
@@ -172,7 +172,7 @@ const config = defineConfig({
       backgroundColor: "bg",
       color: "fg",
     },
-    ".polaris-field-button": {
+    ".dashglass-field-button": {
       fontSize: "xs",
       paddingX: "2",
       paddingY: "1",
@@ -185,19 +185,19 @@ const config = defineConfig({
       alignSelf: "flex-start",
       _hover: { backgroundColor: "bg.muted" },
     },
-    ".polaris-threshold-rows": {
+    ".dashglass-threshold-rows": {
       display: "flex",
       flexDirection: "column",
       gap: "1",
     },
-    ".polaris-threshold-row": {
+    ".dashglass-threshold-row": {
       display: "flex",
       gap: "1",
       alignItems: "center",
     },
     // PromQL editor (CodeMirror): input-like chrome around the editor; the
     // inner theme (light/dark) comes from the host's resolved color mode.
-    ".polaris-promql-editor": {
+    ".dashglass-promql-editor": {
       width: "100%",
       borderWidth: "1px",
       borderColor: "border",
@@ -215,7 +215,7 @@ const config = defineConfig({
       },
     },
     // Markdown panel typography (the global reset strips element defaults).
-    ".polaris-markdown": {
+    ".dashglass-markdown": {
       padding: "3",
       fontSize: "sm",
       color: "fg",
@@ -265,18 +265,18 @@ const config = defineConfig({
     },
     // Dashboard editor grid: hover-revealed panel actions and a themed
     // react-grid-layout drop placeholder.
-    ".polaris-editor-item": {
+    ".dashglass-editor-item": {
       position: "relative",
       height: "100%",
     },
-    ".polaris-editor-item .polaris-editor-actions": {
+    ".dashglass-editor-item .dashglass-editor-actions": {
       opacity: 0,
       transition: "opacity 0.15s",
     },
-    ".polaris-editor-item:hover .polaris-editor-actions": {
+    ".dashglass-editor-item:hover .dashglass-editor-actions": {
       opacity: 1,
     },
-    ".polaris-editor-item .polaris-panel-header": {
+    ".dashglass-editor-item .dashglass-panel-header": {
       cursor: "grab",
     },
     ".react-grid-item.react-grid-placeholder": {
@@ -286,4 +286,4 @@ const config = defineConfig({
   },
 });
 
-export const polarisSystem = createSystem(defaultConfig, config);
+export const dashglassSystem = createSystem(defaultConfig, config);

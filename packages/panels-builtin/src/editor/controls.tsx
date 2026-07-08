@@ -2,7 +2,7 @@ import { useId, type ReactNode } from "react";
 
 /**
  * Plain-HTML form controls for the plugin option editors. Like the panel
- * chrome, they are structure-only (`polaris-field*` class names); the host
+ * chrome, they are structure-only (`dashglass-field*` class names); the host
  * theme (packages/ui) provides the visual identity, and the package stays
  * free of any UI-framework dependency.
  */
@@ -16,8 +16,8 @@ export function Field({
 }) {
   const id = useId();
   return (
-    <div className="polaris-field">
-      <label className="polaris-field-label" htmlFor={id}>
+    <div className="dashglass-field">
+      <label className="dashglass-field-label" htmlFor={id}>
         {label}
       </label>
       {children(id)}
@@ -41,7 +41,7 @@ export function TextField({
       {(id) => (
         <input
           id={id}
-          className="polaris-field-input"
+          className="dashglass-field-input"
           type="text"
           value={value}
           placeholder={placeholder}
@@ -69,7 +69,7 @@ export function SelectField({
       {(id) => (
         <select
           id={id}
-          className="polaris-field-input"
+          className="dashglass-field-input"
           value={value}
           onChange={(event) => onChange(event.target.value)}
         >
@@ -101,7 +101,7 @@ export function NumberField({
       {(id) => (
         <input
           id={id}
-          className="polaris-field-input"
+          className="dashglass-field-input"
           type="number"
           step={step ?? "any"}
           value={value ?? ""}
@@ -126,14 +126,14 @@ export function CheckboxField({
 }) {
   const id = useId();
   return (
-    <div className="polaris-field polaris-field-inline">
+    <div className="dashglass-field dashglass-field-inline">
       <input
         id={id}
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
-      <label className="polaris-field-label" htmlFor={id}>
+      <label className="dashglass-field-label" htmlFor={id}>
         {label}
       </label>
     </div>

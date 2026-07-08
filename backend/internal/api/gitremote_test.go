@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bleemeo/polarisui/backend/internal/history"
-	"github.com/bleemeo/polarisui/backend/internal/store"
-	"github.com/bleemeo/polarisui/backend/internal/watch"
+	"github.com/bleemeo/dashglass/backend/internal/history"
+	"github.com/bleemeo/dashglass/backend/internal/store"
+	"github.com/bleemeo/dashglass/backend/internal/watch"
 )
 
 // bareGitDir creates a bare repository standing in for a remote.

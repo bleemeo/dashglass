@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/bleemeo/polarisui/backend/internal/auth"
+	"github.com/bleemeo/dashglass/backend/internal/auth"
 )
 
 func newProxyServer(t *testing.T) string {

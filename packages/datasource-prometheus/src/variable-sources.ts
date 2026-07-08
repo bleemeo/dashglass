@@ -1,7 +1,7 @@
 import type {
   VariableSourcePlugin,
   VariableSourceRegistry,
-} from "@polarisui/runtime";
+} from "@dashglass/runtime";
 
 /**
  * Feeds ListVariables from Prometheus label values — the model's

@@ -7,7 +7,7 @@ import {
   type Panel,
   type Query,
   type Variable,
-} from "@polarisui/model";
+} from "@dashglass/model";
 
 import { BUILTIN_MIGRATIONS, type PanelMigration } from "./panels";
 import type { GrafanaDashboard, GrafanaPanel, GrafanaTarget } from "./types";
@@ -36,9 +36,9 @@ function slugify(text: string, fallback: string): string {
 }
 
 /**
- * Rewrites Grafana templating syntax to the Polaris interpolation forms:
+ * Rewrites Grafana templating syntax to the Dashglass interpolation forms:
  * `[[var]]` → `$var`, `${var:format}` → `${var}`, and the built-in interval
- * variables to a fixed window (Polaris computes its own step).
+ * variables to a fixed window (Dashglass computes its own step).
  */
 export function rewriteExpression(expression: string): string {
   return expression
@@ -135,7 +135,7 @@ function toGridItem(panel: GrafanaPanel, key: string, yOffset: number): GridItem
 }
 
 /**
- * Converts a Grafana dashboard JSON document to a Polaris dashboard.
+ * Converts a Grafana dashboard JSON document to a Dashglass dashboard.
  * Best-effort by design: panel types without a migration keep their
  * Grafana type as an (unregistered) plugin kind, so nothing is lost and
  * the renderer degrades gracefully; approximations land in `warnings`.

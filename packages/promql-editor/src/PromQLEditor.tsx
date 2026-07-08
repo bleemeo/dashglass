@@ -56,7 +56,7 @@ export function PromQLEditor({
 
   return (
     <CodeMirror
-      className="polaris-promql-editor"
+      className="dashglass-promql-editor"
       value={value}
       onChange={onChange}
       theme={theme ?? "light"}

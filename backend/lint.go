@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/bleemeo/polarisui/backend/internal/store"
+	"github.com/bleemeo/dashglass/backend/internal/store"
 )
 
 // runLint validates dashboard files for CI pipelines: exit code 0 when
@@ -21,7 +21,7 @@ func runLint(args []string, stdout, stderr io.Writer) int {
 
 	validator, err := store.NewValidator()
 	if err != nil {
-		fmt.Fprintf(stderr, "polaris lint: %v\n", err)
+		fmt.Fprintf(stderr, "dashglass lint: %v\n", err)
 		return 2
 	}
 
@@ -29,7 +29,7 @@ func runLint(args []string, stdout, stderr io.Writer) int {
 	for _, arg := range args {
 		info, err := os.Stat(arg)
 		if err != nil {
-			fmt.Fprintf(stderr, "polaris lint: %v\n", err)
+			fmt.Fprintf(stderr, "dashglass lint: %v\n", err)
 			return 2
 		}
 		if !info.IsDir() {
@@ -48,13 +48,13 @@ func runLint(args []string, stdout, stderr io.Writer) int {
 			return nil
 		})
 		if err != nil {
-			fmt.Fprintf(stderr, "polaris lint: %v\n", err)
+			fmt.Fprintf(stderr, "dashglass lint: %v\n", err)
 			return 2
 		}
 	}
 	sort.Strings(paths)
 	if len(paths) == 0 {
-		fmt.Fprintln(stderr, "polaris lint: no dashboard files found")
+		fmt.Fprintln(stderr, "dashglass lint: no dashboard files found")
 		return 2
 	}
 

@@ -1,4 +1,4 @@
-module github.com/bleemeo/polarisui/backend
+module github.com/bleemeo/dashglass/backend
 
 go 1.26
 

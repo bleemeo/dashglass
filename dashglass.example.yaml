@@ -1,0 +1,81 @@
+# Example Dashglass configuration (pass with -config dashglass.yaml).
+# Every value is optional and also settable by flag or environment
+# variable; precedence is flags > environment > file > defaults.
+# ${VAR} references expand from the environment, so secrets never live
+# in this file. See DESIGN.md §7.4.
+
+listen: ":8080"
+
+prometheus:
+  url: ${PROMETHEUS_URL}
+
+dashboards:
+  dir: ./dashboards
+  # Provisioned mode: dashboards are managed by git only, the API
+  # refuses writes (wins over any user role).
+  readonly: false
+
+grafana_com:
+  # Disable the only outbound internet call (marketplace import) for
+  # air-gapped installs.
+  disable: false
+
+git:
+  # Record every UI dashboard write (save, delete, restore) as a local
+  # git commit authored by the acting user. Requires the dashboards
+  # directory to be inside a git work tree.
+  commit_on_save: false
+  # Sync the dashboards repository with a remote: local commits are
+  # pushed (right after each commit-on-save) and remote changes pulled
+  # on the interval. Credentials never appear on a command line: HTTPS
+  # tokens go through askpass, SSH keys through GIT_SSH_COMMAND (host
+  # keys are pinned first-use in a dashglass-managed known-hosts file).
+  # Provisioning the remote here locks the Admin → Git sync UI (an
+  # admin can otherwise configure it at runtime, stored in the
+  # settings.yaml state file).
+  # remote:
+  #   url: https://github.com/acme/dashboards.git
+  #   username: x-access-token
+  #   token: ${GIT_TOKEN}
+  #   interval: 60s
+  # …or over SSH with an unencrypted deploy key:
+  # remote:
+  #   url: git@github.com:acme/dashboards.git
+  #   ssh_key_file: /data/deploy_key
+
+auth:
+  # Server-managed state (local users, session secret). Created on first
+  # use; never edit by hand. Manage users from the admin UI, or the
+  # `dashglass user` CLI. Authentication turns on as soon as one user
+  # exists — until then everyone is an anonymous admin so you can create
+  # the first account from the UI.
+  file: ./auth.yaml
+
+  # Trusted reverse-proxy authentication. When user_header is set, an
+  # authenticating proxy in front (Authelia, Authentik, oauth2-proxy,
+  # Tailscale…) is the identity source and local login is disabled.
+  # proxy:
+  #   user_header: Remote-User
+  #   groups_header: Remote-Groups   # optional
+  #   # Only honor identity headers from these peers. Leave unset ONLY if
+  #   # the backend is never reachable except through the proxy.
+  #   trusted_proxies: ["10.0.0.0/8"]
+  #   # Groups → role. Highest match wins; "*" = any authenticated user;
+  #   # no match = denied (a shared IdP grants nothing until listed here).
+  #   role_mapping:
+  #     admin: [dashglass-admins]
+  #     editor: [dev-team]
+  #     viewer: ["*"]
+
+  # Native OpenID Connect login (Authentik, Keycloak, Pocket ID, Auth0…).
+  # No reverse proxy needed; Dashglass runs the authorization-code flow and
+  # maps the ID token's groups claim to a role (same rules as above).
+  # oidc:
+  #   issuer: https://auth.example.com/application/o/dashglass/
+  #   client_id: dashglass
+  #   client_secret: ${OIDC_CLIENT_SECRET}
+  #   redirect_url: https://dashglass.example.com/api/auth/oidc/callback
+  #   groups_claim: groups          # optional (default "groups")
+  #   role_mapping:
+  #     admin: [dashglass-admins]
+  #     viewer: ["*"]

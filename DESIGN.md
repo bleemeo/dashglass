@@ -1,10 +1,10 @@
-# Polaris — Design Document
+# Dashglass — Design Document
 
 Status: draft, pre-implementation.
 
 ## 1. Vision
 
-Polaris is a lightweight, Prometheus-native dashboarding tool: the dashboard
+Dashglass is a lightweight, Prometheus-native dashboarding tool: the dashboard
 part of Grafana — and only that — with first-class GitOps support.
 
 - **Prometheus only** as a data source (at first).
@@ -142,7 +142,7 @@ serializers and migrations. The Go backend validates against the same schema
 
 ### Git-friendly serialization rules
 
-This is where Grafana fails and Polaris must shine. Rules for every writer
+This is where Grafana fails and Dashglass must shine. Rules for every writer
 (UI saves included):
 
 - **Deterministic output**: stable key order, stable list order. Editing a
@@ -169,7 +169,7 @@ packages/
   panels-builtin/         # TimeSeriesChart, StatChart, GaugeChart, Table (ECharts)
   datasource-prometheus/  # PrometheusDataSource impl targeting the native API
 apps/
-  polaris/                # OSS app shell: assembles runtime + builtins +
+  dashglass/                # OSS app shell: assembles runtime + builtins +
                           # local-backend datasource + basic auth provider
 backend/                  # Go server
 ```
@@ -182,9 +182,9 @@ federation, no runtime plugin loading, no version matrix.
 ## 7. Plugin architecture — the four registries
 
 Exploration of `bleemeo-panel` identified exactly what is hard-coded today
-and must be a registry in Polaris from the first commit:
+and must be a registry in Dashglass from the first commit:
 
-| Extension point | Today in bleemeo-panel | In Polaris |
+| Extension point | Today in bleemeo-panel | In Dashglass |
 |---|---|---|
 | Panel types | Hard-coded ternary chain on a numeric enum (`WidgetCard.tsx`) | `registerPanel({ kind, component, editor, defaults, migrate })` |
 | Navigation & routes | Static `navigationPages` array + inline `<Routes>` (`App.tsx`), gated by feature flags | `registerPage({ nav, route, element })`, filtered by capabilities |
@@ -227,7 +227,7 @@ system (`label_values(...)`).
 
 ### 7.2 The management API contract
 
-A small OpenAPI-specified "Polaris API" both backends implement:
+A small OpenAPI-specified "Dashglass API" both backends implement:
 
 - Dashboard CRUD (list/get/save/delete, plus watch events over SSE).
 - The Prometheus proxy (§4).
@@ -249,11 +249,11 @@ fork.
 ### 7.4 Configuration & authentication
 
 **Configuration.** The binary reads an optional YAML file (`-config
-polaris.yaml`) with `${ENV_VAR}` expansion for secrets; precedence is
+dashglass.yaml`) with `${ENV_VAR}` expansion for secrets; precedence is
 `flags > environment > file > defaults`, and every flag keeps working
 without a file. Two kinds of state, two files:
 
-- `polaris.yaml` — static configuration written by a human (listen,
+- `dashglass.yaml` — static configuration written by a human (listen,
   Prometheus URL, dashboards dir, auth providers). Anything defined here
   is authoritative: the admin UI shows it read-only.
 - `auth.yaml` — server-managed state written atomically by the backend
@@ -268,13 +268,13 @@ wins over roles for dashboard writes. Identity comes from, in delivery
 order:
 
 1. **Local users** — username + argon2id hash + role in `auth.yaml`.
-   Managed from the admin UI (and a `polaris user` break-glass CLI +
-   `POLARIS_BOOTSTRAP_ADMIN_PASSWORD` for automated deployments).
+   Managed from the admin UI (and a `dashglass user` break-glass CLI +
+   `DASHGLASS_BOOTSTRAP_ADMIN_PASSWORD` for automated deployments).
    Bootstrap without CLI: while auth is disabled everyone is an
    anonymous admin, so the admin UI is reachable and "create the first
    user" enables authentication.
 2. **Trusted reverse proxy** — `user`/`groups` headers from Authelia,
-   Authentik, oauth2-proxy…; no Polaris session, headers are evaluated
+   Authentik, oauth2-proxy…; no Dashglass session, headers are evaluated
    per request.
 3. **Native OIDC** — authorization-code flow, groups claim; lands on the
    same session cookie as local login.
@@ -317,7 +317,7 @@ public API.**
    model anyway, so it is dedicated code with no dependency.
 2. **Each host app keeps its own stack for management CRUD** (dashboards,
    settings, users):
-   - the OSS `apps/polaris` uses **TanStack Query** — no global store to
+   - the OSS `apps/dashglass` uses **TanStack Query** — no global store to
      maintain for an app this size;
    - `bleemeo-panel` **keeps Redux/RTK unchanged**. When it embeds the
      dashboard engine, it mounts `<DashboardRenderer>` with a
@@ -337,21 +337,21 @@ The panel is already PromQL-native end to end (widgets carry a
 convergence is an adapter problem, not a rewrite. Strangler-fig, not big
 bang:
 
-1. Polaris ships standalone with the four registries in place (even while
+1. Dashglass ships standalone with the four registries in place (even while
    only built-ins exist).
 2. Panel converts its widget-dispatch ternary and `navigationPages` array
    into registries (an internal refactor, no behavior change).
-3. Panel embeds the Polaris dashboard engine for its dashboard pages, with a
+3. Panel embeds the Dashglass dashboard engine for its dashboard pages, with a
    Bleemeo `PrometheusDataSource` and its proprietary panel kinds.
 4. Model convergence: a **bidirectional converter** between the Bleemeo
    widget model (widgets as separate API resources, grid stored per widget,
-   `DashboardLayoutJSON` export format) and the Polaris/Perses document
-   model. Long-term, the SaaS can store/expose dashboards in the Polaris
+   `DashboardLayoutJSON` export format) and the Dashglass/Perses document
+   model. Long-term, the SaaS can store/expose dashboards in the Dashglass
    format, enabling **"export your SaaS dashboards to git"** (GitOps as a
    SaaS feature) and a two-way migration bridge between OSS and SaaS users.
 
 Versioning discipline: once panel consumes the packages, the plugin API is a
-contract. Keep it marked `experimental` until Polaris v1 ships, and only
+contract. Keep it marked `experimental` until Dashglass v1 ships, and only
 stabilize it after **porting one real panel widget** onto it — that exercise
 reveals what the contract is missing.
 
@@ -394,7 +394,7 @@ reveals what the contract is missing.
 4. `packages/panels-builtin` (reusing panel's ECharts utilities —
    `chart-options.ts`, `line-chart-tools.ts` — as a starting point) +
    PromQL editor.
-5. `apps/polaris` assembled end to end; then, only after stabilization, the
+5. `apps/dashglass` assembled end to end; then, only after stabilization, the
    "panel embeds the engine" proof of concept.
 
 ## 12. Open questions
@@ -402,7 +402,7 @@ reveals what the contract is missing.
 - ~~**License**~~ — **decided (2026-07): Apache-2.0**, adoption is the
   priority. `LICENSE` at the repo root; every package declares
   `"license": "Apache-2.0"`.
-- **Project naming**: working name "Polaris" (repo `polarisui`); check for
+- **Project naming**: working name "Dashglass" (repo `dashglass`); check for
   trademark/name collisions before going public.
 - Prior art: **Perses** (CNCF) shares the pitch and provided the data model;
   differentiation is editing UX, git-friendly multi-format serialization,

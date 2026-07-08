@@ -49,7 +49,7 @@ func SSHKeyPath(stateFile string) string {
 	return filepath.Join(filepath.Dir(stateFile), "git_ssh_key")
 }
 
-// KnownHostsPath is the polaris-managed known-hosts file for git-over-
+// KnownHostsPath is the dashglass-managed known-hosts file for git-over-
 // SSH: host keys get pinned there first-use, not in the user's ~/.ssh.
 func KnownHostsPath(stateFile string) string {
 	return filepath.Join(filepath.Dir(stateFile), "git_known_hosts")

@@ -119,7 +119,7 @@ export function EChart({ option, onZoomSelect, onDoubleClick }: EChartProps) {
   return (
     <div
       ref={containerRef}
-      className="polaris-echart"
+      className="dashglass-echart"
       style={{ width: "100%", height: "100%", minHeight: 0 }}
     />
   );

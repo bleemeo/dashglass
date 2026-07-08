@@ -1,11 +1,11 @@
-# Contributing to Polaris
+# Contributing to Dashglass
 
-Thanks for your interest in Polaris. This is a small, focused project;
+Thanks for your interest in Dashglass. This is a small, focused project;
 issues and pull requests are welcome.
 
 ## Development setup
 
-Polaris is a pnpm monorepo (TypeScript, React) plus a Go backend.
+Dashglass is a pnpm monorepo (TypeScript, React) plus a Go backend.
 
 ```sh
 pnpm install
@@ -23,10 +23,10 @@ server proxies `/api` to the backend:
 # terminal 1: backend on :8080
 cd backend && go run . -prometheus-url http://localhost:9090 -dashboards-dir ../dashboards
 # terminal 2: vite on :3000
-pnpm --filter polaris dev
+pnpm --filter dashglass dev
 ```
 
-`pnpm build-binary` produces the single `./polaris` binary with the SPA
+`pnpm build-binary` produces the single `./dashglass` binary with the SPA
 embedded.
 
 See [README.md](./README.md) for the repository layout and

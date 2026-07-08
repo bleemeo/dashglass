@@ -3,7 +3,7 @@ import { PromQLExtension } from "@prometheus-io/codemirror-promql";
 
 export interface PromQLExtensionOptions {
   /**
-   * Base URL of a Prometheus-compatible API (the Polaris backend proxy,
+   * Base URL of a Prometheus-compatible API (the Dashglass backend proxy,
    * "" for same-origin) powering metric/label/value autocompletion.
    * Omitted: static PromQL completion only (functions, keywords).
    */

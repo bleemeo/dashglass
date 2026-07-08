@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { z } from "zod";
 
-import type { PanelProps, TimeSeries } from "@polarisui/runtime";
+import type { PanelProps, TimeSeries } from "@dashglass/runtime";
 
 import { NoData } from "../NoData";
 import { parseSpec } from "../spec";
@@ -63,7 +63,7 @@ function Sparkline({
 
   return (
     <svg
-      className="polaris-stat-sparkline"
+      className="dashglass-stat-sparkline"
       viewBox="0 0 100 30"
       preserveAspectRatio="none"
       style={{ width: "100%", height: 30, display: "block" }}
@@ -102,7 +102,7 @@ export function StatChart({ spec, data }: PanelProps) {
   const parts = formatValueParts(value, parsed.unit ?? "none", parsed.decimals);
   return (
     <div
-      className="polaris-stat"
+      className="dashglass-stat"
       style={{
         // Container queries so the number fits the panel, not the window.
         containerType: "size",
@@ -116,7 +116,7 @@ export function StatChart({ spec, data }: PanelProps) {
       }}
     >
       <div
-        className="polaris-stat-value"
+        className="dashglass-stat-value"
         style={{
           display: "flex",
           alignItems: "baseline",

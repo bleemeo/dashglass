@@ -1,9 +1,9 @@
 {
-  "name": "@polarisui/model",
+  "name": "@dashglass/model",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "private": true,
-  "description": "Polaris dashboard data model: schemas, serializers, migrations",
+  "description": "Dashglass dashboard data model: schemas, serializers, migrations",
   "type": "module",
   "sideEffects": false,
   "exports": {

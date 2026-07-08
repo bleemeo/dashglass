@@ -1,4 +1,4 @@
-import type { PanelSpecEditorProps } from "@polarisui/runtime";
+import type { PanelSpecEditorProps } from "@dashglass/runtime";
 
 import { SelectField, TextField, withSpecValue } from "../editor/controls";
 import { parseSpec } from "../spec";
@@ -7,7 +7,7 @@ import { imageSpecSchema } from "./options";
 export function ImageEditor({ spec: rawSpec, onChange }: PanelSpecEditorProps) {
   const spec = parseSpec(imageSpecSchema, rawSpec);
   return (
-    <div className="polaris-fields">
+    <div className="dashglass-fields">
       <TextField
         label="Image URL"
         value={spec.url ?? ""}

@@ -5,7 +5,7 @@ coverage/
 .DS_Store
 
 # Built binary (pnpm build-binary)
-/polaris
+/dashglass
 
 # The embedded SPA build: keep the placeholder index.html tracked (go:embed
 # needs the directory to exist) but not the real build output.

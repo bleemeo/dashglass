@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bleemeo/polarisui/backend/internal/auth"
+	"github.com/bleemeo/dashglass/backend/internal/auth"
 )
 
 // discoveryOnlyIssuer serves just the discovery document — enough to build
@@ -38,8 +38,8 @@ func newOIDCServer(t *testing.T) (string, *auth.Store) {
 	issuer := discoveryOnlyIssuer(t)
 	oidcAuth, err := auth.NewOIDCAuthenticator(context.Background(), auth.OIDCConfig{
 		Issuer:      issuer.URL,
-		ClientID:    "polaris",
-		RedirectURL: "http://polaris.local/api/auth/oidc/callback",
+		ClientID:    "dashglass",
+		RedirectURL: "http://dashglass.local/api/auth/oidc/callback",
 		RoleMapping: auth.RoleMapping{Admin: []string{"ops"}},
 	})
 	if err != nil {

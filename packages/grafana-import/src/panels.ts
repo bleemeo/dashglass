@@ -9,7 +9,7 @@ import { mapUnit } from "./units";
 export interface PanelMigration {
   /** Grafana panel `type` values handled by this entry. */
   types: string[];
-  /** Polaris panel plugin kind produced. */
+  /** Dashglass panel plugin kind produced. */
   kind: string;
   /** Builds the plugin spec; returns only non-default keys. */
   migrateSpec: (
@@ -34,7 +34,7 @@ function set(
   }
 }
 
-/** Grafana reducer/calc id → Polaris calculation (last is the default). */
+/** Grafana reducer/calc id → Dashglass calculation (last is the default). */
 function mapCalculation(calc: string | undefined): string | undefined {
   switch (calc) {
     case "mean":

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bleemeo/polarisui/backend/internal/config"
-	"github.com/bleemeo/polarisui/backend/internal/history"
+	"github.com/bleemeo/dashglass/backend/internal/config"
+	"github.com/bleemeo/dashglass/backend/internal/history"
 )
 
 // gitRemoteBody is the admin's git-sync edit/test payload. Token and
@@ -77,7 +77,7 @@ func (s *Server) gitView() map[string]any {
 // gitKnownHosts is the pinned-host-keys file handed to ssh.
 func (s *Server) gitKnownHosts() string {
 	if s.stateFile == "" {
-		return filepath.Join(os.TempDir(), "polaris_git_known_hosts")
+		return filepath.Join(os.TempDir(), "dashglass_git_known_hosts")
 	}
 	return config.KnownHostsPath(s.stateFile)
 }
@@ -175,11 +175,11 @@ func (s *Server) adminGetGit(writer http.ResponseWriter, _ *http.Request) {
 
 // adminPutGit reconfigures the sync remote at runtime: persists to the
 // state file, swaps the syncer's remote (which triggers a cycle).
-// Refused when polaris.yaml provisions the remote.
+// Refused when dashglass.yaml provisions the remote.
 func (s *Server) adminPutGit(writer http.ResponseWriter, request *http.Request) {
 	if s.gitProvisioned {
 		writeError(writer, http.StatusForbidden,
-			"the git remote is provisioned in polaris.yaml; edit the deployment instead")
+			"the git remote is provisioned in dashglass.yaml; edit the deployment instead")
 		return
 	}
 	if s.syncer == nil || s.stateFile == "" {

@@ -32,7 +32,7 @@ export class PanelErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error !== null) {
       return (
-        <div className="polaris-panel-error" role="alert">
+        <div className="dashglass-panel-error" role="alert">
           <p>Panel crashed: {this.state.error.message}</p>
         </div>
       );

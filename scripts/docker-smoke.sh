@@ -5,9 +5,9 @@
 # Usage: scripts/docker-smoke.sh [image] [port]
 set -euo pipefail
 
-IMAGE="${1:-polaris-smoke}"
+IMAGE="${1:-dashglass-smoke}"
 PORT="${2:-8899}"
-NAME="polaris-smoke-$$"
+NAME="dashglass-smoke-$$"
 BASE="http://127.0.0.1:${PORT}"
 COOKIES="$(mktemp)"
 

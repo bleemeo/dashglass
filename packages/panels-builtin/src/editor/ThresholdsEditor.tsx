@@ -15,11 +15,11 @@ export function ThresholdsEditor({
   return (
     <Field label="Thresholds">
       {() => (
-        <div className="polaris-threshold-rows">
+        <div className="dashglass-threshold-rows">
           {thresholds.map((threshold, index) => (
-            <div key={index} className="polaris-threshold-row">
+            <div key={index} className="dashglass-threshold-row">
               <input
-                className="polaris-field-input"
+                className="dashglass-field-input"
                 type="number"
                 step="any"
                 aria-label={`Threshold ${index + 1} value`}
@@ -32,7 +32,7 @@ export function ThresholdsEditor({
                 }
               />
               <select
-                className="polaris-field-input"
+                className="dashglass-field-input"
                 aria-label={`Threshold ${index + 1} status`}
                 value={threshold.status}
                 onChange={(event) =>
@@ -48,7 +48,7 @@ export function ThresholdsEditor({
               </select>
               <button
                 type="button"
-                className="polaris-field-button"
+                className="dashglass-field-button"
                 onClick={() => {
                   const next = thresholds.filter((_, i) => i !== index);
                   onChange(next.length > 0 ? next : undefined);
@@ -60,7 +60,7 @@ export function ThresholdsEditor({
           ))}
           <button
             type="button"
-            className="polaris-field-button"
+            className="dashglass-field-button"
             onClick={() =>
               onChange([
                 ...thresholds,

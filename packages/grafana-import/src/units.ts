@@ -1,4 +1,4 @@
-/** Grafana unit id → Polaris unit. Unmapped ids yield undefined + warning. */
+/** Grafana unit id → Dashglass unit. Unmapped ids yield undefined + warning. */
 const UNIT_MAP: Record<string, string> = {
   none: "none",
   short: "short",
@@ -13,7 +13,7 @@ const UNIT_MAP: Record<string, string> = {
   ms: "milliseconds",
   hertz: "hertz",
   celsius: "celsius",
-  // Grafana has one unit id per counted thing; Polaris formats them all as
+  // Grafana has one unit id per counted thing; Dashglass formats them all as
   // a generic per-second rate.
   ops: "ops",
   iops: "ops",

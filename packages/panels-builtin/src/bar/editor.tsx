@@ -1,4 +1,4 @@
-import type { PanelSpecEditorProps } from "@polarisui/runtime";
+import type { PanelSpecEditorProps } from "@dashglass/runtime";
 
 import {
   SelectField,
@@ -12,7 +12,7 @@ export function BarEditor({ spec: rawSpec, onChange }: PanelSpecEditorProps) {
   const spec = parseSpec(barSpecSchema, rawSpec);
 
   return (
-    <div className="polaris-fields">
+    <div className="dashglass-fields">
       <SelectField
         label="Unit"
         value={spec.unit ?? ""}

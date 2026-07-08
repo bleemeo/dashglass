@@ -21,7 +21,7 @@ reasonable window to release a fix before any public disclosure.
 
 ## Scope and posture
 
-A few design points worth knowing when assessing Polaris:
+A few design points worth knowing when assessing Dashglass:
 
 - **The Prometheus proxy is read-only**: only an allowlisted set of
   native query/metadata endpoints is forwarded; write and admin paths

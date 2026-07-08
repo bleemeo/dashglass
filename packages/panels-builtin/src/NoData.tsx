@@ -5,7 +5,7 @@ export function NoData() {
   const theme = useChartTheme();
   return (
     <div
-      className="polaris-panel-nodata"
+      className="dashglass-panel-nodata"
       style={{
         display: "flex",
         alignItems: "center",

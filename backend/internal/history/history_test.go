@@ -116,7 +116,7 @@ func TestCommit(t *testing.T) {
 	if err := os.WriteFile(path, []byte("kind: Dashboard\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := service.Commit(path, "Create dashboard new", "alice", "alice@polaris.local"); err != nil {
+	if err := service.Commit(path, "Create dashboard new", "alice", "alice@dashglass.local"); err != nil {
 		t.Fatal(err)
 	}
 	commits, err := service.Log(path, 10)

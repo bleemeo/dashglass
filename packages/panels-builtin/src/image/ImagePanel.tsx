@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { PanelProps } from "@polarisui/runtime";
+import type { PanelProps } from "@dashglass/runtime";
 
 import { parseSpec } from "../spec";
 import { imageSpecSchema } from "./options";
@@ -15,7 +15,7 @@ export function ImagePanel({ spec }: PanelProps) {
 
   if (!parsed.url) {
     return (
-      <p className="polaris-panel-unknown">
+      <p className="dashglass-panel-unknown">
         No image URL — set one in the panel options.
       </p>
     );

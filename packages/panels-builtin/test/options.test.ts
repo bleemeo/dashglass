@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { TimeSeries } from "@polarisui/runtime";
+import type { TimeSeries } from "@dashglass/runtime";
 
 import {
   buildGaugeOption,

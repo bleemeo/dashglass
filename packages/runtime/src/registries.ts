@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 
-import type { Display } from "@polarisui/model";
+import type { Display } from "@dashglass/model";
 
 import type {
   AbsoluteTimeRange,

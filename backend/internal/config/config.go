@@ -1,4 +1,4 @@
-// Package config loads the optional polaris.yaml configuration file.
+// Package config loads the optional dashglass.yaml configuration file.
 // Precedence: flags > environment > file > defaults (DESIGN.md §7.4);
 // the file supports ${ENV_VAR} expansion so secrets stay out of it.
 package config
@@ -10,7 +10,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/bleemeo/polarisui/backend/internal/auth"
+	"github.com/bleemeo/dashglass/backend/internal/auth"
 )
 
 type Config struct {
@@ -45,7 +45,7 @@ type Config struct {
 	} `yaml:"auth"`
 }
 
-// GitRemoteConfig provisions the git sync remote from polaris.yaml.
+// GitRemoteConfig provisions the git sync remote from dashglass.yaml.
 type GitRemoteConfig struct {
 	URL      string `yaml:"url"`
 	Username string `yaml:"username"`

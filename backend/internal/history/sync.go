@@ -27,7 +27,7 @@ type Remote struct {
 	// remotes; empty falls back to the ambient ssh configuration.
 	SSHKeyFile string
 	// SSHKnownHostsFile pins host keys first-use (accept-new) in a
-	// polaris-managed file, leaving the user's known_hosts alone. Only
+	// dashglass-managed file, leaving the user's known_hosts alone. Only
 	// used when SSHKeyFile is set.
 	SSHKnownHostsFile string
 }
@@ -147,10 +147,10 @@ func (y *Syncer) Run(ctx context.Context) {
 }
 
 // remoteEnv passes remote credentials to git. HTTPS: GIT_ASKPASS points
-// back at the polaris binary (the "askpass" subcommand), which answers
+// back at the dashglass binary (the "askpass" subcommand), which answers
 // the username/password prompts from these variables. SSH: a pinned
 // GIT_SSH_COMMAND selects the configured key (IdentitiesOnly), never
-// prompts (BatchMode) and pins host keys first-use in the polaris-
+// prompts (BatchMode) and pins host keys first-use in the dashglass-
 // managed known-hosts file. Nothing credential-shaped appears on any
 // command line or in the repository config.
 func remoteEnv(remote *Remote) []string {
@@ -166,8 +166,8 @@ func remoteEnv(remote *Remote) []string {
 		if exe, err := os.Executable(); err == nil {
 			env = append(env,
 				"GIT_ASKPASS="+exe,
-				"POLARIS_ASKPASS_USERNAME="+remote.Username,
-				"POLARIS_ASKPASS_PASSWORD="+remote.Password,
+				"DASHGLASS_ASKPASS_USERNAME="+remote.Username,
+				"DASHGLASS_ASKPASS_PASSWORD="+remote.Password,
 			)
 		}
 	}

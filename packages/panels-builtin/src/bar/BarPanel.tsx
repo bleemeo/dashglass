@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { PanelProps } from "@polarisui/runtime";
+import type { PanelProps } from "@dashglass/runtime";
 
 import { EChart } from "../EChart";
 import { NoData } from "../NoData";

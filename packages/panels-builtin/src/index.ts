@@ -1,6 +1,6 @@
 import { lazy } from "react";
 
-import type { PanelRegistry } from "@polarisui/runtime";
+import type { PanelRegistry } from "@dashglass/runtime";
 
 import { BarEditor } from "./bar/editor";
 import { ClockEditor } from "./clock/editor";
@@ -126,7 +126,7 @@ export { ChartGroupProvider, useChartGroup } from "./group";
 // Chart components are deliberately NOT re-exported here: the root entry
 // must stay ECharts-free so the lazy registrations above actually split
 // the chart code out of the host's main chunk. Import a component from
-// its module (e.g. "@polarisui/panels-builtin/src/EChart") if you need it
+// its module (e.g. "@dashglass/panels-builtin/src/EChart") if you need it
 // eagerly; the pure option builders and spec schemas below are enough for
 // tests and theming.
 export {

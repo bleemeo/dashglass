@@ -13,7 +13,7 @@ import (
 
 const (
 	// SessionCookie is the session cookie name.
-	SessionCookie = "polaris_session"
+	SessionCookie = "dashglass_session"
 	sessionTTL    = 7 * 24 * time.Hour
 )
 

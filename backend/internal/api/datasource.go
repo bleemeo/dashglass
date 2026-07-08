@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/bleemeo/polarisui/backend/internal/config"
+	"github.com/bleemeo/dashglass/backend/internal/config"
 )
 
 // datasourceBody is the admin's datasource edit/test payload. Password

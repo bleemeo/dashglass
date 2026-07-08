@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bleemeo/polarisui/backend/internal/auth"
+	"github.com/bleemeo/dashglass/backend/internal/auth"
 )
 
 func newAuthServer(t *testing.T) (*httptest.Server, *auth.Store) {

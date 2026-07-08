@@ -1,6 +1,6 @@
 package auth
 
-// RoleMapping maps identity-provider groups to Polaris roles. It is shared
+// RoleMapping maps identity-provider groups to Dashglass roles. It is shared
 // by every external provider (reverse proxy now, OIDC later): the highest
 // matching role wins, "*" matches any authenticated user, and no match
 // means access is denied (DESIGN.md §7.4).

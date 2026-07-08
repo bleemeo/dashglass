@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { PanelData, TimeSeries } from "@polarisui/runtime";
+import type { PanelData, TimeSeries } from "@dashglass/runtime";
 
 import { StatChart } from "../src/stat/StatChart";
 import { TablePanel, tableColumns } from "../src/table/TablePanel";
@@ -31,10 +31,10 @@ describe("StatChart", () => {
       />,
     );
     // Value and unit render as separate spans (large number, small unit).
-    const valueEl = document.querySelector(".polaris-stat-value");
+    const valueEl = document.querySelector(".dashglass-stat-value");
     expect(valueEl?.textContent).toContain("2");
     expect(valueEl?.textContent).toContain("KiB");
-    expect(document.querySelector(".polaris-stat-sparkline")).not.toBeNull();
+    expect(document.querySelector(".dashglass-stat-sparkline")).not.toBeNull();
   });
 
   it("shows the empty state without series", () => {

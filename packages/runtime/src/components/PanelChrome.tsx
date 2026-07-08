@@ -1,13 +1,13 @@
 import { Suspense, type CSSProperties } from "react";
 
-import type { Panel } from "@polarisui/model";
+import type { Panel } from "@dashglass/model";
 
 import { useRuntime, useTimeRange } from "../context";
 import { usePanelData } from "../panel-data";
 import { PanelErrorBoundary } from "./PanelErrorBoundary";
 
 /**
- * Structure-only styling: the chrome exposes polaris-* class names and
+ * Structure-only styling: the chrome exposes dashglass-* class names and
  * leaves the visual identity to the host's theme (packages/ui or the SaaS
  * panel's own).
  */
@@ -46,16 +46,16 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
     // Unknown kinds degrade gracefully: an OSS install can open a
     // dashboard using proprietary panel kinds without crashing.
     body = (
-      <p className="polaris-panel-unknown">
+      <p className="dashglass-panel-unknown">
         Unknown panel kind “{kind}” — no plugin registered.
       </p>
     );
   } else if (data.state === "loading" && data.series.length === 0) {
     // First load only: refreshes keep the previous series on screen.
-    body = <div className="polaris-panel-loading" aria-busy="true" />;
+    body = <div className="dashglass-panel-loading" aria-busy="true" />;
   } else if (data.state === "error" && data.series.length === 0) {
     body = (
-      <div className="polaris-panel-error" role="alert">
+      <div className="dashglass-panel-error" role="alert">
         {data.errors.map((error, index) => (
           <p key={index}>{error}</p>
         ))}
@@ -79,7 +79,7 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
           // Partial failure: healthy queries keep their series on screen,
           // the failed ones surface as a badge (details on hover).
           <div
-            className="polaris-panel-error-badge"
+            className="dashglass-panel-error-badge"
             role="alert"
             title={data.errors.join("\n\n")}
           >
@@ -90,7 +90,7 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
         ) : null}
         {data.state === "loading" ? (
           // Refetch over stale data: a quiet cue that numbers are updating.
-          <div className="polaris-panel-refreshing" aria-hidden="true" />
+          <div className="dashglass-panel-refreshing" aria-hidden="true" />
         ) : null}
       </>
     );
@@ -98,17 +98,17 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
 
   return (
     <section
-      className="polaris-panel"
+      className="dashglass-panel"
       style={chromeStyle}
       aria-label={title ?? panelKey}
       data-panel-key={panelKey}
     >
-      <header className="polaris-panel-header">
-        <h3 className="polaris-panel-title">
+      <header className="dashglass-panel-header">
+        <h3 className="dashglass-panel-title">
           {onExpand ? (
             <button
               type="button"
-              className="polaris-panel-expand"
+              className="dashglass-panel-expand"
               title="View fullscreen"
               onClick={onExpand}
             >
@@ -119,7 +119,7 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
           )}
         </h3>
       </header>
-      <div className="polaris-panel-body" style={bodyStyle}>
+      <div className="dashglass-panel-body" style={bodyStyle}>
         <PanelErrorBoundary resetKey={panel}>{body}</PanelErrorBoundary>
       </div>
     </section>

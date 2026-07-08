@@ -1,6 +1,6 @@
 {
-  "$id": "https://polaris.dev/schemas/dashboard/v1",
-  "title": "Polaris Dashboard",
+  "$id": "https://dashglass.dev/schemas/dashboard/v1",
+  "title": "Dashglass Dashboard",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {

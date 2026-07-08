@@ -116,12 +116,12 @@ func (m *mockIssuer) mintToken(t *testing.T, clientID, nonce string, claims map[
 
 func TestOIDCCompleteHappyPath(t *testing.T) {
 	issuer := newMockIssuer(t)
-	const clientID = "polaris"
+	const clientID = "dashglass"
 
 	authn, err := NewOIDCAuthenticator(context.Background(), OIDCConfig{
 		Issuer:      issuer.server.URL,
 		ClientID:    clientID,
-		RedirectURL: "http://polaris.local/api/auth/oidc/callback",
+		RedirectURL: "http://dashglass.local/api/auth/oidc/callback",
 		RoleMapping: RoleMapping{Admin: []string{"ops"}, Viewer: []string{"*"}},
 	})
 	if err != nil {
@@ -146,11 +146,11 @@ func TestOIDCCompleteHappyPath(t *testing.T) {
 
 func TestOIDCCompleteRejects(t *testing.T) {
 	issuer := newMockIssuer(t)
-	const clientID = "polaris"
+	const clientID = "dashglass"
 	authn, _ := NewOIDCAuthenticator(context.Background(), OIDCConfig{
 		Issuer:      issuer.server.URL,
 		ClientID:    clientID,
-		RedirectURL: "http://polaris.local/cb",
+		RedirectURL: "http://dashglass.local/cb",
 		RoleMapping: RoleMapping{Admin: []string{"ops"}}, // no "*"
 	})
 	_, flow := authn.Start()

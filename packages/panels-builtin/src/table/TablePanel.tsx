@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { z } from "zod";
 
-import type { PanelProps, TimeSeries } from "@polarisui/runtime";
+import type { PanelProps, TimeSeries } from "@dashglass/runtime";
 
 import { NoData } from "../NoData";
 import { parseSpec } from "../spec";
@@ -177,7 +177,7 @@ export function TablePanel({ spec, data }: PanelProps) {
   return (
     <div style={{ overflow: "auto", height: "100%" }}>
       <table
-        className="polaris-table"
+        className="dashglass-table"
         style={{
           width: "100%",
           borderCollapse: "separate",

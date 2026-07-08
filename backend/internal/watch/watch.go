@@ -14,7 +14,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/bleemeo/polarisui/backend/internal/store"
+	"github.com/bleemeo/dashglass/backend/internal/store"
 )
 
 // Event notifies that a dashboard file changed. Type is "updated" (created

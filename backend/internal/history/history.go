@@ -78,7 +78,7 @@ func (s *Service) gitEnv(extraEnv []string, timeout time.Duration, args ...strin
 	cmd := exec.CommandContext(ctx, "git", append([]string{"-C", s.dir}, args...)...)
 	cmd.Env = append(os.Environ(),
 		"GIT_OPTIONAL_LOCKS=0", "GIT_TERMINAL_PROMPT=0",
-		"GIT_COMMITTER_NAME=Polaris", "GIT_COMMITTER_EMAIL=polaris@localhost")
+		"GIT_COMMITTER_NAME=Dashglass", "GIT_COMMITTER_EMAIL=dashglass@localhost")
 	cmd.Env = append(cmd.Env, extraEnv...)
 	var stdout, stderr strings.Builder
 	cmd.Stdout = &stdout
@@ -158,8 +158,8 @@ func (s *Service) Show(path, hash string) ([]byte, error) {
 }
 
 // Commit records the current state of a file — creation, edit or
-// deletion — as one git commit authored by the acting polaris user
-// (committer stays "Polaris"). A no-op when the file matches HEAD.
+// deletion — as one git commit authored by the acting dashglass user
+// (committer stays "Dashglass"). A no-op when the file matches HEAD.
 // Only the given path is committed: anything else the user may have
 // staged in the repository is left untouched.
 func (s *Service) Commit(path, message, author, email string) error {
@@ -182,10 +182,10 @@ func (s *Service) Commit(path, message, author, email string) error {
 		return nil
 	}
 	if author == "" {
-		author = "polaris"
+		author = "dashglass"
 	}
 	if email == "" {
-		email = author + "@polaris.local"
+		email = author + "@dashglass.local"
 	}
 	_, err = s.git("commit", "-q",
 		"-m", message,

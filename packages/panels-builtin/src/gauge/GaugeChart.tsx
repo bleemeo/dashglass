@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { PanelProps } from "@polarisui/runtime";
+import type { PanelProps } from "@dashglass/runtime";
 
 import { EChart } from "../EChart";
 import { NoData } from "../NoData";
@@ -35,7 +35,7 @@ export function GaugeChart({ spec, data }: PanelProps) {
     // with the tile and stays crisp. The overlay sits at the arc center
     // (matching options.ts center: ["50%", "56%"]).
     <div
-      className="polaris-gauge"
+      className="dashglass-gauge"
       style={{
         position: "relative",
         width: "100%",
@@ -45,7 +45,7 @@ export function GaugeChart({ spec, data }: PanelProps) {
     >
       <EChart option={option} />
       <div
-        className="polaris-gauge-value"
+        className="dashglass-gauge-value"
         style={{
           position: "absolute",
           top: "56%",
