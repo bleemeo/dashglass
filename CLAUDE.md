@@ -147,9 +147,13 @@ a Docker smoke test (`scripts/docker-smoke.sh`) that exercises the
 non-root container's auth surface. Chained dashboard variables work
 (matchers interpolated with current values; dependent lists reload).
 
-Not started: git-log dashboard history, annotations, the bleemeo-panel
-embedding POC (DESIGN.md §9), and the public-naming check ("Polaris"
-trademark, §12). Auth (DESIGN.md §7.4): local users + 3 roles + admin UI
-done (phase 1); reverse-proxy headers (phase 2) and native OIDC
-(phase 3, authorization-code + PKCE, groups→role mapping) done; LDAP
-not started.
+Dashboard history is done (`backend/internal/history`, read-only git
+log/show/diff; History drawer + restore-via-PUT on the dashboard view;
+`features.history` capability gates the UI, absent without git or a
+work tree).
+
+Not started: annotations, the bleemeo-panel embedding POC (DESIGN.md
+§9), and the public-naming check ("Polaris" trademark, §12). Auth
+(DESIGN.md §7.4): local users + 3 roles + admin UI done (phase 1);
+reverse-proxy headers (phase 2) and native OIDC (phase 3,
+authorization-code + PKCE, groups→role mapping) done; LDAP not started.
