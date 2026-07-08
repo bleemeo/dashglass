@@ -341,6 +341,16 @@ type Setting struct {
 func (s *Server) adminConfig(writer http.ResponseWriter, _ *http.Request) {
 	settings := make([]Setting, 0, len(s.settings))
 	for _, setting := range s.settings {
+		// The Prometheus URL may have been set at runtime from the
+		// datasource admin UI; show the live value with its provenance.
+		if setting.Key == "prometheus.url" && !s.promProvisioned {
+			if target := s.prom.Load(); target != nil {
+				shown := *target.url
+				shown.User = nil
+				setting.Value = shown.String()
+				setting.Source = "admin"
+			}
+		}
 		if setting.Secret && setting.Value != "" {
 			setting.Value = "••••••••"
 		}

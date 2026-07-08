@@ -1,6 +1,7 @@
-import { Flex, Text } from "@chakra-ui/react";
+import { Flex, Link as ChakraLink, Text } from "@chakra-ui/react";
+import { Link } from "react-router";
 
-import { usePrometheusHealth } from "../api/hooks";
+import { usePermissions, usePrometheusHealth } from "../api/hooks";
 
 /**
  * App-wide banner when the data source is missing or unreachable — the
@@ -9,6 +10,7 @@ import { usePrometheusHealth } from "../api/hooks";
  */
 export function PrometheusStatusBanner() {
   const health = usePrometheusHealth();
+  const { isAdmin } = usePermissions();
   if (!health.data || (health.data.configured && health.data.reachable)) {
     return null;
   }
@@ -19,7 +21,7 @@ export function PrometheusStatusBanner() {
     : "No Prometheus configured";
   const detail = error
     ? `${health.data.error ?? "the server did not respond"}. Check that it is running and the URL is correct.`
-    : "dashboards will show no data. Start Polaris with -prometheus-url <url>.";
+    : "dashboards will show no data.";
 
   return (
     <Flex
@@ -35,7 +37,12 @@ export function PrometheusStatusBanner() {
         <Text as="span" fontWeight="medium">
           {headline}
         </Text>{" "}
-        — {detail}
+        — {detail}{" "}
+        {isAdmin ? (
+          <ChakraLink asChild textDecoration="underline" color="inherit">
+            <Link to="/admin">Configure it in Admin → Datasource.</Link>
+          </ChakraLink>
+        ) : null}
       </Text>
     </Flex>
   );

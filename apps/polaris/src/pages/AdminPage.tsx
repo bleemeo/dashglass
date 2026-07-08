@@ -21,8 +21,13 @@ import {
   adminConfig,
   adminCreateUser,
   adminDeleteUser,
+  adminGetDatasource,
   adminListUsers,
+  adminPutDatasource,
+  adminTestDatasource,
   adminUpdateUser,
+  type AdminDatasource,
+  type DatasourceInput,
   type Role,
 } from "../api/client";
 import { usePermissions } from "../api/hooks";
@@ -388,6 +393,8 @@ function ConfigTab() {
     file: "blue",
     env: "purple",
     flag: "orange",
+    // Set at runtime from the admin UI (datasource tab).
+    admin: "green",
   };
   const mapping = config.data?.roleMapping;
 
@@ -455,6 +462,188 @@ function ConfigTab() {
   );
 }
 
+/** Editable Prometheus connection; locked when provisioned by the
+ * deployment (flag/env/file), per the same philosophy as -readonly. */
+function DatasourceForm({ view }: { view: AdminDatasource }) {
+  const queryClient = useQueryClient();
+  const [url, setUrl] = useState(view.url ?? "");
+  const [auth, setAuth] = useState<DatasourceInput["auth"]>(view.auth ?? "none");
+  const [username, setUsername] = useState(view.username ?? "");
+  const [password, setPassword] = useState("");
+  const [token, setToken] = useState("");
+  const [test, setTest] = useState<{ reachable: boolean; error?: string } | null>(
+    null,
+  );
+
+  const input = (): DatasourceInput => ({
+    url: url.trim(),
+    auth,
+    ...(auth === "basic" ? { username, password } : {}),
+    ...(auth === "bearer" ? { token } : {}),
+  });
+
+  const testConnection = useMutation({
+    mutationFn: () => adminTestDatasource(input()),
+    onSuccess: setTest,
+    onError: (error) =>
+      setTest({ reachable: false, error: errorText(error) }),
+  });
+  const save = useMutation({
+    mutationFn: () => adminPutDatasource(input()),
+    onSuccess: () => {
+      // The capability flag, health banner and config view all reflect
+      // the connection: refresh them along with the datasource itself.
+      void queryClient.invalidateQueries({ queryKey: ["admin"] });
+      void queryClient.invalidateQueries({ queryKey: ["capabilities"] });
+      void queryClient.invalidateQueries({ queryKey: ["prometheus"] });
+      toaster.create({ type: "success", description: "Datasource saved." });
+    },
+    onError: (error) =>
+      toaster.create({
+        type: "error",
+        description: errorText(error),
+        closable: true,
+      }),
+  });
+
+  // A secret already stored for the current mode can be left untouched.
+  const secretPlaceholder =
+    view.configured && view.auth === auth ? "(unchanged)" : "";
+
+  return (
+    <Flex direction="column" gap={4} maxWidth="480px">
+      <Text fontSize="sm" color="fg.muted">
+        The Prometheus this instance queries. Credentials are stored
+        server-side and never sent to browsers.
+      </Text>
+      <Field.Root>
+        <Field.Label>Prometheus URL</Field.Label>
+        <Input
+          size="sm"
+          placeholder="http://prometheus:9090"
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
+        />
+      </Field.Root>
+      <Field.Root>
+        <Field.Label>Authentication</Field.Label>
+        <NativeSelect.Root size="sm">
+          <NativeSelect.Field
+            value={auth}
+            onChange={(event) =>
+              setAuth(event.target.value as DatasourceInput["auth"])
+            }
+          >
+            <option value="none">None</option>
+            <option value="basic">Basic auth</option>
+            <option value="bearer">Bearer token</option>
+          </NativeSelect.Field>
+          <NativeSelect.Indicator />
+        </NativeSelect.Root>
+      </Field.Root>
+      {auth === "basic" ? (
+        <>
+          <Field.Root>
+            <Field.Label>Username</Field.Label>
+            <Input
+              size="sm"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+            />
+          </Field.Root>
+          <Field.Root>
+            <Field.Label>Password</Field.Label>
+            <Input
+              size="sm"
+              type="password"
+              placeholder={secretPlaceholder}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </Field.Root>
+        </>
+      ) : null}
+      {auth === "bearer" ? (
+        <Field.Root>
+          <Field.Label>Token</Field.Label>
+          <Input
+            size="sm"
+            type="password"
+            placeholder={secretPlaceholder}
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+          />
+        </Field.Root>
+      ) : null}
+      <Flex gap={2} alignItems="center">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={url.trim() === ""}
+          loading={testConnection.isPending}
+          onClick={() => testConnection.mutate()}
+        >
+          Test connection
+        </Button>
+        <Button
+          size="sm"
+          colorPalette="brand"
+          disabled={url.trim() === ""}
+          loading={save.isPending}
+          onClick={() => save.mutate()}
+        >
+          Save
+        </Button>
+      </Flex>
+      {test ? (
+        <Text
+          fontSize="sm"
+          color={test.reachable ? "green.fg" : "fg.error"}
+          role="status"
+        >
+          {test.reachable
+            ? "Connection OK — Prometheus answered."
+            : (test.error ?? "Unreachable.")}
+        </Text>
+      ) : null}
+    </Flex>
+  );
+}
+
+function DatasourceTab() {
+  const datasource = useQuery({
+    queryKey: ["admin", "datasource"],
+    queryFn: adminGetDatasource,
+  });
+
+  if (datasource.isPending) {
+    return null;
+  }
+  if (datasource.isError) {
+    return (
+      <Text fontSize="sm" color="fg.error">
+        {errorText(datasource.error)}
+      </Text>
+    );
+  }
+  const view = datasource.data;
+  if (!view.editable) {
+    return (
+      <Flex direction="column" gap={2} maxWidth="480px">
+        <Text fontSize="sm" color="fg.muted">
+          The Prometheus URL is provisioned by the deployment (flag,
+          environment or polaris.yaml) and can only be changed there.
+        </Text>
+        <Text fontSize="sm" fontFamily="mono">
+          {view.url ?? "—"}
+        </Text>
+      </Flex>
+    );
+  }
+  // Remount the form when the server view changes so edits start fresh.
+  return <DatasourceForm key={JSON.stringify(view)} view={view} />;
+}
+
 /** The admin surface: local users and the effective configuration. */
 export function AdminPage() {
   usePageTitle("Admin");
@@ -464,10 +653,14 @@ export function AdminPage() {
       <Tabs.Root defaultValue="users" size="sm">
         <Tabs.List marginBottom={4}>
           <Tabs.Trigger value="users">Users</Tabs.Trigger>
+          <Tabs.Trigger value="datasource">Datasource</Tabs.Trigger>
           <Tabs.Trigger value="config">Configuration</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="users">
           <UsersTab />
+        </Tabs.Content>
+        <Tabs.Content value="datasource">
+          <DatasourceTab />
         </Tabs.Content>
         <Tabs.Content value="config">
           <ConfigTab />

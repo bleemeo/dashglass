@@ -119,14 +119,37 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		return err
 	}
 
+	// Prometheus target: a flag/env/file URL is provisioned — the
+	// deployment owns it and the admin UI shows it read-only. Otherwise
+	// the UI-managed state file may hold one (admin-configured at runtime).
+	stateFile := config.StatePath(settings["auth.file"].value)
+	promProvisioned := settings["prometheus.url"].value != ""
 	var target *url.URL
-	if prometheusURL := settings["prometheus.url"].value; prometheusURL != "" {
-		target, err = url.Parse(prometheusURL)
+	promBearer := ""
+	if promProvisioned {
+		target, err = url.Parse(settings["prometheus.url"].value)
 		if err != nil || target.Scheme == "" || target.Host == "" {
-			return fmt.Errorf("invalid Prometheus URL %q", prometheusURL)
+			return fmt.Errorf("invalid Prometheus URL %q", settings["prometheus.url"].value)
 		}
 	} else {
-		logger.Warn("no Prometheus URL configured, metric queries will fail")
+		state, err := config.LoadState(stateFile)
+		if err != nil {
+			return err
+		}
+		if state.Prometheus.URL != "" {
+			target, err = url.Parse(state.Prometheus.URL)
+			if err != nil || target.Scheme == "" || target.Host == "" {
+				return fmt.Errorf("invalid Prometheus URL %q in %s", state.Prometheus.URL, stateFile)
+			}
+			if state.Prometheus.BasicUsername != "" {
+				target.User = url.UserPassword(
+					state.Prometheus.BasicUsername, state.Prometheus.BasicPassword)
+			}
+			promBearer = state.Prometheus.BearerToken
+		}
+	}
+	if target == nil {
+		logger.Warn("no Prometheus URL configured, metric queries will fail (an admin can set one from the UI)")
 	}
 
 	authStore, err := auth.NewStore(settings["auth.file"].value)
@@ -216,18 +239,21 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 
 	mux := http.NewServeMux()
 	api.New(api.Options{
-		Store:         dashboardStore,
-		Hub:           hub,
-		PrometheusURL: target,
-		Readonly:      readonly,
-		Version:       version,
-		GrafanaComURL: grafanaComURL,
-		Auth:          authStore,
-		ProxyAuth:     proxyAuth,
-		OIDC:          oidcAuth,
-		Settings:      apiSettings,
-		Logger:        logger,
-		History:       historyService,
+		Store:                 dashboardStore,
+		Hub:                   hub,
+		PrometheusURL:         target,
+		PrometheusBearer:      promBearer,
+		PrometheusProvisioned: promProvisioned,
+		StateFile:             stateFile,
+		Readonly:              readonly,
+		Version:               version,
+		GrafanaComURL:         grafanaComURL,
+		Auth:                  authStore,
+		ProxyAuth:             proxyAuth,
+		OIDC:                  oidcAuth,
+		Settings:              apiSettings,
+		Logger:                logger,
+		History:               historyService,
 	}).Routes(mux)
 	mux.Handle("/", ui.Handler())
 

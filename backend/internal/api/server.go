@@ -14,6 +14,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/bleemeo/polarisui/backend/internal/auth"
@@ -38,16 +40,34 @@ type Server struct {
 	throttle   *auth.Throttle
 	settings   []Setting
 	logger     *slog.Logger
-	promURL    *url.URL // for the reachability probe (nil = not configured)
 	history    *history.Service // nil = dashboards dir is not a git work tree
+
+	// prom is the current Prometheus connection, swappable at runtime by
+	// the datasource admin API (nil = not configured). promProvisioned
+	// locks it: a flag/env/file-provisioned URL is owned by the
+	// deployment, not the UI. stateFile persists UI edits.
+	prom            atomic.Pointer[promTarget]
+	promProvisioned bool
+	stateFile       string
+	stateMu         sync.Mutex // serializes state-file writes
 }
 
 type Options struct {
-	Store         *store.Store
-	Hub           *watch.Hub
-	PrometheusURL *url.URL // nil disables the proxy (503)
-	Readonly      bool
-	Version       string
+	Store *store.Store
+	Hub   *watch.Hub
+	// PrometheusURL is the initial target (nil = not configured; the
+	// proxy answers 503). Userinfo carries basic-auth credentials.
+	PrometheusURL *url.URL
+	// PrometheusBearer is the initial bearer token (state-file sourced).
+	PrometheusBearer string
+	// PrometheusProvisioned marks the URL as flag/env/file-owned: the
+	// datasource admin API then refuses runtime edits.
+	PrometheusProvisioned bool
+	// StateFile persists UI-managed settings (admin datasource edits);
+	// empty disables them.
+	StateFile string
+	Readonly  bool
+	Version   string
 	// Base URL of the grafana.com API ("https://grafana.com" in
 	// production, an httptest server in tests); empty disables the
 	// marketplace import proxy.
@@ -87,10 +107,15 @@ func New(options Options) *Server {
 	if server.logger == nil {
 		server.logger = slog.Default()
 	}
+	server.promProvisioned = options.PrometheusProvisioned
+	server.stateFile = options.StateFile
 	if options.PrometheusURL != nil {
-		server.promURL = options.PrometheusURL
-		server.proxy = newPrometheusProxy(options.PrometheusURL)
+		server.prom.Store(&promTarget{
+			url:    options.PrometheusURL,
+			bearer: options.PrometheusBearer,
+		})
 	}
+	server.proxy = newPrometheusProxy(server.prom.Load)
 	if options.GrafanaComURL != "" {
 		server.grafanaCom = newGrafanaComClient(options.GrafanaComURL)
 	}
@@ -124,6 +149,9 @@ func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /api/admin/users/{username}", s.requireRole(auth.RoleAdmin, s.adminUpdateUser))
 	mux.HandleFunc("DELETE /api/admin/users/{username}", s.requireRole(auth.RoleAdmin, s.adminDeleteUser))
 	mux.HandleFunc("GET /api/admin/config", s.requireRole(auth.RoleAdmin, s.adminConfig))
+	mux.HandleFunc("GET /api/admin/datasource", s.requireRole(auth.RoleAdmin, s.adminGetDatasource))
+	mux.HandleFunc("PUT /api/admin/datasource", s.requireRole(auth.RoleAdmin, s.adminPutDatasource))
+	mux.HandleFunc("POST /api/admin/datasource/test", s.requireRole(auth.RoleAdmin, s.adminTestDatasource))
 }
 
 func writeJSON(writer http.ResponseWriter, status int, value any) {
@@ -157,7 +185,7 @@ func (s *Server) capabilities(writer http.ResponseWriter, _ *http.Request) {
 		"readonly":   s.readonly,
 		"formats":    store.Formats,
 		"auth":       map[string]any{"kind": authKind},
-		"prometheus": s.proxy != nil,
+		"prometheus": s.prom.Load() != nil,
 		"features": map[string]any{
 			"grafanaCom": s.grafanaCom != nil,
 			"history":    s.history != nil,
@@ -282,11 +310,7 @@ func (s *Server) events(writer http.ResponseWriter, request *http.Request) {
 }
 
 func (s *Server) prometheus(writer http.ResponseWriter, request *http.Request) {
-	if s.proxy == nil {
-		writeError(writer, http.StatusServiceUnavailable,
-			"no Prometheus configured (start with -prometheus-url)")
-		return
-	}
+	// The proxy itself answers 503 when no target is configured.
 	s.proxy.ServeHTTP(writer, request)
 }
 
@@ -294,12 +318,13 @@ func (s *Server) prometheus(writer http.ResponseWriter, request *http.Request) {
 // whether it currently answers — so the UI can explain "No data" instead
 // of leaving the user guessing.
 func (s *Server) prometheusHealth(writer http.ResponseWriter, request *http.Request) {
-	if s.promURL == nil {
+	target := s.prom.Load()
+	if target == nil {
 		writeJSON(writer, http.StatusOK,
 			map[string]any{"configured": false, "reachable": false})
 		return
 	}
-	reachable, reason := s.probePrometheus(request.Context())
+	reachable, reason := probePrometheus(request.Context(), target)
 	body := map[string]any{"configured": true, "reachable": reachable}
 	if reason != "" {
 		body["error"] = reason
@@ -307,14 +332,13 @@ func (s *Server) prometheusHealth(writer http.ResponseWriter, request *http.Requ
 	writeJSON(writer, http.StatusOK, body)
 }
 
-// probePrometheus runs a trivial instant query ("1") against the target,
+// probePrometheus runs a trivial instant query ("1") against a target,
 // which every Prometheus-API backend answers, with a short timeout.
-func (s *Server) probePrometheus(ctx context.Context) (bool, string) {
-	probe := *s.promURL
+func probePrometheus(ctx context.Context, target *promTarget) (bool, string) {
+	probe := *target.url
 	probe.Path = strings.TrimRight(probe.Path, "/") + "/api/v1/query"
 	probe.RawQuery = url.Values{"query": {"1"}}.Encode()
 	// Credentials travel as a header, never in the request URL.
-	userinfo := probe.User
 	probe.User = nil
 
 	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
@@ -323,10 +347,7 @@ func (s *Server) probePrometheus(ctx context.Context) (bool, string) {
 	if err != nil {
 		return false, err.Error()
 	}
-	if userinfo != nil {
-		password, _ := userinfo.Password()
-		req.SetBasicAuth(userinfo.Username(), password)
-	}
+	target.authorize(req)
 	response, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return false, "cannot reach Prometheus: " + err.Error()

@@ -247,6 +247,62 @@ export async function adminConfig(): Promise<AdminConfig> {
   return response.json() as Promise<AdminConfig>;
 }
 
+/** The runtime Prometheus connection, as shown to admins (no secrets). */
+export interface AdminDatasource {
+  provisioned: boolean;
+  editable: boolean;
+  configured: boolean;
+  url?: string;
+  auth?: "none" | "basic" | "bearer";
+  username?: string;
+}
+
+/** Datasource edit/test payload; password/token are write-only (empty =
+ * keep the stored secret). */
+export interface DatasourceInput {
+  url: string;
+  auth: "none" | "basic" | "bearer";
+  username?: string;
+  password?: string;
+  token?: string;
+}
+
+export async function adminGetDatasource(): Promise<AdminDatasource> {
+  const response = await fetch("/api/admin/datasource");
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<AdminDatasource>;
+}
+
+export async function adminPutDatasource(
+  input: DatasourceInput,
+): Promise<AdminDatasource> {
+  const response = await fetch("/api/admin/datasource", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<AdminDatasource>;
+}
+
+export async function adminTestDatasource(
+  input: DatasourceInput,
+): Promise<{ reachable: boolean; error?: string }> {
+  const response = await fetch("/api/admin/datasource/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<{ reachable: boolean; error?: string }>;
+}
+
 export interface PrometheusHealth {
   configured: boolean;
   reachable: boolean;
