@@ -22,15 +22,21 @@ import {
   adminCreateUser,
   adminDeleteUser,
   adminGetDatasource,
+  adminGetGit,
   adminListUsers,
   adminPutDatasource,
+  adminPutGit,
+  adminSyncGit,
   adminTestDatasource,
+  adminTestGit,
   adminUpdateUser,
   type AdminDatasource,
+  type AdminGit,
   type DatasourceInput,
   type Role,
 } from "../api/client";
 import { usePermissions } from "../api/hooks";
+import { relativeTime } from "../lib/relativeTime";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TopBar } from "../components/TopBar";
 import { PlusIcon } from "../components/icons";
@@ -644,6 +650,230 @@ function DatasourceTab() {
   return <DatasourceForm key={JSON.stringify(view)} view={view} />;
 }
 
+/** Sync-loop status lines (branch, ahead/behind, last sync, error). */
+function GitSyncStatusView({ view }: { view: AdminGit }) {
+  const status = view.status;
+  if (!view.enabled || !status) {
+    return null;
+  }
+  return (
+    <Flex direction="column" gap={1} fontSize="sm">
+      <Text color="fg.muted">
+        Branch <Text as="span" fontFamily="mono">{status.branch ?? "—"}</Text>
+        {" · "}
+        {status.ahead > 0 ? `${status.ahead} to push` : null}
+        {status.ahead > 0 && status.behind > 0 ? " · " : null}
+        {status.behind > 0 ? `${status.behind} to pull` : null}
+        {status.ahead === 0 && status.behind === 0 ? "in sync" : null}
+        {status.lastSync
+          ? ` · last sync ${relativeTime(status.lastSync)}`
+          : " · never synced"}
+      </Text>
+      {status.lastError ? (
+        <Text color="fg.error">{status.lastError}</Text>
+      ) : null}
+    </Flex>
+  );
+}
+
+/** Editable git sync remote; locked when provisioned in polaris.yaml. */
+function GitForm({ view }: { view: AdminGit }) {
+  const queryClient = useQueryClient();
+  const [url, setUrl] = useState(view.url ?? "");
+  const [username, setUsername] = useState(view.username ?? "");
+  const [token, setToken] = useState("");
+  const [interval, setIntervalSeconds] = useState(
+    String(view.intervalSeconds ?? 60),
+  );
+  const [test, setTest] = useState<{ reachable: boolean; error?: string } | null>(
+    null,
+  );
+
+  const input = () => ({
+    url: url.trim(),
+    username,
+    token,
+    intervalSeconds: Number(interval) || 0,
+  });
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ["admin", "git"] });
+    void queryClient.invalidateQueries({ queryKey: ["dashboards"] });
+  };
+
+  const testConnection = useMutation({
+    mutationFn: () => adminTestGit(input()),
+    onSuccess: setTest,
+    onError: (error) => setTest({ reachable: false, error: errorText(error) }),
+  });
+  const save = useMutation({
+    mutationFn: () => adminPutGit(input()),
+    onSuccess: () => {
+      invalidate();
+      toaster.create({
+        type: "success",
+        description:
+          url.trim() === "" ? "Git sync disabled." : "Git sync configured.",
+      });
+    },
+    onError: (error) =>
+      toaster.create({
+        type: "error",
+        description: errorText(error),
+        closable: true,
+      }),
+  });
+  const syncNow = useMutation({
+    mutationFn: adminSyncGit,
+    onSuccess: (status) => {
+      invalidate();
+      toaster.create({
+        type: status.lastError ? "error" : "success",
+        description: status.lastError ?? "Synced with the remote.",
+        closable: Boolean(status.lastError),
+      });
+    },
+  });
+
+  return (
+    <Flex direction="column" gap={4} maxWidth="480px">
+      <Text fontSize="sm" color="fg.muted">
+        Push dashboard commits to a git remote and pull external changes
+        (HTTPS + token). The token is stored server-side and never sent
+        to browsers.
+      </Text>
+      {view.enabled && !view.commitOnSave ? (
+        <Text fontSize="sm" color="fg.muted">
+          Note: git.commit_on_save is off, so UI edits are not committed —
+          only manual commits get pushed.
+        </Text>
+      ) : null}
+      <Field.Root>
+        <Field.Label>Remote URL</Field.Label>
+        <Input
+          size="sm"
+          placeholder="https://github.com/acme/dashboards.git"
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
+        />
+      </Field.Root>
+      <Field.Root>
+        <Field.Label>Username</Field.Label>
+        <Input
+          size="sm"
+          placeholder="x-access-token, oauth2, a bot account…"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+        />
+      </Field.Root>
+      <Field.Root>
+        <Field.Label>Token</Field.Label>
+        <Input
+          size="sm"
+          type="password"
+          placeholder={view.enabled ? "(unchanged)" : ""}
+          value={token}
+          onChange={(event) => setToken(event.target.value)}
+        />
+      </Field.Root>
+      <Field.Root>
+        <Field.Label>Pull interval (seconds)</Field.Label>
+        <Input
+          size="sm"
+          type="number"
+          min={10}
+          value={interval}
+          onChange={(event) => setIntervalSeconds(event.target.value)}
+        />
+      </Field.Root>
+      <Flex gap={2} alignItems="center">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={url.trim() === ""}
+          loading={testConnection.isPending}
+          onClick={() => testConnection.mutate()}
+        >
+          Test connection
+        </Button>
+        <Button
+          size="sm"
+          colorPalette="brand"
+          loading={save.isPending}
+          onClick={() => save.mutate()}
+        >
+          Save
+        </Button>
+        {view.enabled ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            loading={syncNow.isPending}
+            onClick={() => syncNow.mutate()}
+          >
+            Sync now
+          </Button>
+        ) : null}
+      </Flex>
+      {test ? (
+        <Text
+          fontSize="sm"
+          color={test.reachable ? "green.fg" : "fg.error"}
+          role="status"
+        >
+          {test.reachable
+            ? "Connection OK — the remote answered."
+            : (test.error ?? "Unreachable.")}
+        </Text>
+      ) : null}
+      <GitSyncStatusView view={view} />
+    </Flex>
+  );
+}
+
+function GitTab() {
+  const git = useQuery({
+    queryKey: ["admin", "git"],
+    queryFn: adminGetGit,
+    // The sync loop runs in the background: keep the status fresh.
+    refetchInterval: 15_000,
+  });
+
+  if (git.isPending) {
+    return null;
+  }
+  if (git.isError) {
+    return (
+      <Text fontSize="sm" color="fg.error">
+        {errorText(git.error)}
+      </Text>
+    );
+  }
+  const view = git.data;
+  if (!view.gitAvailable) {
+    return (
+      <Text fontSize="sm" color="fg.muted" maxWidth="480px">
+        Git sync needs the dashboards directory to be inside a git work
+        tree (git init it, or point -dashboards-dir at a clone).
+      </Text>
+    );
+  }
+  if (!view.editable) {
+    return (
+      <Flex direction="column" gap={2} maxWidth="480px">
+        <Text fontSize="sm" color="fg.muted">
+          The git remote is provisioned in polaris.yaml and can only be
+          changed there.
+        </Text>
+        <Text fontSize="sm" fontFamily="mono">
+          {view.url ?? "—"}
+        </Text>
+        <GitSyncStatusView view={view} />
+      </Flex>
+    );
+  }
+  return <GitForm key={JSON.stringify(view)} view={view} />;
+}
+
 /** The admin surface: local users and the effective configuration. */
 export function AdminPage() {
   usePageTitle("Admin");
@@ -654,6 +884,7 @@ export function AdminPage() {
         <Tabs.List marginBottom={4}>
           <Tabs.Trigger value="users">Users</Tabs.Trigger>
           <Tabs.Trigger value="datasource">Datasource</Tabs.Trigger>
+          <Tabs.Trigger value="git">Git sync</Tabs.Trigger>
           <Tabs.Trigger value="config">Configuration</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="users">
@@ -661,6 +892,9 @@ export function AdminPage() {
         </Tabs.Content>
         <Tabs.Content value="datasource">
           <DatasourceTab />
+        </Tabs.Content>
+        <Tabs.Content value="git">
+          <GitTab />
         </Tabs.Content>
         <Tabs.Content value="config">
           <ConfigTab />

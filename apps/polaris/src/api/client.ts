@@ -289,6 +289,80 @@ export async function adminPutDatasource(
   return response.json() as Promise<AdminDatasource>;
 }
 
+/** One snapshot of the git sync loop. */
+export interface GitSyncStatus {
+  enabled: boolean;
+  branch?: string;
+  ahead: number;
+  behind: number;
+  lastSync?: string;
+  lastError?: string;
+}
+
+/** The git sync configuration, as shown to admins (no token). */
+export interface AdminGit {
+  gitAvailable: boolean;
+  commitOnSave: boolean;
+  provisioned: boolean;
+  editable: boolean;
+  enabled: boolean;
+  url?: string;
+  username?: string;
+  intervalSeconds?: number;
+  status?: GitSyncStatus;
+}
+
+/** Git remote edit/test payload; the token is write-only (empty = keep
+ * the stored one, as long as the host is unchanged). */
+export interface GitRemoteInput {
+  url: string;
+  username?: string;
+  token?: string;
+  intervalSeconds?: number;
+}
+
+export async function adminGetGit(): Promise<AdminGit> {
+  const response = await fetch("/api/admin/git");
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<AdminGit>;
+}
+
+export async function adminPutGit(input: GitRemoteInput): Promise<AdminGit> {
+  const response = await fetch("/api/admin/git", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<AdminGit>;
+}
+
+export async function adminTestGit(
+  input: GitRemoteInput,
+): Promise<{ reachable: boolean; error?: string }> {
+  const response = await fetch("/api/admin/git/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<{ reachable: boolean; error?: string }>;
+}
+
+export async function adminSyncGit(): Promise<GitSyncStatus> {
+  const response = await fetch("/api/admin/git/sync", { method: "POST" });
+  if (!response.ok) {
+    throw await errorFrom(response);
+  }
+  return response.json() as Promise<GitSyncStatus>;
+}
+
 export async function adminTestDatasource(
   input: DatasourceInput,
 ): Promise<{ reachable: boolean; error?: string }> {

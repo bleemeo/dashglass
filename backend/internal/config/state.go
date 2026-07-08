@@ -14,6 +14,16 @@ import (
 // stay read-only in the UI (the deployment owns them).
 type State struct {
 	Prometheus PrometheusState `yaml:"prometheus,omitempty"`
+	Git        GitState        `yaml:"git,omitempty"`
+}
+
+// GitState is the UI-configured git remote for push/pull sync.
+type GitState struct {
+	RemoteURL string `yaml:"remote_url,omitempty"`
+	Username  string `yaml:"username,omitempty"`
+	Token     string `yaml:"token,omitempty"`
+	// IntervalSeconds between pull cycles (0 = default).
+	IntervalSeconds int `yaml:"interval_seconds,omitempty"`
 }
 
 // PrometheusState is the UI-configured Prometheus connection.

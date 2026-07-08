@@ -42,6 +42,10 @@ type Server struct {
 	logger       *slog.Logger
 	history      *history.Service // nil = dashboards dir is not a git work tree
 	commitOnSave bool
+	// syncer keeps a git remote converged with the local repository;
+	// gitProvisioned locks its config to polaris.yaml.
+	syncer         *history.Syncer
+	gitProvisioned bool
 
 	// prom is the current Prometheus connection, swappable at runtime by
 	// the datasource admin API (nil = not configured). promProvisioned
@@ -92,6 +96,11 @@ type Options struct {
 	// CommitOnSave records every dashboard write as a git commit
 	// authored by the acting user (requires History).
 	CommitOnSave bool
+	// Syncer pushes/pulls a git remote; nil when git is unavailable.
+	Syncer *history.Syncer
+	// GitProvisioned marks the remote as polaris.yaml-owned: the git
+	// admin API then refuses runtime edits.
+	GitProvisioned bool
 }
 
 func New(options Options) *Server {
@@ -108,6 +117,8 @@ func New(options Options) *Server {
 		logger:       options.Logger,
 		history:      options.History,
 		commitOnSave: options.CommitOnSave && options.History != nil,
+		syncer:       options.Syncer,
+		gitProvisioned: options.GitProvisioned,
 	}
 	if server.logger == nil {
 		server.logger = slog.Default()
@@ -157,6 +168,10 @@ func (s *Server) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/admin/datasource", s.requireRole(auth.RoleAdmin, s.adminGetDatasource))
 	mux.HandleFunc("PUT /api/admin/datasource", s.requireRole(auth.RoleAdmin, s.adminPutDatasource))
 	mux.HandleFunc("POST /api/admin/datasource/test", s.requireRole(auth.RoleAdmin, s.adminTestDatasource))
+	mux.HandleFunc("GET /api/admin/git", s.requireRole(auth.RoleAdmin, s.adminGetGit))
+	mux.HandleFunc("PUT /api/admin/git", s.requireRole(auth.RoleAdmin, s.adminPutGit))
+	mux.HandleFunc("POST /api/admin/git/test", s.requireRole(auth.RoleAdmin, s.adminTestGit))
+	mux.HandleFunc("POST /api/admin/git/sync", s.requireRole(auth.RoleAdmin, s.adminSyncGit))
 }
 
 func writeJSON(writer http.ResponseWriter, status int, value any) {

@@ -126,9 +126,17 @@ func (s *Server) adminPutDatasource(writer http.ResponseWriter, request *http.Re
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
 
+	// Read-modify-write: the state file holds other sections (git).
+	state, err := config.LoadState(s.stateFile)
+	if err != nil {
+		writeError(writer, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	// An empty URL clears the datasource.
 	if body.URL == "" {
-		if err := config.SaveState(s.stateFile, config.State{}); err != nil {
+		state.Prometheus = config.PrometheusState{}
+		if err := config.SaveState(s.stateFile, state); err != nil {
 			writeError(writer, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -143,7 +151,8 @@ func (s *Server) adminPutDatasource(writer http.ResponseWriter, request *http.Re
 		writeError(writer, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := config.SaveState(s.stateFile, stateOf(target)); err != nil {
+	state.Prometheus = prometheusStateOf(target)
+	if err := config.SaveState(s.stateFile, state); err != nil {
 		writeError(writer, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -173,16 +182,16 @@ func (s *Server) adminTestDatasource(writer http.ResponseWriter, request *http.R
 	writeJSON(writer, http.StatusOK, response)
 }
 
-// stateOf extracts the persistable form of a target.
-func stateOf(target *promTarget) config.State {
-	var state config.State
+// prometheusStateOf extracts the persistable form of a target.
+func prometheusStateOf(target *promTarget) config.PrometheusState {
+	var state config.PrometheusState
 	bare := *target.url
 	bare.User = nil
-	state.Prometheus.URL = bare.String()
+	state.URL = bare.String()
 	if user := target.url.User; user != nil {
-		state.Prometheus.BasicUsername = user.Username()
-		state.Prometheus.BasicPassword, _ = user.Password()
+		state.BasicUsername = user.Username()
+		state.BasicPassword, _ = user.Password()
 	}
-	state.Prometheus.BearerToken = target.bearer
+	state.BearerToken = target.bearer
 	return state
 }

@@ -43,6 +43,20 @@ func main() {
 			os.Exit(runLint(os.Args[2:], os.Stdout, os.Stderr))
 		case "user":
 			os.Exit(runUser(os.Args[2:], os.Stdout, os.Stderr))
+		case "askpass":
+			// Called back by git (GIT_ASKPASS) during remote sync:
+			// answers the credential prompts from the environment set in
+			// history.askpassEnv — credentials never hit a command line.
+			prompt := ""
+			if len(os.Args) > 2 {
+				prompt = os.Args[2]
+			}
+			if strings.HasPrefix(prompt, "Username") {
+				fmt.Println(os.Getenv("POLARIS_ASKPASS_USERNAME"))
+			} else {
+				fmt.Println(os.Getenv("POLARIS_ASKPASS_PASSWORD"))
+			}
+			os.Exit(0)
 		}
 	}
 
@@ -112,22 +126,29 @@ func main() {
 			"POLARIS_AUTH_FILE", "", false),
 	}
 
-	if err := run(settings, cfg.Auth.Proxy, cfg.Auth.OIDC, logger); err != nil {
+	if err := run(settings, cfg.Auth.Proxy, cfg.Auth.OIDC, cfg.Git.Remote, logger); err != nil {
 		logger.Error("fatal", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig auth.OIDCConfig, logger *slog.Logger) error {
+func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig auth.OIDCConfig, gitRemoteConfig config.GitRemoteConfig, logger *slog.Logger) error {
 	dashboardStore, err := store.New(settings["dashboards.dir"].value)
+	if err != nil {
+		return err
+	}
+
+	// UI-managed runtime settings (admin-edited datasource, git remote)
+	// live in a state file next to auth.yaml.
+	stateFile := config.StatePath(settings["auth.file"].value)
+	runtimeState, err := config.LoadState(stateFile)
 	if err != nil {
 		return err
 	}
 
 	// Prometheus target: a flag/env/file URL is provisioned — the
 	// deployment owns it and the admin UI shows it read-only. Otherwise
-	// the UI-managed state file may hold one (admin-configured at runtime).
-	stateFile := config.StatePath(settings["auth.file"].value)
+	// the state file may hold one (admin-configured at runtime).
 	promProvisioned := settings["prometheus.url"].value != ""
 	var target *url.URL
 	promBearer := ""
@@ -136,22 +157,16 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		if err != nil || target.Scheme == "" || target.Host == "" {
 			return fmt.Errorf("invalid Prometheus URL %q", settings["prometheus.url"].value)
 		}
-	} else {
-		state, err := config.LoadState(stateFile)
-		if err != nil {
-			return err
+	} else if runtimeState.Prometheus.URL != "" {
+		target, err = url.Parse(runtimeState.Prometheus.URL)
+		if err != nil || target.Scheme == "" || target.Host == "" {
+			return fmt.Errorf("invalid Prometheus URL %q in %s", runtimeState.Prometheus.URL, stateFile)
 		}
-		if state.Prometheus.URL != "" {
-			target, err = url.Parse(state.Prometheus.URL)
-			if err != nil || target.Scheme == "" || target.Host == "" {
-				return fmt.Errorf("invalid Prometheus URL %q in %s", state.Prometheus.URL, stateFile)
-			}
-			if state.Prometheus.BasicUsername != "" {
-				target.User = url.UserPassword(
-					state.Prometheus.BasicUsername, state.Prometheus.BasicPassword)
-			}
-			promBearer = state.Prometheus.BearerToken
+		if runtimeState.Prometheus.BasicUsername != "" {
+			target.User = url.UserPassword(
+				runtimeState.Prometheus.BasicUsername, runtimeState.Prometheus.BasicPassword)
 		}
+		promBearer = runtimeState.Prometheus.BearerToken
 	}
 	if target == nil {
 		logger.Warn("no Prometheus URL configured, metric queries will fail (an admin can set one from the UI)")
@@ -247,6 +262,51 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		commitOnSave = false
 	}
 
+	// Git remote sync: a polaris.yaml remote is provisioned (locked in
+	// the UI); otherwise the state file may hold an admin-configured one.
+	gitProvisioned := gitRemoteConfig.URL != ""
+	var syncer *history.Syncer
+	if historyService != nil {
+		var remote *history.Remote
+		interval := history.DefaultSyncInterval
+		if gitProvisioned {
+			remote = &history.Remote{
+				URL:      gitRemoteConfig.URL,
+				Username: gitRemoteConfig.Username,
+				Password: gitRemoteConfig.Token,
+			}
+			if gitRemoteConfig.Interval != "" {
+				parsed, err := time.ParseDuration(gitRemoteConfig.Interval)
+				if err != nil {
+					return fmt.Errorf("invalid git.remote.interval %q", gitRemoteConfig.Interval)
+				}
+				interval = parsed
+			}
+			apiSettings = append(apiSettings,
+				api.Setting{Key: "git.remote.url", Value: gitRemoteConfig.URL, Source: "file"},
+				api.Setting{Key: "git.remote.token", Value: gitRemoteConfig.Token, Source: "file", Secret: true},
+			)
+		} else if runtimeState.Git.RemoteURL != "" {
+			remote = &history.Remote{
+				URL:      runtimeState.Git.RemoteURL,
+				Username: runtimeState.Git.Username,
+				Password: runtimeState.Git.Token,
+			}
+			if runtimeState.Git.IntervalSeconds > 0 {
+				interval = time.Duration(runtimeState.Git.IntervalSeconds) * time.Second
+			}
+		}
+		syncer = history.NewSyncer(historyService, remote, interval)
+		if remote != nil {
+			logger.Info("git sync enabled", "remote", remote.URL, "interval", interval)
+		}
+	} else if gitProvisioned {
+		logger.Warn("git.remote ignored: the dashboards directory is not in a git work tree")
+	}
+	if syncer != nil {
+		go syncer.Run(ctx)
+	}
+
 	mux := http.NewServeMux()
 	api.New(api.Options{
 		Store:                 dashboardStore,
@@ -265,6 +325,8 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		Logger:                logger,
 		History:               historyService,
 		CommitOnSave:          commitOnSave,
+		Syncer:                syncer,
+		GitProvisioned:        gitProvisioned,
 	}).Routes(mux)
 	mux.Handle("/", ui.Handler())
 

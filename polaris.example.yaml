@@ -23,9 +23,19 @@ grafana_com:
 git:
   # Record every UI dashboard write (save, delete, restore) as a local
   # git commit authored by the acting user. Requires the dashboards
-  # directory to be inside a git work tree. Pushing stays external:
-  # review and publish the commits like any other change.
+  # directory to be inside a git work tree.
   commit_on_save: false
+  # Sync the dashboards repository with a remote: local commits are
+  # pushed (right after each commit-on-save) and remote changes pulled
+  # on the interval. HTTPS + token only; credentials are handed to git
+  # via askpass, never on a command line. Provisioning the remote here
+  # locks the Admin → Git sync UI (an admin can otherwise configure it
+  # at runtime, stored in the settings.yaml state file).
+  # remote:
+  #   url: https://github.com/acme/dashboards.git
+  #   username: x-access-token
+  #   token: ${GIT_TOKEN}
+  #   interval: 60s
 
 auth:
   # Server-managed state (local users, session secret). Created on first

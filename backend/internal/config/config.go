@@ -28,8 +28,12 @@ type Config struct {
 	Git struct {
 		// CommitOnSave records every UI dashboard write as a local git
 		// commit authored by the acting user (requires the dashboards
-		// directory inside a git work tree). Pushing stays external.
+		// directory inside a git work tree).
 		CommitOnSave bool `yaml:"commit_on_save"`
+		// Remote enables push/pull sync with a git remote (HTTPS +
+		// token). Provisioning it here locks the admin UI, like the
+		// Prometheus URL.
+		Remote GitRemoteConfig `yaml:"remote"`
 	} `yaml:"git"`
 	Auth struct {
 		// Server-managed state (users, mappings, session secret).
@@ -39,6 +43,16 @@ type Config struct {
 		// Native OpenID Connect login (DESIGN.md §7.4 phase 3).
 		OIDC auth.OIDCConfig `yaml:"oidc"`
 	} `yaml:"auth"`
+}
+
+// GitRemoteConfig provisions the git sync remote from polaris.yaml.
+type GitRemoteConfig struct {
+	URL      string `yaml:"url"`
+	Username string `yaml:"username"`
+	Token    string `yaml:"token"`
+	// Interval between pull cycles (Go duration, default 60s); pushes
+	// happen right after each commit-on-save.
+	Interval string `yaml:"interval"`
 }
 
 // Defaults returns the built-in configuration.

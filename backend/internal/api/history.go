@@ -30,6 +30,11 @@ func (s *Server) commitDashboard(request *http.Request, path, defaultMessage str
 	user := s.usernameOf(request)
 	if err := s.history.Commit(path, message, user, user+"@polaris.local"); err != nil {
 		s.logger.Warn("commit-on-save failed", "path", path, "error", err)
+		return
+	}
+	if s.syncer != nil {
+		// Push the fresh commit without waiting for the pull timer.
+		s.syncer.NotifyCommit()
 	}
 }
 

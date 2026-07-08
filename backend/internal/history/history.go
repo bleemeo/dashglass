@@ -67,12 +67,19 @@ func Detect(dir string) *Service {
 // is pinned so Commit works in repositories with no user.name configured
 // (the author carries the human identity).
 func (s *Service) git(args ...string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	return s.gitEnv(nil, commandTimeout, args...)
+}
+
+// gitEnv is git with extra environment variables (remote credentials)
+// and a custom timeout (network operations need more than local ones).
+func (s *Service) gitEnv(extraEnv []string, timeout time.Duration, args ...string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "git", append([]string{"-C", s.dir}, args...)...)
 	cmd.Env = append(os.Environ(),
 		"GIT_OPTIONAL_LOCKS=0", "GIT_TERMINAL_PROMPT=0",
 		"GIT_COMMITTER_NAME=Polaris", "GIT_COMMITTER_EMAIL=polaris@localhost")
+	cmd.Env = append(cmd.Env, extraEnv...)
 	var stdout, stderr strings.Builder
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
