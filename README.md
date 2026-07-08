@@ -11,12 +11,19 @@ version, review and deploy through git.
 - **Files are the product** — every dashboard is a git-friendly file with
   deterministic serialization: a one-field edit produces a one-line diff.
   Edit in the UI, review in git, or run fully provisioned (`-readonly`).
+- **Git-native history** — browse a dashboard's versions, diff them and
+  restore one, straight from the UI (backed by `git log`). Optional
+  commit-on-save and push/pull sync with a remote close the GitOps loop:
+  edit in the browser, land an attributed commit, and pull teammates'
+  changes live.
 - **Prometheus-native** — queries go through a read-only proxy to your
   Prometheus; a built-in PromQL editor with live autocompletion, an
   Explore view, chained dashboard variables.
 - **Grafana import** — convert dashboards from a JSON export or straight
   from grafana.com, with honest per-panel warnings.
-- **Light & dark**, keyboard shortcuts, kiosk mode for wall screens.
+- **Batteries where it counts** — local users with three roles, plus
+  reverse-proxy and OIDC authentication; light & dark themes; keyboard
+  shortcuts and a kiosk mode for wall screens.
 
 ## Quickstart
 
