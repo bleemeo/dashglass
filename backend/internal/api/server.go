@@ -38,9 +38,10 @@ type Server struct {
 	proxyAuth  *auth.ProxyAuthenticator
 	oidc       *auth.OIDCAuthenticator
 	throttle   *auth.Throttle
-	settings   []Setting
-	logger     *slog.Logger
-	history    *history.Service // nil = dashboards dir is not a git work tree
+	settings     []Setting
+	logger       *slog.Logger
+	history      *history.Service // nil = dashboards dir is not a git work tree
+	commitOnSave bool
 
 	// prom is the current Prometheus connection, swappable at runtime by
 	// the datasource admin API (nil = not configured). promProvisioned
@@ -88,6 +89,9 @@ type Options struct {
 	// History serves the read-only git history of dashboard files; nil
 	// hides the feature (no git, or the directory is not a work tree).
 	History *history.Service
+	// CommitOnSave records every dashboard write as a git commit
+	// authored by the acting user (requires History).
+	CommitOnSave bool
 }
 
 func New(options Options) *Server {
@@ -99,10 +103,11 @@ func New(options Options) *Server {
 		auth:      options.Auth,
 		proxyAuth: options.ProxyAuth,
 		oidc:      options.OIDC,
-		throttle:  auth.NewThrottle(),
-		settings:  options.Settings,
-		logger:    options.Logger,
-		history:   options.History,
+		throttle:     auth.NewThrottle(),
+		settings:     options.Settings,
+		logger:       options.Logger,
+		history:      options.History,
+		commitOnSave: options.CommitOnSave && options.History != nil,
 	}
 	if server.logger == nil {
 		server.logger = slog.Default()
@@ -237,9 +242,10 @@ func (s *Server) putDashboard(writer http.ResponseWriter, request *http.Request)
 	}
 
 	name := request.PathValue("name")
+	existed := s.store.Exists(name)
 	// "If-None-Match: *" makes the PUT create-only, so the UI's "new
 	// dashboard" flow cannot silently overwrite an existing file.
-	if request.Header.Get("If-None-Match") == "*" && s.store.Exists(name) {
+	if request.Header.Get("If-None-Match") == "*" && existed {
 		writeError(writer, http.StatusConflict,
 			fmt.Sprintf("dashboard %q already exists", name))
 		return
@@ -253,6 +259,13 @@ func (s *Server) putDashboard(writer http.ResponseWriter, request *http.Request)
 		writeError(writer, http.StatusBadRequest, err.Error())
 		return
 	}
+	if path, _, err := s.store.FilePath(name); err == nil {
+		verb := "Update"
+		if !existed {
+			verb = "Create"
+		}
+		s.commitDashboard(request, path, fmt.Sprintf("%s dashboard %s", verb, name))
+	}
 	writeJSON(writer, http.StatusOK, map[string]any{"name": name, "format": format})
 }
 
@@ -261,7 +274,10 @@ func (s *Server) deleteDashboard(writer http.ResponseWriter, request *http.Reque
 		writeError(writer, http.StatusForbidden, "dashboards are provisioned read-only")
 		return
 	}
-	err := s.store.Delete(request.PathValue("name"))
+	name := request.PathValue("name")
+	// Resolved before the delete: the path is gone afterwards.
+	path, _, pathErr := s.store.FilePath(name)
+	err := s.store.Delete(name)
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(writer, http.StatusNotFound, err.Error())
 		return
@@ -269,6 +285,9 @@ func (s *Server) deleteDashboard(writer http.ResponseWriter, request *http.Reque
 	if err != nil {
 		writeError(writer, http.StatusInternalServerError, err.Error())
 		return
+	}
+	if pathErr == nil {
+		s.commitDashboard(request, path, "Delete dashboard "+name)
 	}
 	writer.WriteHeader(http.StatusNoContent)
 }

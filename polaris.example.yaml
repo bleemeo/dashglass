@@ -20,6 +20,13 @@ grafana_com:
   # air-gapped installs.
   disable: false
 
+git:
+  # Record every UI dashboard write (save, delete, restore) as a local
+  # git commit authored by the acting user. Requires the dashboards
+  # directory to be inside a git work tree. Pushing stays external:
+  # review and publish the commits like any other change.
+  commit_on_save: false
+
 auth:
   # Server-managed state (local users, session secret). Created on first
   # use; never edit by hand. Manage users from the admin UI, or the

@@ -107,6 +107,78 @@ func TestShow(t *testing.T) {
 	}
 }
 
+func TestCommit(t *testing.T) {
+	dir, _ := initRepo(t)
+	service := Detect(dir)
+	path := filepath.Join(dir, "new.yaml")
+
+	// Creation of an untracked file.
+	if err := os.WriteFile(path, []byte("kind: Dashboard\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Commit(path, "Create dashboard new", "alice", "alice@polaris.local"); err != nil {
+		t.Fatal(err)
+	}
+	commits, err := service.Log(path, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commits) != 1 || commits[0].Subject != "Create dashboard new" || commits[0].Author != "alice" {
+		t.Fatalf("unexpected log after create: %+v", commits)
+	}
+
+	// Unchanged file → no new commit.
+	if err := service.Commit(path, "noop", "alice", ""); err != nil {
+		t.Fatal(err)
+	}
+	if commits, _ = service.Log(path, 10); len(commits) != 1 {
+		t.Fatalf("no-op save must not commit, log: %+v", commits)
+	}
+
+	// Edit, then deletion.
+	if err := os.WriteFile(path, []byte("kind: Dashboard\nname: x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Commit(path, "Update dashboard new", "bob", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Commit(path, "Delete dashboard new", "bob", ""); err != nil {
+		t.Fatal(err)
+	}
+	commits, err = service.Log(path, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commits) != 3 || commits[0].Subject != "Delete dashboard new" {
+		t.Fatalf("unexpected log after delete: %+v", commits)
+	}
+
+	// Other staged work must survive a dashboard commit untouched.
+	other := filepath.Join(dir, "unrelated.txt")
+	if err := os.WriteFile(other, []byte("keep me staged\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.git("add", "--", "./unrelated.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("kind: Dashboard\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Commit(path, "Recreate dashboard new", "alice", ""); err != nil {
+		t.Fatal(err)
+	}
+	status, err := service.git("status", "--porcelain", "--", "./unrelated.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(status, "A ") {
+		t.Fatalf("unrelated staged file was disturbed: %q", status)
+	}
+}
+
 func TestDiff(t *testing.T) {
 	dir, hashes := initRepo(t)
 	service := Detect(dir)

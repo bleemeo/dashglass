@@ -1,7 +1,9 @@
-// Package history exposes the git history of dashboard files. It is a
-// strictly read-only integration: git itself is the version store, the
-// backend only runs log/show/diff. Restoring an old version goes through
-// the regular dashboard PUT — polaris never writes to the repository.
+// Package history integrates dashboard files with git. Reads (log, show,
+// diff) power the History view; the one write, Commit, records a UI save
+// as a local commit when commit-on-save is enabled. Git itself is the
+// version store, and the remote is never touched — pushing (or reviewing
+// and committing by hand when commit-on-save is off) stays the user's or
+// the GitOps pipeline's business.
 package history
 
 import (
@@ -12,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -24,11 +27,13 @@ type Commit struct {
 	Subject string `json:"subject"`
 }
 
-// Service runs read-only git commands for files under the dashboards
-// directory. A nil *Service means the feature is unavailable (no git
-// binary, or the directory is not inside a work tree).
+// Service runs git commands for files under the dashboards directory.
+// A nil *Service means git is unavailable (no binary, or the directory
+// is not inside a work tree). Reads are lock-free; the only write,
+// Commit, is serialized (git's index allows one writer).
 type Service struct {
 	dir string
+	mu  sync.Mutex
 }
 
 const commandTimeout = 5 * time.Second
@@ -58,12 +63,16 @@ func Detect(dir string) *Service {
 
 // git runs one git command in the dashboards directory and returns its
 // stdout. Optional locks are disabled so read commands never take locks
-// (or leave lock files) in the user's repository.
+// (or leave lock files) in the user's repository. The committer identity
+// is pinned so Commit works in repositories with no user.name configured
+// (the author carries the human identity).
 func (s *Service) git(args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "git", append([]string{"-C", s.dir}, args...)...)
-	cmd.Env = append(os.Environ(), "GIT_OPTIONAL_LOCKS=0", "GIT_TERMINAL_PROMPT=0")
+	cmd.Env = append(os.Environ(),
+		"GIT_OPTIONAL_LOCKS=0", "GIT_TERMINAL_PROMPT=0",
+		"GIT_COMMITTER_NAME=Polaris", "GIT_COMMITTER_EMAIL=polaris@localhost")
 	var stdout, stderr strings.Builder
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -88,8 +97,10 @@ func (s *Service) rel(path string) (string, error) {
 	return "./" + filepath.ToSlash(rel), nil
 }
 
-// Log lists the commits touching a file, most recent first. Renames are
-// followed. limit caps the number of entries (a positive value is
+// Log lists the commits touching a file, most recent first. Exact-path
+// only: --follow is deliberately avoided, its similarity-based rename
+// detection misattributes history between small, similar dashboard
+// files. limit caps the number of entries (a positive value is
 // required; the handler owns the default).
 func (s *Service) Log(path string, limit int) ([]Commit, error) {
 	rel, err := s.rel(path)
@@ -97,9 +108,14 @@ func (s *Service) Log(path string, limit int) ([]Commit, error) {
 		return nil, err
 	}
 	// Unit separator (\x1f) fields: hash, author, author date, subject.
-	out, err := s.git("log", "--follow", fmt.Sprintf("-n%d", limit),
+	out, err := s.git("log", fmt.Sprintf("-n%d", limit),
 		"--format=%H%x1f%an%x1f%aI%x1f%s", "--", rel)
 	if err != nil {
+		// A freshly initialized repository has no commits at all; that
+		// is an empty history, not an error.
+		if strings.Contains(err.Error(), "does not have any commits yet") {
+			return []Commit{}, nil
+		}
 		return nil, err
 	}
 	commits := []Commit{}
@@ -132,6 +148,43 @@ func (s *Service) Show(path, hash string) ([]byte, error) {
 		return nil, err
 	}
 	return []byte(out), nil
+}
+
+// Commit records the current state of a file — creation, edit or
+// deletion — as one git commit authored by the acting polaris user
+// (committer stays "Polaris"). A no-op when the file matches HEAD.
+// Only the given path is committed: anything else the user may have
+// staged in the repository is left untouched.
+func (s *Service) Commit(path, message, author, email string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	rel, err := s.rel(path)
+	if err != nil {
+		return err
+	}
+	// Stage the path: covers new files, edits and deletions alike.
+	if _, err := s.git("add", "-A", "--", rel); err != nil {
+		return err
+	}
+	// Unchanged (e.g. a save that produced identical bytes): no commit.
+	status, err := s.git("status", "--porcelain", "--", rel)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(status) == "" {
+		return nil
+	}
+	if author == "" {
+		author = "polaris"
+	}
+	if email == "" {
+		email = author + "@polaris.local"
+	}
+	_, err = s.git("commit", "-q",
+		"-m", message,
+		"--author", fmt.Sprintf("%s <%s>", author, email),
+		"--", rel)
+	return err
 }
 
 // Diff returns the unified diff of the file between two commits, or

@@ -101,7 +101,9 @@ function CommitEntry({
     setRestoring(true);
     try {
       const version = await getHistoryVersion(name, commit.hash);
-      await putDashboard(name, version.content, version.format);
+      await putDashboard(name, version.content, version.format, {
+        commitMessage: `Restore dashboard ${name} to ${commit.hash.slice(0, 7)}`,
+      });
       await queryClient.invalidateQueries({ queryKey: ["dashboards"] });
       toaster.create({
         type: "success",

@@ -53,6 +53,8 @@ func main() {
 	readonly := flag.Bool("readonly", false, "provisioned mode: dashboards are managed by git only, the API refuses writes")
 	disableGrafanaCom := flag.Bool("disable-grafana-com", false,
 		"disable the grafana.com dashboard import proxy (the only outbound internet call)")
+	gitCommitOnSave := flag.Bool("git-commit-on-save", false,
+		"record every UI dashboard write as a git commit authored by the acting user")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
@@ -103,6 +105,9 @@ func main() {
 		"grafana_com.disable": resolve("grafana_com.disable",
 			boolString(cfg.GrafanaCom.Disable), "false",
 			"POLARIS_DISABLE_GRAFANA_COM", boolString(*disableGrafanaCom), flagsSet["disable-grafana-com"]),
+		"git.commit_on_save": resolve("git.commit_on_save",
+			boolString(cfg.Git.CommitOnSave), "false",
+			"POLARIS_GIT_COMMIT_ON_SAVE", boolString(*gitCommitOnSave), flagsSet["git-commit-on-save"]),
 		"auth.file": resolve("auth.file", cfg.Auth.File, defaults.Auth.File,
 			"POLARIS_AUTH_FILE", "", false),
 	}
@@ -205,7 +210,7 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 	apiSettings := make([]api.Setting, 0, len(settings))
 	for _, key := range []string{
 		"listen", "prometheus.url", "dashboards.dir", "dashboards.readonly",
-		"grafana_com.disable", "auth.file",
+		"grafana_com.disable", "git.commit_on_save", "auth.file",
 	} {
 		apiSettings = append(apiSettings, api.Setting{
 			Key:    key,
@@ -230,11 +235,16 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		)
 	}
 
-	// Read-only git history: available whenever the dashboards directory
-	// lives inside a git work tree (the GitOps setup this tool is for).
+	// Git history: available whenever the dashboards directory lives
+	// inside a git work tree (the GitOps setup this tool is for).
 	historyService := history.Detect(dashboardStore.Dir())
 	if historyService == nil {
 		logger.Info("dashboard history disabled (dashboards directory is not in a git work tree)")
+	}
+	commitOnSave := settings["git.commit_on_save"].value == "true"
+	if commitOnSave && historyService == nil {
+		logger.Warn("git.commit_on_save ignored: the dashboards directory is not in a git work tree")
+		commitOnSave = false
 	}
 
 	mux := http.NewServeMux()
@@ -254,6 +264,7 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		Settings:              apiSettings,
 		Logger:                logger,
 		History:               historyService,
+		CommitOnSave:          commitOnSave,
 	}).Routes(mux)
 	mux.Handle("/", ui.Handler())
 

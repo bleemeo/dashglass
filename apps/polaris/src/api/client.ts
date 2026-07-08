@@ -412,7 +412,7 @@ export async function putDashboard(
   name: string,
   content: string,
   format: DashboardFile["format"],
-  options: { createOnly?: boolean } = {},
+  options: { createOnly?: boolean; commitMessage?: string } = {},
 ): Promise<void> {
   const headers: Record<string, string> = {
     "Content-Type": CONTENT_TYPES[format],
@@ -420,6 +420,10 @@ export async function putDashboard(
   if (options.createOnly) {
     // The backend then refuses to overwrite an existing dashboard (409).
     headers["If-None-Match"] = "*";
+  }
+  if (options.commitMessage) {
+    // Subject of the commit-on-save commit, when the server enables it.
+    headers["X-Commit-Message"] = options.commitMessage;
   }
   const response = await fetch(`/api/dashboards/${dashboardPath(name)}`, {
     method: "PUT",

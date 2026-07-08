@@ -4,9 +4,34 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/bleemeo/polarisui/backend/internal/store"
 )
+
+// maxCommitMessage bounds the user-supplied commit subject.
+const maxCommitMessage = 200
+
+// commitDashboard records a dashboard write as a git commit when
+// commit-on-save is enabled. The file operation already succeeded: a
+// commit failure is logged (and shows up as a gap in the History view)
+// rather than failing the request. The optional X-Commit-Message header
+// overrides the generated subject.
+func (s *Server) commitDashboard(request *http.Request, path, defaultMessage string) {
+	if !s.commitOnSave {
+		return
+	}
+	message := strings.TrimSpace(request.Header.Get("X-Commit-Message"))
+	if message == "" {
+		message = defaultMessage
+	} else if len(message) > maxCommitMessage {
+		message = message[:maxCommitMessage]
+	}
+	user := s.usernameOf(request)
+	if err := s.history.Commit(path, message, user, user+"@polaris.local"); err != nil {
+		s.logger.Warn("commit-on-save failed", "path", path, "error", err)
+	}
+}
 
 // dashboardHistory serves the read-only git history of a dashboard file:
 // the commit list by default, the file content at ?at=<hash>, or a

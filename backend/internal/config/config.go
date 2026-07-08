@@ -25,6 +25,12 @@ type Config struct {
 	GrafanaCom struct {
 		Disable bool `yaml:"disable"`
 	} `yaml:"grafana_com"`
+	Git struct {
+		// CommitOnSave records every UI dashboard write as a local git
+		// commit authored by the acting user (requires the dashboards
+		// directory inside a git work tree). Pushing stays external.
+		CommitOnSave bool `yaml:"commit_on_save"`
+	} `yaml:"git"`
 	Auth struct {
 		// Server-managed state (users, mappings, session secret).
 		File string `yaml:"file"`
