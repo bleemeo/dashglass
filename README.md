@@ -29,6 +29,11 @@ docker compose up
 # open http://localhost:8080
 ```
 
+Starting from an empty instance? The home screen offers ready-made
+example dashboards (built only from metrics Prometheus exposes about
+itself, so they show real data immediately) — create one in a click, or
+import from Grafana.
+
 Or as a single binary against your own Prometheus:
 
 ```sh
