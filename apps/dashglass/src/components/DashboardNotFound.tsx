@@ -2,6 +2,7 @@ import { Flex, Heading, Link as ChakraLink, Text } from "@chakra-ui/react";
 import { Link } from "react-router";
 
 import { usePageTitle } from "../hooks/usePageTitle";
+import { BrandMark } from "./icons";
 
 /** Friendly not-found state for /d/:name routes (stale bookmark, deleted
  * or renamed dashboard) — mirrors the app's unknown-route page. */
@@ -16,7 +17,7 @@ export function DashboardNotFound({ name }: { name: string }) {
       gap={3}
       color="fg.muted"
     >
-      <Text fontSize="4xl">✦</Text>
+      <BrandMark size={44} />
       <Heading size="md">Dashboard not found</Heading>
       <Text fontSize="sm">
         No dashboard named "{name}" exists — it may have been deleted or

@@ -14,6 +14,55 @@ const common = {
   strokeLinejoin: "round",
 } as const;
 
+/**
+ * The Dashglass brand mark: a rounded "pane of glass" tile with a gauge
+ * inside — dashboard + glass. Keep in sync with the favicon in index.html.
+ *
+ * - "solid" (default): brand-blue tile, white gauge — for light/dark
+ *   surfaces. Self-contained.
+ * - "onBrand": all-white (outlined tile + white gauge) — for the blue
+ *   brand gradient, where the solid blue tile would vanish.
+ */
+export function BrandMark({
+  size = 20,
+  tone = "solid",
+}: {
+  size?: number;
+  tone?: "solid" | "onBrand";
+}) {
+  const gauge = "#fff";
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      <rect
+        x="2"
+        y="2"
+        width="20"
+        height="20"
+        rx="5"
+        fill={tone === "onBrand" ? "none" : "#2a78d6"}
+        stroke={tone === "onBrand" ? "#fff" : "none"}
+        strokeWidth={tone === "onBrand" ? 1.5 : 0}
+      />
+      <path
+        d="M8.46 15.54 A5 5 0 1 1 15.54 15.54"
+        stroke={gauge}
+        strokeOpacity="0.4"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8.46 15.54 A5 5 0 1 1 16.33 9.5"
+        stroke={gauge}
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <circle cx="16.33" cy="9.5" r="1.4" fill={gauge} />
+    </svg>
+  );
+}
+
 export function RefreshIcon() {
   return (
     <svg {...common} aria-hidden>

@@ -18,6 +18,7 @@ import { ColorModeButton } from "@dashglass/ui";
 
 import { APIError, login } from "../api/client";
 import { useCapabilities, usePermissions } from "../api/hooks";
+import { BrandMark } from "../components/icons";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 // Fixed brand surface (intentionally the same in light and dark).
@@ -298,8 +299,15 @@ export function LoginPage() {
         color="white"
         style={{ background: BRAND_GRADIENT }}
       >
-        <Heading size="lg" fontWeight="bold">
-          ✦ Dashglass
+        <Heading
+          size="lg"
+          fontWeight="bold"
+          display="flex"
+          alignItems="center"
+          gap={2}
+        >
+          <BrandMark size={24} tone="onBrand" />
+          Dashglass
         </Heading>
         <Box>
           <Heading size="2xl" lineHeight="1.15" maxWidth="16ch">
@@ -331,10 +339,13 @@ export function LoginPage() {
           {/* Compact brand header for narrow screens. */}
           <Heading
             size="lg"
-            display={{ base: "block", lg: "none" }}
-            textAlign="center"
+            display={{ base: "flex", lg: "none" }}
+            justifyContent="center"
+            alignItems="center"
+            gap={2}
           >
-            ✦ Dashglass
+            <BrandMark size={22} />
+            Dashglass
           </Heading>
           <Box>
             <Heading size="lg">Sign in</Heading>

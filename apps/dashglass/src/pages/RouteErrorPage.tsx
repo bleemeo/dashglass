@@ -1,6 +1,8 @@
 import { Button, Flex, Heading, Text } from "@chakra-ui/react";
 import { useRouteError } from "react-router";
 
+import { BrandMark } from "../components/icons";
+
 /**
  * Router-level error boundary: a render crash anywhere in the app lands
  * here instead of react-router's default screen (or a blank page).
@@ -18,7 +20,7 @@ export function RouteErrorPage() {
       gap={3}
       color="fg.muted"
     >
-      <Text fontSize="4xl">✦</Text>
+      <BrandMark size={44} />
       <Heading size="md">Something went wrong</Heading>
       <Text
         fontSize="xs"

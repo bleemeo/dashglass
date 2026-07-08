@@ -21,7 +21,7 @@ import {
 import { AuthDisabledBanner } from "./components/AuthDisabledBanner";
 import { PrometheusStatusBanner } from "./components/PrometheusStatusBanner";
 import { ShortcutsHelp } from "./components/ShortcutsHelp";
-import { AdminIcon, SidebarIcon } from "./components/icons";
+import { AdminIcon, BrandMark, SidebarIcon } from "./components/icons";
 import { UserMenu } from "./components/UserMenu";
 import { LoginPage } from "./pages/LoginPage";
 import { usePageTitle } from "./hooks/usePageTitle";
@@ -93,8 +93,15 @@ function SideBar({
           </>
         ) : (
           <>
-            <Heading size="md" whiteSpace="nowrap">
-              ✦ Dashglass
+            <Heading
+              size="md"
+              whiteSpace="nowrap"
+              display="flex"
+              alignItems="center"
+              gap={2}
+            >
+              <BrandMark size={20} />
+              Dashglass
             </Heading>
             <Flex alignItems="center" gap={0.5}>
               <ColorModeButton />
@@ -179,7 +186,7 @@ function NotFoundPage() {
       gap={3}
       color="fg.muted"
     >
-      <Text fontSize="4xl">✦</Text>
+      <BrandMark size={44} />
       <Heading size="md">Page not found</Heading>
       <Text fontSize="sm">This page doesn't exist (anymore).</Text>
       <ChakraLink asChild color="blue.600" _dark={{ color: "blue.400" }}>
