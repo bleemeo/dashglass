@@ -2,6 +2,8 @@ import { lazy } from "react";
 
 import type { PanelRegistry } from "@dashglass/runtime";
 
+import { STATUS_PRESETS } from "./status/options";
+
 import { BarEditor } from "./bar/editor";
 import { ClockEditor } from "./clock/editor";
 import { GaugeEditor } from "./gauge/editor";
@@ -9,6 +11,7 @@ import { HeatmapEditor } from "./heatmap/editor";
 import { ImageEditor } from "./image/editor";
 import { MarkdownEditor } from "./markdown/editor";
 import { StatEditor } from "./stat/editor";
+import { StatusEditor } from "./status/editor";
 import { TableEditor } from "./table/editor";
 import { TimeSeriesEditor } from "./time-series/editor";
 
@@ -110,6 +113,19 @@ export function registerBuiltinPanels(panels: PanelRegistry): void {
     ),
     editor: ClockEditor,
   });
+  panels.register({
+    kind: "StatusGrid",
+    displayName: "Status grid",
+    component: lazy(() =>
+      import("./status/StatusGrid").then((module) => ({
+        default: module.StatusGrid,
+      })),
+    ),
+    editor: StatusEditor,
+    // Default to the 0=OK status-code convention (Nagios, and Glouton's
+    // _status over Prometheus); switch the preset for up/probe_success.
+    defaultSpec: { valueMappings: STATUS_PRESETS.nagios },
+  });
 }
 
 export {
@@ -175,6 +191,20 @@ export {
 } from "./markdown/options";
 export { imageSpecSchema, type ImageSpec } from "./image/options";
 export {
+  STATUS_PRESETS,
+  honeycombColumns,
+  layoutHoneycomb,
+  mapStatus,
+  seriesLabel,
+  statusColor,
+  statusSpecSchema,
+  summarize,
+  type StatusSpec,
+  type StatusState,
+  type StatusItem,
+  type ValueMapping,
+} from "./status/options";
+export {
   clockSpecSchema,
   formatClock,
   CLOCK_FORMATS,
@@ -185,6 +215,7 @@ export { TimeSeriesEditor } from "./time-series/editor";
 export { StatEditor } from "./stat/editor";
 export { GaugeEditor } from "./gauge/editor";
 export { TableEditor } from "./table/editor";
+export { StatusEditor } from "./status/editor";
 export {
   CheckboxField,
   Field,

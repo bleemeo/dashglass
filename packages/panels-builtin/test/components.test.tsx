@@ -1,9 +1,11 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { PanelData, TimeSeries } from "@dashglass/runtime";
 
 import { StatChart } from "../src/stat/StatChart";
+import { StatusGrid } from "../src/status/StatusGrid";
+import { STATUS_PRESETS } from "../src/status/options";
 import { TablePanel, tableColumns } from "../src/table/TablePanel";
 
 const readyData = (series: PanelData["series"]): PanelData => ({
@@ -11,6 +13,10 @@ const readyData = (series: PanelData["series"]): PanelData => ({
   series,
   errors: [],
 });
+
+// Unmount between tests so the shared document doesn't accumulate
+// matches (several panels render the same "No data" empty state).
+afterEach(cleanup);
 
 describe("StatChart", () => {
   it("renders the hero value with unit and sparkline", () => {
@@ -45,6 +51,41 @@ describe("StatChart", () => {
         timeRange={{ start: new Date(0), end: new Date(1000) }}
       />,
     );
+    expect(screen.getByText("No data")).toBeDefined();
+  });
+});
+
+describe("StatusGrid", () => {
+  const range = { start: new Date(0), end: new Date(1000) };
+
+  it("renders one hexagon per series with a state summary", () => {
+    render(
+      <StatusGrid
+        spec={{ valueMappings: STATUS_PRESETS.boolean }}
+        data={readyData([
+          { name: "a", labels: { instance: "web-1" }, points: [[0, 1]] },
+          { name: "b", labels: { instance: "web-2" }, points: [[0, 1]] },
+          { name: "c", labels: { instance: "web-3" }, points: [[0, 0]] },
+        ])}
+        timeRange={range}
+      />,
+    );
+    // One tile per series.
+    expect(document.querySelectorAll(".dashglass-status-grid polygon")).toHaveLength(3);
+    // Summary: two up (good), one down (critical).
+    const summary = document.querySelector(".dashglass-status-summary");
+    expect(summary?.textContent).toContain("2");
+    expect(summary?.textContent).toContain("1");
+    // Tooltip carries the tile name and mapped label.
+    const titles = [...document.querySelectorAll(".dashglass-status-grid title")].map(
+      (t) => t.textContent,
+    );
+    expect(titles).toContain("web-1: Up");
+    expect(titles).toContain("web-3: Down");
+  });
+
+  it("shows the empty state without series", () => {
+    render(<StatusGrid spec={{}} data={readyData([])} timeRange={range} />);
     expect(screen.getByText("No data")).toBeDefined();
   });
 });
