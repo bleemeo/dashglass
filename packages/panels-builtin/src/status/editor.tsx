@@ -55,12 +55,29 @@ export function StatusEditor({ spec: rawSpec, onChange }: PanelSpecEditorProps) 
           onChange(withSpecValue(rawSpec, "nameLabel", nameLabel))
         }
       />
+      <SelectField
+        label="Tile order"
+        value={spec.sort ?? ""}
+        options={[
+          ["", "Worst first (default)"],
+          ["none", "Query order"],
+        ]}
+        onChange={(sort) => onChange(withSpecValue(rawSpec, "sort", sort))}
+      />
       <NumberField
         label="Tiles per row"
         value={spec.columns}
         step={1}
         onChange={(columns) =>
           onChange(withSpecValue(rawSpec, "columns", columns))
+        }
+      />
+      <NumberField
+        label="Max tiles (empty = all)"
+        value={spec.maxTiles}
+        step={1}
+        onChange={(maxTiles) =>
+          onChange(withSpecValue(rawSpec, "maxTiles", maxTiles))
         }
       />
     </div>

@@ -10,6 +10,7 @@ import {
   hexPoints,
   layoutHoneycomb,
   mapStatus,
+  orderBySeverity,
   seriesLabel,
   statusColor,
   statusGlyphPath,
@@ -54,8 +55,17 @@ export function StatusGrid({ spec, data }: PanelProps) {
     return <NoData />;
   }
 
+  // Summary counts every series; the grid may then be sorted worst-first
+  // and capped, so a few problems stay visible in a large honeycomb.
   const summary = summarize(items);
-  const layout = layoutHoneycomb(items.length, parsed.columns);
+  const ordered =
+    parsed.sort === "none" ? items : orderBySeverity(items);
+  const shown =
+    parsed.maxTiles && ordered.length > parsed.maxTiles
+      ? ordered.slice(0, parsed.maxTiles)
+      : ordered;
+  const overflow = ordered.length - shown.length;
+  const layout = layoutHoneycomb(shown.length, parsed.columns);
   const glyphStroke = Math.max(1.4, layout.radius * 0.14);
 
   return (
@@ -93,6 +103,9 @@ export function StatusGrid({ spec, data }: PanelProps) {
             {SUMMARY_CHAR[entry.status]} {entry.count}
           </span>
         ))}
+        {overflow > 0 ? (
+          <span style={{ color: theme.ink.muted }}>+{overflow} more</span>
+        ) : null}
       </div>
       <svg
         className="dashglass-status-grid"
@@ -101,7 +114,7 @@ export function StatusGrid({ spec, data }: PanelProps) {
         style={{ flex: 1, minHeight: 0, width: "100%" }}
         role="img"
       >
-        {items.map((item, index) => {
+        {shown.map((item, index) => {
           const pos = layout.positions[index]!;
           const color = statusColor(theme, item.status);
           return (

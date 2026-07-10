@@ -6,6 +6,7 @@ import {
   layoutHoneycomb,
   lightChartTheme,
   mapStatus,
+  orderBySeverity,
   statusColor,
   summarize,
   type StatusItem,
@@ -58,6 +59,35 @@ describe("summarize", () => {
       { status: "good", count: 2 },
       { status: "critical", count: 1 },
     ]);
+  });
+});
+
+describe("orderBySeverity", () => {
+  it("puts problems first, stable within a state", () => {
+    const items: StatusItem[] = [
+      { name: "a", status: "good", text: "OK" },
+      { name: "b", status: "critical", text: "Critical" },
+      { name: "c", status: "good", text: "OK" },
+      { name: "d", status: "warning", text: "Warning" },
+      { name: "e", status: "critical", text: "Critical" },
+    ];
+    // critical (b,e keep order) → warning (d) → good (a,c keep order).
+    expect(orderBySeverity(items).map((i) => i.name)).toEqual([
+      "b",
+      "e",
+      "d",
+      "a",
+      "c",
+    ]);
+  });
+
+  it("does not mutate the input", () => {
+    const items: StatusItem[] = [
+      { name: "a", status: "good", text: "OK" },
+      { name: "b", status: "critical", text: "Critical" },
+    ];
+    orderBySeverity(items);
+    expect(items[0]!.name).toBe("a");
   });
 });
 

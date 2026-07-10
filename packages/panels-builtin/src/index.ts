@@ -195,6 +195,7 @@ export {
   honeycombColumns,
   layoutHoneycomb,
   mapStatus,
+  orderBySeverity,
   seriesLabel,
   statusColor,
   statusSpecSchema,

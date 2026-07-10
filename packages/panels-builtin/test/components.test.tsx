@@ -84,6 +84,31 @@ describe("StatusGrid", () => {
     expect(titles).toContain("web-3: Down");
   });
 
+  it("sorts worst-first and caps with an overflow note", () => {
+    render(
+      <StatusGrid
+        spec={{ valueMappings: STATUS_PRESETS.boolean, maxTiles: 3 }}
+        data={readyData([
+          { name: "a", labels: { instance: "a" }, points: [[0, 1]] }, // up
+          { name: "b", labels: { instance: "b" }, points: [[0, 0]] }, // down
+          { name: "c", labels: { instance: "c" }, points: [[0, 1]] }, // up
+          { name: "d", labels: { instance: "d" }, points: [[0, 0]] }, // down
+        ])}
+        timeRange={range}
+      />,
+    );
+    // 4 series, capped at 3 tiles → one collapses into "+1 more".
+    expect(document.querySelectorAll(".dashglass-status-grid polygon")).toHaveLength(3);
+    const summary = document.querySelector(".dashglass-status-summary");
+    expect(summary?.textContent).toContain("+1 more");
+    // Worst-first: the two down (critical) tiles are drawn before any up.
+    const titles = [...document.querySelectorAll(".dashglass-status-grid title")].map(
+      (t) => t.textContent,
+    );
+    expect(titles[0]).toContain("Down");
+    expect(titles[1]).toContain("Down");
+  });
+
   it("shows the empty state without series", () => {
     render(<StatusGrid spec={{}} data={readyData([])} timeRange={range} />);
     expect(screen.getByText("No data")).toBeDefined();

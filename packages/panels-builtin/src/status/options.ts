@@ -44,6 +44,12 @@ export const statusSpecSchema = z.object({
   calculation: calculationSchema.optional(),
   /** Tiles per honeycomb row (default: derived from the count). */
   columns: z.number().int().min(1).max(64).optional(),
+  /** Tile order: worst-first (default) surfaces problems even in a large,
+   * shrunk honeycomb; "none" keeps the query's series order. */
+  sort: z.enum(["severity", "none"]).optional(),
+  /** Cap the drawn tiles (worst kept); the rest collapse to a "+N" note.
+   * The summary always counts every series. */
+  maxTiles: z.number().int().min(1).max(4096).optional(),
 });
 export type StatusSpec = z.infer<typeof statusSpecSchema>;
 
@@ -127,6 +133,28 @@ export function summarize(
     status,
     count: items.filter((item) => item.status === status).length,
   })).filter((entry) => entry.count > 0);
+}
+
+// Worst → best, so problems land at the top-left of the honeycomb.
+const SEVERITY_RANK: Record<StatusState, number> = {
+  critical: 0,
+  serious: 1,
+  warning: 2,
+  unknown: 3,
+  good: 4,
+};
+
+/** Orders items worst-first (stable within a state), so a handful of red
+ * tiles stay visible among hundreds of green ones. */
+export function orderBySeverity(items: StatusItem[]): StatusItem[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort(
+      (a, b) =>
+        SEVERITY_RANK[a.item.status] - SEVERITY_RANK[b.item.status] ||
+        a.index - b.index,
+    )
+    .map((entry) => entry.item);
 }
 
 /** Default column count: a pleasant, slightly-wide honeycomb. */
