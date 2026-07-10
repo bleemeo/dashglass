@@ -39,11 +39,24 @@ spec:
       kind: Panel
       spec:
         display:
-          name: Container health
-          description: 0 ok · 1 warning · 2 critical
+          name: Containers Health
         plugin:
-          kind: Table
-          spec: {}
+          kind: StatusGrid
+          spec:
+            nameLabel: item
+            valueMappings:
+              - value: 0
+                status: good
+                text: OK
+              - value: 1
+                status: warning
+                text: Warning
+              - value: 2
+                status: critical
+                text: Critical
+              - value: 3
+                status: unknown
+                text: Unknown
         queries:
           - kind: TimeSeriesQuery
             spec:
@@ -51,7 +64,6 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: container_health_status{instance=~"$instance"}
-                  seriesNameFormat: "{{item}}"
     container-io:
       kind: Panel
       spec:
@@ -535,7 +547,7 @@ spec:
       kind: Panel
       spec:
         display:
-          name: Users logged
+          name: Users
         plugin:
           kind: StatChart
           spec: {}
@@ -546,6 +558,35 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: users_logged{instance=~"$instance"}
+    services:
+      kind: Panel
+      spec:
+        display:
+          name: Services Health
+        plugin:
+          kind: StatusGrid
+          spec:
+            nameLabel: service
+            valueMappings:
+              - value: 0
+                status: good
+                text: OK
+              - value: 1
+                status: warning
+                text: Warning
+              - value: 2
+                status: critical
+                text: Critical
+              - value: 3
+                status: unknown
+                text: Unknown
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: service_status{instance=~"$instance"}
   layouts:
     - kind: Grid
       spec:
@@ -554,37 +595,49 @@ spec:
         items:
           - x: 0
             y: 0
+            width: 3
+            height: 6
+            content:
+              $ref: "#/spec/panels/services"
+          - x: 3
+            y: 0
+            width: 3
+            height: 6
+            content:
+              $ref: "#/spec/panels/container-health"
+          - x: 6
+            y: 0
             width: 4
             height: 6
             content:
-              $ref: "#/spec/panels/uptime"
-          - x: 4
-            y: 0
-            width: 5
-            height: 6
-            content:
               $ref: "#/spec/panels/cpu-gauge"
-          - x: 9
+          - x: 10
             y: 0
-            width: 5
+            width: 4
             height: 6
             content:
               $ref: "#/spec/panels/mem-gauge"
           - x: 14
             y: 0
-            width: 4
+            width: 3
             height: 6
             content:
               $ref: "#/spec/panels/load1"
-          - x: 18
+          - x: 17
             y: 0
             width: 3
             height: 6
             content:
-              $ref: "#/spec/panels/processes"
-          - x: 21
+              $ref: "#/spec/panels/uptime"
+          - x: 20
             y: 0
-            width: 3
+            width: 2
+            height: 6
+            content:
+              $ref: "#/spec/panels/processes"
+          - x: 22
+            y: 0
+            width: 2
             height: 6
             content:
               $ref: "#/spec/panels/users"
@@ -710,21 +763,15 @@ spec:
               $ref: "#/spec/panels/container-mem"
           - x: 0
             y: 8
-            width: 9
+            width: 12
             height: 8
             content:
               $ref: "#/spec/panels/container-net"
-          - x: 9
+          - x: 12
             y: 8
-            width: 9
+            width: 12
             height: 8
             content:
               $ref: "#/spec/panels/container-io"
-          - x: 18
-            y: 8
-            width: 6
-            height: 8
-            content:
-              $ref: "#/spec/panels/container-health"
   duration: 1h
   refreshInterval: 30s
