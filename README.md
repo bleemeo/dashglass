@@ -19,11 +19,16 @@ version, review and deploy through git.
 - **Prometheus-native** — queries go through a read-only proxy to your
   Prometheus; a built-in PromQL editor with live autocompletion, an
   Explore view, chained dashboard variables.
+- **Interactive, not just static** — repeat a panel across the values of a
+  variable (one definition, one tile per instance), and drill down from any
+  panel to another dashboard or an external tool with the current variables
+  and time range carried in the link.
 - **Grafana import** — convert dashboards from a JSON export or straight
   from grafana.com, with honest per-panel warnings.
 - **Batteries where it counts** — local users with three roles, plus
-  reverse-proxy and OIDC authentication; light & dark themes; keyboard
-  shortcuts and a kiosk mode for wall screens.
+  reverse-proxy and OIDC authentication; the Prometheus data source and git
+  remote are configurable at runtime from the admin UI; light & dark themes;
+  keyboard shortcuts and a kiosk mode for wall screens.
 
 ## Quickstart
 
@@ -70,7 +75,7 @@ groups → role mapping) are configured through `dashglass.yaml` — see
 - `packages/runtime` — plugin registries, query orchestrator and dashboard
   rendering engine.
 - `packages/panels-builtin` — built-in panel plugins: time series, stat,
-  gauge, table, bar, heatmap, markdown (ECharts).
+  gauge, table, bar, heatmap, status grid, markdown (ECharts).
 - `packages/datasource-prometheus` — Prometheus data source over the
   native HTTP API paths.
 - `packages/promql-editor` — CodeMirror PromQL editor with live
@@ -82,7 +87,10 @@ groups → role mapping) are configured through `dashglass.yaml` — see
 - `backend/` — Go server: SPA hosting, Prometheus proxy, dashboard file
   management (CRUD + validation + fsnotify/SSE live reload), auth.
 
-See [DESIGN.md](./DESIGN.md) for the full design document.
+See the [user guide](./docs/user-guide.md) for how to build and operate
+dashboards, and [DESIGN.md](./DESIGN.md) for the full design document (its
+[§13 feature status](./DESIGN.md#13-feature-status) is the canonical list of
+what exists).
 
 ## Development
 

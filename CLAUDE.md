@@ -129,43 +129,25 @@ session's scratchpad).
 
 ## State / roadmap
 
-Done: steps 1–5 of DESIGN.md §11 (model, backend, runtime, built-in panels
-+ PromQL editor, app shell with view/explore/GitOps live reload), plus:
-Apache-2.0 license (LICENSE, §12 resolved), `packages/ui` (theme +
-light/dark/system color mode), the form-based dashboard editor
-(`/d/:name/edit`; as-code editor moved to `/d/:name/code`; pure document
-edit ops in `packages/model/src/edit.ts`), bundle code-splitting
-(entry chunk ~151 kB gzip; every route page is lazy so the model's
-YAML/TOML parsers, ECharts, CodeMirror and react-grid-layout load
-on demand, not on the /login first paint), Docker packaging (Dockerfile + compose with
-a demo Prometheus), the three extra panel kinds (BarChart, HeatmapChart,
-Markdown), and the Grafana importer (packages/grafana-import + "Import
-from Grafana" in the app).
+Canonical feature status (done / planned / non-goal) lives in **DESIGN.md
+§13** — defer to it rather than restating status here, and update it when a
+feature lands. Build order and the phased plan: DESIGN.md §11 (steps 1–5
+done). The rest of this section is implementation pointers, not status.
 
-CI is in place (`.github/workflows/ci.yml`): tests/typecheck/lint +
-a Docker smoke test (`scripts/docker-smoke.sh`) that exercises the
-non-root container's auth surface. Chained dashboard variables work
-(matchers interpolated with current values; dependent lists reload).
-Data links / drill-down (`panel.spec.links`: URLs interpolated with the
-current variables and the `$__from`/`$__to` time tokens, shown in the
-panel header) and panel repeat (`panel.spec.repeat`: one panel per value
-of a variable, `packages/runtime/src/repeat.ts` does the pure layout
-reflow) are done; row/section repeat is the planned follow-up.
+CI (`.github/workflows/ci.yml`): tests/typecheck/lint + a Docker smoke test
+(`scripts/docker-smoke.sh`, non-root container auth surface). Where things
+live: variable + data-link URL interpolation in
+`packages/runtime/src/interpolate.ts` (`interpolate`, `interpolateUrl`);
+panel-repeat layout reflow in `packages/runtime/src/repeat.ts`; chained
+variables and repeat value-pinning in `packages/runtime/src/context.tsx`;
+form-editor document ops in `packages/model/src/edit.ts`.
 
-Git integration is done (`backend/internal/history`): history (log/
-show/diff, History drawer + restore-via-PUT, `features.history`
-capability), opt-in commit-on-save (`git.commit_on_save`; commits
-authored by the acting user, X-Commit-Message header), and remote sync
-(`internal/history/sync.go`: interval pull + push-after-commit, rebase
-on divergence, credentials via the GIT_ASKPASS `askpass` subcommand —
-never on a command line). Runtime admin config is in place: Admin →
-Datasource (Prometheus URL + basic/bearer, hot-swapped proxy) and
-Admin → Git sync tabs, persisted in `settings.yaml` next to auth.yaml
-(0600, secrets write-only); anything provisioned by flag/env/file is
-locked in the UI (`internal/config/state.go`).
-
-Not started: annotations, the bleemeo-panel embedding POC (DESIGN.md
-§9), and the public-naming check ("Dashglass" trademark, §12). Auth
-(DESIGN.md §7.4): local users + 3 roles + admin UI done (phase 1);
-reverse-proxy headers (phase 2) and native OIDC (phase 3,
-authorization-code + PKCE, groups→role mapping) done; LDAP not started.
+Git integration: `backend/internal/history` (history + commit-on-save +
+`sync.go` remote pull/push; credentials via the GIT_ASKPASS `askpass`
+subcommand, never on a command line). Runtime admin config (datasource, git
+remote): `internal/config/state.go`, persisted in `settings.yaml` next to
+`auth.yaml` (0600); anything provisioned by flag/env/file is locked in the
+UI. Auth phases (DESIGN §7.4): local users/roles/admin UI, reverse-proxy
+headers and OIDC (auth-code + PKCE, groups→role) done; LDAP planned.
+Screenshots for docs: `scripts/screenshots/` (fake Prometheus + demo
+dashboard + CDP light/dark capture).

@@ -56,6 +56,21 @@ Keep changes focused and describe the motivation. Small, reviewable
 commits with clear messages are appreciated. CI runs the test, typecheck
 and lint suites plus a Docker smoke test; they must pass.
 
+## Landing a feature
+
+Docs drift when they live in three places, so treat these as part of a
+feature's definition of done. When a change adds or removes user-visible
+behavior, before opening the PR:
+
+- [ ] **DESIGN.md §13 feature status** updated (the single source of truth).
+- [ ] **README** feature list updated if the pitch changes; add a how-to to
+      `docs/user-guide.md` if the feature needs one.
+- [ ] `pnpm generate-schema` re-run and the JSON Schema committed, if the
+      model changed; cross-field checks mirrored in the Go validator.
+- [ ] Screenshot refreshed (`scripts/screenshots/run.sh`) if the UI changed
+      materially.
+- [ ] Tests added; `pnpm test`, `pnpm typecheck` and `go test ./...` green.
+
 ## Reporting bugs
 
 Open an issue with the steps to reproduce, what you expected, and what

@@ -412,3 +412,39 @@ reveals what the contract is missing.
 - Prior art: **Perses** (CNCF) shares the pitch and provided the data model;
   differentiation is editing UX, git-friendly multi-format serialization,
   and the Bleemeo convergence story.
+
+## 13. Feature status
+
+Canonical status of every feature — the single source of truth the README
+and `CLAUDE.md` defer to. Update this table when a feature lands or a
+non-goal changes. Legend: ✅ done · 🚧 planned · ⛔ non-goal (§2).
+
+| Area | Feature | Status |
+|---|---|---|
+| Panels | Time series, stat, gauge, table, bar, heatmap, status grid, markdown | ✅ |
+| Panels | Legend templating (`{{label}}`) and unit formatting | ✅ |
+| Dashboards | PromQL editor (autocomplete + lint) | ✅ |
+| Dashboards | Variables, incl. chaining (dependent lists) | ✅ |
+| Dashboards | Time range picker, auto-refresh, zoom/brush | ✅ |
+| Dashboards | Explore mode | ✅ |
+| Dashboards | Kiosk / TV mode, light & dark themes | ✅ |
+| Dashboards | Panel repeat by variable | ✅ |
+| Dashboards | Data links / drill-down (variable + `$__from`/`$__to`) | ✅ |
+| Dashboards | Row/section repeat | 🚧 |
+| Dashboards | Annotations | 🚧 |
+| Storage | Deterministic JSON/YAML/TOML files, one-field/one-line diff | ✅ |
+| Storage | File watch → SSE live reload | ✅ |
+| Storage | Git history (log/diff/restore), commit-on-save, remote sync | ✅ |
+| Storage | Provisioned / `-readonly` mode | ✅ |
+| Data | Prometheus via read-only proxy | ✅ |
+| Data | Non-Prometheus sources (SQL, Loki, traces) | ⛔ |
+| Import | Grafana JSON and grafana.com import | ✅ |
+| Auth | Local users + 3 roles + admin UI | ✅ |
+| Auth | Reverse-proxy headers, OIDC (auth-code + PKCE, groups→role) | ✅ |
+| Auth | LDAP | 🚧 |
+| Auth | Per-dashboard ACLs, teams, multi-tenancy | ⛔ |
+| Ops | Single Go binary (embedded SPA), Docker packaging | ✅ |
+| Ops | Runtime admin config (datasource, git remote) | ✅ |
+| Alerting | Alerting, notifications, incident management | ⛔ |
+| Plugins | Runtime-loadable third-party plugins (build-time only) | ⛔ |
+| SaaS | bleemeo-panel embedding POC (§9) | 🚧 |
