@@ -108,6 +108,19 @@ spec:
     expect(changed[0]).toContain("CPU usage");
   });
 
+  it("a one-field edit to a data link produces a one-line YAML diff", () => {
+    const before = stringifyDashboard(nodeOverviewDashboard(), "yaml").split("\n");
+
+    const edited = nodeOverviewDashboard();
+    edited.spec.panels["memory"]!.spec.links![0]!.title = "Host detail";
+    const after = stringifyDashboard(edited, "yaml").split("\n");
+
+    expect(after.length).toBe(before.length);
+    const changed = before.filter((line, index) => line !== after[index]);
+    expect(changed).toHaveLength(1);
+    expect(changed[0]).toContain("Node detail");
+  });
+
   it("keeps long PromQL expressions on a single YAML line", () => {
     const edited = nodeOverviewDashboard();
     const longQuery = `sum by (instance, mode) (rate(node_cpu_seconds_total{instance=~"$instance",mode!="idle",job="node-exporter-with-a-long-name"}[5m]))`;

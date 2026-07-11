@@ -20,10 +20,14 @@ export {
   type Variable,
 } from "./schema/variables";
 export {
+  linkSchema,
   panelSchema,
   querySchema,
+  repeatSchema,
+  type Link,
   type Panel,
   type Query,
+  type Repeat,
 } from "./schema/panels";
 export {
   PANEL_REF_PREFIX,

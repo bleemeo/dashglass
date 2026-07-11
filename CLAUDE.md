@@ -146,6 +146,11 @@ CI is in place (`.github/workflows/ci.yml`): tests/typecheck/lint +
 a Docker smoke test (`scripts/docker-smoke.sh`) that exercises the
 non-root container's auth surface. Chained dashboard variables work
 (matchers interpolated with current values; dependent lists reload).
+Data links / drill-down (`panel.spec.links`: URLs interpolated with the
+current variables and the `$__from`/`$__to` time tokens, shown in the
+panel header) and panel repeat (`panel.spec.repeat`: one panel per value
+of a variable, `packages/runtime/src/repeat.ts` does the pure layout
+reflow) are done; row/section repeat is the planned follow-up.
 
 Git integration is done (`backend/internal/history`): history (log/
 show/diff, History drawer + restore-via-PUT, `features.history`

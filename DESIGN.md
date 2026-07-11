@@ -381,6 +381,11 @@ reveals what the contract is missing.
 - Dashboard history via `git log` when the dashboards directory is a git
   repo (read-only integration; git itself is the version store).
 - Provisioned/read-only mode with "export patch".
+- **Data links / drill-down**: panel links carrying the current variables and
+  time range (`$instance`, `$__from`/`$__to`) to another dashboard or an
+  external tool.
+- **Repeating panels by variable**: one panel definition rendered once per
+  value of a variable (panel repeat done; row/section repeat is the follow-up).
 - Annotations.
 
 ## 11. Build order

@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   Box,
   Button,
+  Checkbox,
   CloseButton,
   Drawer,
   Field,
@@ -14,7 +15,7 @@ import {
   Textarea,
 } from "@chakra-ui/react";
 
-import type { Panel, Query } from "@dashglass/model";
+import type { Link, Panel, Query } from "@dashglass/model";
 import { PROMETHEUS_QUERY_KIND, useRuntime } from "@dashglass/runtime";
 
 import { LazyPromQLEditor } from "../LazyPromQLEditor";
@@ -140,6 +141,8 @@ function QueryEditor({
 export interface PanelEditorDrawerProps {
   panelKey: string;
   panel: Panel;
+  /** Dashboard variable names, for the "Repeat by" selector. */
+  variableNames: string[];
   onChange: (panel: Panel) => void;
   onClose: () => void;
 }
@@ -153,6 +156,7 @@ export interface PanelEditorDrawerProps {
 export function PanelEditorDrawer({
   panelKey,
   panel,
+  variableNames,
   onChange,
   onClose,
 }: PanelEditorDrawerProps) {
@@ -163,6 +167,29 @@ export function PanelEditorDrawer({
 
   const updateSpec = (updates: Partial<Panel["spec"]>) =>
     onChange({ ...panel, spec: { ...panel.spec, ...updates } });
+
+  const links = panel.spec.links ?? [];
+  const setLinks = (next: Link[]) =>
+    updateSpec({ links: next.length > 0 ? next : undefined });
+  const updateLink = (index: number, patch: Partial<Link>) =>
+    setLinks(
+      links.map((link, i) => {
+        if (i !== index) {
+          return link;
+        }
+        const merged: Link = { ...link, ...patch };
+        // Drop empty optional keys so saved files stay minimal.
+        if (!merged.title) {
+          delete merged.title;
+        }
+        if (!merged.targetBlank) {
+          delete merged.targetBlank;
+        }
+        return merged;
+      }),
+    );
+
+  const repeat = panel.spec.repeat;
 
   const setDisplay = (name: string, description: string) => {
     const display: { name?: string; description?: string } = {};
@@ -319,6 +346,154 @@ export function PanelEditorDrawer({
                   >
                     <PlusIcon /> Add query
                   </Button>
+                </Flex>
+
+                <Flex direction="column" gap={2}>
+                  <Text fontSize="sm" fontWeight="medium">
+                    Links
+                  </Text>
+                  <Text fontSize="xs" color="fg.muted">
+                    Drill-down links shown in the panel header. Interpolate
+                    variables (<code>$instance</code>) and the time range
+                    (<code>$__from</code>, <code>$__to</code>).
+                  </Text>
+                  {links.map((link, index) => (
+                    <Box key={index} borderWidth="1px" borderRadius="md" padding={2}>
+                      <Flex
+                        justifyContent="space-between"
+                        alignItems="center"
+                        marginBottom={1}
+                      >
+                        <Text fontSize="xs" fontWeight="medium" color="fg.muted">
+                          Link {index + 1}
+                        </Text>
+                        <Button
+                          size="2xs"
+                          variant="ghost"
+                          onClick={() =>
+                            setLinks(links.filter((_, i) => i !== index))
+                          }
+                        >
+                          Remove
+                        </Button>
+                      </Flex>
+                      <Field.Root>
+                        <Field.Label fontSize="xs">Title</Field.Label>
+                        <Input
+                          size="xs"
+                          placeholder="Host detail"
+                          value={link.title ?? ""}
+                          onChange={(event) =>
+                            updateLink(index, { title: event.target.value })
+                          }
+                        />
+                      </Field.Root>
+                      <Field.Root marginTop={2}>
+                        <Field.Label fontSize="xs">URL</Field.Label>
+                        <Input
+                          size="xs"
+                          fontFamily="mono"
+                          placeholder="/d/host-detail?var-instance=$instance"
+                          value={link.url}
+                          onChange={(event) =>
+                            updateLink(index, { url: event.target.value })
+                          }
+                        />
+                      </Field.Root>
+                      <Checkbox.Root
+                        size="sm"
+                        marginTop={2}
+                        checked={link.targetBlank ?? false}
+                        onCheckedChange={(event) =>
+                          updateLink(index, { targetBlank: event.checked === true })
+                        }
+                      >
+                        <Checkbox.HiddenInput />
+                        <Checkbox.Control />
+                        <Checkbox.Label>Open in a new tab</Checkbox.Label>
+                      </Checkbox.Root>
+                    </Box>
+                  ))}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    colorPalette="brand"
+                    alignSelf="flex-start"
+                    onClick={() => setLinks([...links, { url: "" }])}
+                  >
+                    <PlusIcon /> Add link
+                  </Button>
+                </Flex>
+
+                <Flex direction="column" gap={2}>
+                  <Text fontSize="sm" fontWeight="medium">
+                    Repeat
+                  </Text>
+                  <Field.Root>
+                    <Field.Label fontSize="xs">Repeat by variable</Field.Label>
+                    <NativeSelect.Root
+                      size="sm"
+                      disabled={variableNames.length === 0}
+                    >
+                      <NativeSelect.Field
+                        value={repeat?.variable ?? ""}
+                        onChange={(event) => {
+                          const variable = event.target.value;
+                          updateSpec({
+                            repeat: variable
+                              ? { ...repeat, variable }
+                              : undefined,
+                          });
+                        }}
+                      >
+                        <option value="">No repeat</option>
+                        {repeat && !variableNames.includes(repeat.variable) ? (
+                          <option value={repeat.variable}>
+                            {repeat.variable} (undefined)
+                          </option>
+                        ) : null}
+                        {variableNames.map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </NativeSelect.Field>
+                      <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                    {variableNames.length === 0 ? (
+                      <Field.HelperText>
+                        Add a dashboard variable to repeat a panel over its
+                        values.
+                      </Field.HelperText>
+                    ) : null}
+                  </Field.Root>
+                  {repeat ? (
+                    <Field.Root>
+                      <Field.Label fontSize="xs">Direction</Field.Label>
+                      <NativeSelect.Root size="sm">
+                        <NativeSelect.Field
+                          value={repeat.direction ?? "horizontal"}
+                          onChange={(event) =>
+                            updateSpec({
+                              repeat: {
+                                ...repeat,
+                                direction:
+                                  event.target.value === "vertical"
+                                    ? "vertical"
+                                    : undefined,
+                              },
+                            })
+                          }
+                        >
+                          <option value="horizontal">
+                            Horizontal (wrap into rows)
+                          </option>
+                          <option value="vertical">Vertical (one column)</option>
+                        </NativeSelect.Field>
+                        <NativeSelect.Indicator />
+                      </NativeSelect.Root>
+                    </Field.Root>
+                  ) : null}
                 </Flex>
               </Flex>
             </Drawer.Body>

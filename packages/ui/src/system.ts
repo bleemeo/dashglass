@@ -71,6 +71,9 @@ const config = defineConfig({
     ".dashglass-panel-header": {
       paddingX: "3",
       paddingTop: "2",
+      display: "flex",
+      alignItems: "baseline",
+      gap: "2",
     },
     ".dashglass-panel-title": {
       fontSize: "sm",
@@ -82,11 +85,29 @@ const config = defineConfig({
       // Keep the header (drag handle / fullscreen affordance) at a stable
       // height even when the panel has no title.
       minHeight: "1.25em",
+      // Take the row so the links sit at the right; allow ellipsis to work
+      // inside the flex header.
+      flex: "1",
+      minWidth: "0",
     },
     // Panel title as a button (fullscreen view); inherits the title look.
     ".dashglass-panel-expand": {
       font: "inherit",
       color: "inherit",
+      cursor: "pointer",
+      _hover: { textDecoration: "underline" },
+    },
+    // Data links (drill-down) shown at the right of the panel header.
+    ".dashglass-panel-links": {
+      display: "flex",
+      flexShrink: "0",
+      gap: "2",
+      alignItems: "baseline",
+    },
+    ".dashglass-panel-link": {
+      fontSize: "xs",
+      color: "brand.fg",
+      whiteSpace: "nowrap",
       cursor: "pointer",
       _hover: { textDecoration: "underline" },
     },

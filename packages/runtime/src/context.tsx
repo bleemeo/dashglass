@@ -370,3 +370,28 @@ export function useVariables(): VariablesContextValue {
   }
   return value;
 }
+
+/**
+ * Pins a subset of variable values for its subtree, re-providing the
+ * surrounding variables context with those overrides merged in. Used by
+ * repeated panels: each instance pins the repeat variable to its own value
+ * so the panel's queries interpolate to that value while everything else
+ * (loading, options, other variables) still comes from the parent. No
+ * effects and no reloading — this is a value overlay only.
+ */
+export function PinnedVariablesProvider({
+  overrides,
+  children,
+}: {
+  overrides: VariableValues;
+  children: ReactNode;
+}) {
+  const parent = useVariables();
+  const overridesKey = JSON.stringify(overrides);
+  const value = useMemo<VariablesContextValue>(
+    () => ({ ...parent, values: { ...parent.values, ...overrides } }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- overridesKey stands in for overrides
+    [parent, overridesKey],
+  );
+  return <VariablesContext value={value}>{children}</VariablesContext>;
+}

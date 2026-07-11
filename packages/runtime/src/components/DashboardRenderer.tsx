@@ -6,7 +6,9 @@ import {
   type GridLayout,
 } from "@dashglass/model";
 
-import { VariablesProvider } from "../context";
+import { PinnedVariablesProvider, useVariables, VariablesProvider } from "../context";
+import type { VariableValues } from "../interpolate";
+import { placeItems, type RepeatableItem } from "../repeat";
 import { PanelChrome } from "./PanelChrome";
 
 /** The dashboard grid is 24 columns wide (Perses convention). */
@@ -22,6 +24,29 @@ const gridStyle: CSSProperties = {
   gap: GRID_GAP,
 };
 
+/**
+ * The values a panel repeats over: the current selection of its repeat
+ * variable, or all loaded options when "All" (the `.+` sentinel) or an
+ * empty multi-selection is active.
+ */
+function repeatValues(
+  name: string,
+  values: VariableValues,
+  options: Record<string, string[]>,
+): string[] {
+  const raw = values[name];
+  if (raw === ".+") {
+    return options[name] ?? [];
+  }
+  if (Array.isArray(raw)) {
+    return raw.length > 0 ? raw : (options[name] ?? []);
+  }
+  if (typeof raw === "string" && raw !== "") {
+    return [raw];
+  }
+  return options[name] ?? [];
+}
+
 function GridSection({
   layout,
   dashboard,
@@ -31,34 +56,71 @@ function GridSection({
   dashboard: Dashboard;
   onPanelExpand?: ((panelKey: string) => void) | undefined;
 }) {
+  const { values, options } = useVariables();
   const title = layout.spec.display?.title;
+
+  const items: RepeatableItem[] = layout.spec.items.flatMap((item) => {
+    const panelKey = panelKeyFromRef(item.content.$ref);
+    const panel = dashboard.spec.panels[panelKey];
+    if (!panel) {
+      return []; // Schema validation prevents dangling refs.
+    }
+    const repeat = panel.spec.repeat;
+    return [
+      {
+        panelKey,
+        x: item.x,
+        y: item.y,
+        width: item.width,
+        height: item.height,
+        repeat: repeat
+          ? {
+              variable: repeat.variable,
+              values: repeatValues(repeat.variable, values, options),
+              direction: repeat.direction,
+              maxPerRow: repeat.maxPerRow,
+            }
+          : undefined,
+      },
+    ];
+  });
+
   return (
     <section className="dashglass-grid-section">
       {title ? <h2 className="dashglass-grid-title">{title}</h2> : null}
       <div className="dashglass-grid" style={gridStyle}>
-        {layout.spec.items.map((item, index) => {
-          const panelKey = panelKeyFromRef(item.content.$ref);
-          const panel = dashboard.spec.panels[panelKey];
-          if (!panel) {
-            return null; // Schema validation prevents dangling refs.
-          }
+        {placeItems(items, GRID_COLUMNS).map((placed) => {
+          const panel = dashboard.spec.panels[placed.panelKey]!;
+          const chrome = (
+            <PanelChrome
+              panelKey={placed.panelKey}
+              panel={panel}
+              onExpand={
+                onPanelExpand
+                  ? () => onPanelExpand(placed.panelKey)
+                  : undefined
+              }
+            />
+          );
           return (
             <div
-              key={`${panelKey}-${index}`}
+              key={placed.key}
               className="dashglass-grid-item"
               style={{
-                gridColumn: `${item.x + 1} / span ${item.width}`,
-                gridRow: `${item.y + 1} / span ${item.height}`,
+                gridColumn: `${placed.x + 1} / span ${placed.width}`,
+                gridRow: `${placed.y + 1} / span ${placed.height}`,
                 minWidth: 0,
               }}
             >
-              <PanelChrome
-                panelKey={panelKey}
-                panel={panel}
-                onExpand={
-                  onPanelExpand ? () => onPanelExpand(panelKey) : undefined
-                }
-              />
+              {placed.pinned ? (
+                <PinnedVariablesProvider
+                  overrides={{ [placed.pinned.name]: placed.pinned.value }}
+                >
+                  {chrome}
+                </PinnedVariablesProvider>
+              ) : (
+                chrome
+              )}
             </div>
           );
         })}

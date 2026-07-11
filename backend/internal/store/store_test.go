@@ -134,6 +134,65 @@ func TestSaveRejectsDanglingLayoutRef(t *testing.T) {
 	}
 }
 
+func TestSaveRejectsRepeatOverUnknownVariable(t *testing.T) {
+	s := newTestStore(t)
+	bad := strings.Replace(validYAML,
+		"      spec:\n        plugin:\n          kind: TimeSeriesChart",
+		"      spec:\n        repeat:\n          variable: nope\n        plugin:\n          kind: TimeSeriesChart",
+		1)
+	err := s.Save("node-overview", []byte(bad), FormatYAML)
+	var validationErr *ValidationError
+	if !errors.As(err, &validationErr) {
+		t.Fatalf("want ValidationError, got %v", err)
+	}
+	if !strings.Contains(validationErr.Error(), `unknown variable "nope"`) {
+		t.Errorf("issues = %v", validationErr.Issues)
+	}
+}
+
+func TestSaveAcceptsRepeatAndLinks(t *testing.T) {
+	s := newTestStore(t)
+	const doc = `
+apiVersion: v1
+kind: Dashboard
+metadata:
+  name: node-overview
+spec:
+  variables:
+    - kind: ListVariable
+      spec:
+        name: instance
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            labelName: instance
+  panels:
+    cpu:
+      kind: Panel
+      spec:
+        repeat:
+          variable: instance
+        links:
+          - title: Detail
+            url: /d/host?i=$instance
+        plugin:
+          kind: TimeSeriesChart
+  layouts:
+    - kind: Grid
+      spec:
+        items:
+          - x: 0
+            y: 0
+            width: 12
+            height: 8
+            content:
+              $ref: "#/spec/panels/cpu"
+`
+	if err := s.Save("node-overview", []byte(doc), FormatYAML); err != nil {
+		t.Fatalf("Save with repeat + links: %v", err)
+	}
+}
+
 func TestSaveRejectsNameMismatch(t *testing.T) {
 	s := newTestStore(t)
 	err := s.Save("another-name", []byte(validYAML), FormatYAML)

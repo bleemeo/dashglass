@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Dashboard } from "@dashglass/model";
@@ -175,5 +175,175 @@ describe("DashboardRenderer", () => {
     expect(
       await screen.findByText("many-to-many matching not allowed"),
     ).toBeDefined();
+  });
+});
+
+function readingDatasource(seenQueries: string[]): PrometheusDataSource {
+  return {
+    rangeQuery: async (params) => {
+      seenQueries.push(params.query);
+      return matrixResponse("x");
+    },
+    instantQuery: vi.fn(),
+    labelNames: vi.fn(),
+    labelValues: vi.fn(),
+  };
+}
+
+describe("panel repeat", () => {
+  it("renders one panel per value, each with its own pinned query and title", async () => {
+    const seenQueries: string[] = [];
+    const registries = createRegistries();
+    registries.panels.register({ kind: "TestChart", component: () => null });
+    registries.variableSources.register({
+      kind: "TestVariableSource",
+      loadValues: async () => ["web-1", "web-2"],
+    });
+
+    const dashboard: Dashboard = {
+      apiVersion: "v1",
+      kind: "Dashboard",
+      metadata: { name: "repeat" },
+      spec: {
+        variables: [
+          {
+            kind: "ListVariable",
+            spec: {
+              name: "instance",
+              allowAllValue: true,
+              plugin: { kind: "TestVariableSource" },
+            },
+          },
+        ],
+        panels: {
+          cpu: {
+            kind: "Panel",
+            spec: {
+              display: { name: "CPU $instance" },
+              plugin: { kind: "TestChart" },
+              repeat: { variable: "instance" },
+              queries: [
+                {
+                  kind: "TimeSeriesQuery",
+                  spec: {
+                    plugin: {
+                      kind: "PrometheusTimeSeriesQuery",
+                      spec: { query: 'up{instance="$instance"}' },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+        layouts: [
+          {
+            kind: "Grid",
+            spec: {
+              items: [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 12,
+                  height: 8,
+                  content: { $ref: "#/spec/panels/cpu" },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    render(
+      <RuntimeProvider
+        datasource={readingDatasource(seenQueries)}
+        registries={registries}
+      >
+        <TimeRangeProvider>
+          <DashboardRenderer dashboard={dashboard} />
+        </TimeRangeProvider>
+      </RuntimeProvider>,
+    );
+
+    // "All" (allowAllValue) repeats over every option; each instance labels
+    // itself with its pinned value.
+    expect(await screen.findByText("CPU web-1")).toBeDefined();
+    expect(screen.getByText("CPU web-2")).toBeDefined();
+    await waitFor(() =>
+      expect([...seenQueries].sort()).toEqual([
+        'up{instance="web-1"}',
+        'up{instance="web-2"}',
+      ]),
+    );
+  });
+});
+
+describe("panel data links", () => {
+  it("interpolates variables and the time range into the link URL", async () => {
+    const registries = createRegistries();
+    registries.panels.register({ kind: "TestChart", component: () => null });
+    registries.variableSources.register({
+      kind: "TestVariableSource",
+      loadValues: async () => ["web-1"],
+    });
+
+    const dashboard: Dashboard = {
+      apiVersion: "v1",
+      kind: "Dashboard",
+      metadata: { name: "links" },
+      spec: {
+        variables: [
+          {
+            kind: "ListVariable",
+            spec: { name: "instance", plugin: { kind: "TestVariableSource" } },
+          },
+        ],
+        panels: {
+          cpu: {
+            kind: "Panel",
+            spec: {
+              display: { name: "CPU" },
+              plugin: { kind: "TestChart" },
+              links: [
+                { title: "Detail", url: "/d/host?i=$instance&from=$__from" },
+              ],
+            },
+          },
+        },
+        layouts: [
+          {
+            kind: "Grid",
+            spec: {
+              items: [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 12,
+                  height: 8,
+                  content: { $ref: "#/spec/panels/cpu" },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    render(
+      <RuntimeProvider
+        datasource={readingDatasource([])}
+        registries={registries}
+      >
+        <TimeRangeProvider>
+          <DashboardRenderer dashboard={dashboard} />
+        </TimeRangeProvider>
+      </RuntimeProvider>,
+    );
+
+    const link = (await screen.findByText("Detail")) as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toMatch(
+      /^\/d\/host\?i=web-1&from=\d+$/,
+    );
   });
 });

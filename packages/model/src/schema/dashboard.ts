@@ -73,6 +73,18 @@ export const dashboardSchema = z
       }
       seenVariables.add(name);
     });
+
+    // A panel's `repeat` must target a variable declared on the dashboard.
+    Object.entries(dashboard.spec.panels).forEach(([key, panel]) => {
+      const repeat = panel.spec.repeat;
+      if (repeat && !seenVariables.has(repeat.variable)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `panel "${key}" repeats over unknown variable "${repeat.variable}"`,
+          path: ["spec", "panels", key, "spec", "repeat", "variable"],
+        });
+      }
+    });
   });
 
 export type Datasource = z.infer<typeof datasourceSchema>;

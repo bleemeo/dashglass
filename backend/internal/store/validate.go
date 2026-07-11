@@ -173,17 +173,33 @@ func crossFieldIssues(doc map[string]any) []string {
 		}
 	}
 
+	variableNames := map[string]bool{}
 	if variables, ok := spec["variables"].([]any); ok {
-		seen := map[string]bool{}
 		for index, rawVariable := range variables {
 			variable, _ := rawVariable.(map[string]any)
 			variableSpec, _ := variable["spec"].(map[string]any)
 			name, _ := variableSpec["name"].(string)
-			if seen[name] {
+			if variableNames[name] {
 				issues = append(issues, fmt.Sprintf(
 					"/spec/variables/%d/spec/name: duplicate variable name %q", index, name))
 			}
-			seen[name] = true
+			variableNames[name] = true
+		}
+	}
+
+	// A panel's repeat must target a variable declared on the dashboard.
+	for key, rawPanel := range panels {
+		panel, _ := rawPanel.(map[string]any)
+		panelSpec, _ := panel["spec"].(map[string]any)
+		repeat, ok := panelSpec["repeat"].(map[string]any)
+		if !ok {
+			continue
+		}
+		variable, _ := repeat["variable"].(string)
+		if !variableNames[variable] {
+			issues = append(issues, fmt.Sprintf(
+				"/spec/panels/%s/spec/repeat/variable: panel repeats over unknown variable %q",
+				key, variable))
 		}
 	}
 

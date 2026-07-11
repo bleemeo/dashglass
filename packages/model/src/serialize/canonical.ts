@@ -31,6 +31,8 @@ const KEY_ORDER = [
   "allowMultiple",
   "plugin",
   "queries",
+  "links",
+  "repeat",
   "title",
   "collapse",
   "open",
@@ -41,6 +43,11 @@ const KEY_ORDER = [
   "height",
   "content",
   "$ref",
+  "url",
+  "targetBlank",
+  "variable",
+  "direction",
+  "maxPerRow",
 ] as const;
 
 const KEY_RANK = new Map<string, number>(

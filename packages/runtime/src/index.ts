@@ -23,7 +23,16 @@ export {
   type QueryState,
   type RangeQuerySpec,
 } from "./orchestrator";
-export { interpolate, type VariableValues } from "./interpolate";
+export {
+  interpolate,
+  interpolateUrl,
+  type VariableValues,
+} from "./interpolate";
+export {
+  placeItems,
+  type PlacedItem,
+  type RepeatableItem,
+} from "./repeat";
 export {
   PageRegistry,
   PanelRegistry,
@@ -40,6 +49,7 @@ export {
 } from "./registries";
 export { anonymousAuth, type AuthProvider, type User } from "./auth";
 export {
+  PinnedVariablesProvider,
   RuntimeProvider,
   TimeRangeProvider,
   VariablesProvider,

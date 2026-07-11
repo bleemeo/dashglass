@@ -467,6 +467,9 @@ function EditorView({
             <PanelEditorDrawer
               panelKey={editing}
               panel={editingPanel}
+              variableNames={(draft.spec.variables ?? []).map(
+                (variable) => variable.spec.name,
+              )}
               onChange={(panel) =>
                 applyEdit(updatePanel(draft, editing, panel), `panel:${editing}`)
               }

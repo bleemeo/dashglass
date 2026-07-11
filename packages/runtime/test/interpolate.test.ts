@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { interpolate } from "../src";
+import { interpolate, interpolateUrl } from "../src";
 
 describe("interpolate", () => {
   it("substitutes $name and ${name}", () => {
@@ -31,5 +31,34 @@ describe("interpolate", () => {
 
   it("escapes alternation characters inside a member", () => {
     expect(interpolate("$x", { x: ["a|b", "c"] })).toBe("a\\\\|b|c");
+  });
+});
+
+describe("interpolateUrl", () => {
+  it("percent-encodes single values so they are query-string safe", () => {
+    expect(
+      interpolateUrl("/d/host?var-instance=$instance", {
+        instance: "host a:9100",
+      }),
+    ).toBe("/d/host?var-instance=host%20a%3A9100");
+  });
+
+  it("joins multi-values with commas, each percent-encoded", () => {
+    expect(interpolateUrl("?v=$x", { x: ["a b", "c/d"] })).toBe(
+      "?v=a%20b,c%2Fd",
+    );
+  });
+
+  it("substitutes the $__from / $__to time-range tokens", () => {
+    expect(
+      interpolateUrl("?from=$__from&to=$__to", {
+        __from: "1000",
+        __to: "2000",
+      }),
+    ).toBe("?from=1000&to=2000");
+  });
+
+  it("leaves unknown variables untouched", () => {
+    expect(interpolateUrl("$missing", {})).toBe("$missing");
   });
 });

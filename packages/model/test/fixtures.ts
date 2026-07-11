@@ -67,6 +67,14 @@ export function nodeOverviewDashboard(): Dashboard {
           spec: {
             display: { name: "Memory available" },
             plugin: { kind: "StatChart", spec: { unit: "bytes" } },
+            repeat: { variable: "instance" },
+            links: [
+              {
+                title: "Node detail",
+                url: "/d/node-detail?var-instance=$instance&from=$__from&to=$__to",
+                targetBlank: true,
+              },
+            ],
             queries: [
               {
                 kind: "TimeSeriesQuery",

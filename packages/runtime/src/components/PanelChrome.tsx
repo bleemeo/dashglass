@@ -2,7 +2,8 @@ import { Suspense, type CSSProperties } from "react";
 
 import type { Panel } from "@dashglass/model";
 
-import { useRuntime, useTimeRange } from "../context";
+import { useRuntime, useTimeRange, useVariables } from "../context";
+import { interpolate, interpolateUrl, type VariableValues } from "../interpolate";
 import { usePanelData } from "../panel-data";
 import { PanelErrorBoundary } from "./PanelErrorBoundary";
 
@@ -31,6 +32,7 @@ export interface PanelChromeProps {
 export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
   const { registries } = useRuntime();
   const { resolved, setRange } = useTimeRange();
+  const { values } = useVariables();
   const data = usePanelData(panel);
 
   const kind = panel.spec.plugin.kind;
@@ -38,8 +40,22 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
   // Visible title only when the panel actually has one; the panel key is
   // an internal identifier, not a fallback label. The header itself stays
   // (drag handle in the editor, fullscreen affordance) — it just shows no
-  // text when untitled.
-  const title = panel.spec.display?.name;
+  // text when untitled. Variables are interpolated so a repeated panel can
+  // label itself with its instance value (name: "CPU — $instance").
+  const rawTitle = panel.spec.display?.name;
+  const title = rawTitle ? interpolate(rawTitle, values) : rawTitle;
+
+  // Data links: variables plus the time-range tokens $__from / $__to (epoch
+  // milliseconds) are interpolated into each URL, so a link can carry the
+  // current context to another dashboard or an external tool.
+  const links = (panel.spec.links ?? []).filter(
+    (link) => link.url.trim() !== "",
+  );
+  const linkValues: VariableValues = {
+    ...values,
+    __from: String(resolved.start.getTime()),
+    __to: String(resolved.end.getTime()),
+  };
 
   let body;
   if (!plugin) {
@@ -118,6 +134,26 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
             title
           )}
         </h3>
+        {links.length > 0 ? (
+          <nav className="dashglass-panel-links" aria-label="Panel links">
+            {links.map((link, index) => {
+              const href = interpolateUrl(link.url, linkValues);
+              return (
+                <a
+                  key={index}
+                  className="dashglass-panel-link"
+                  href={href}
+                  title={link.title ?? href}
+                  {...(link.targetBlank
+                    ? { target: "_blank", rel: "noreferrer noopener" }
+                    : {})}
+                >
+                  {link.title ?? "Link"}
+                </a>
+              );
+            })}
+          </nav>
+        ) : null}
       </header>
       <div className="dashglass-panel-body" style={bodyStyle}>
         <PanelErrorBoundary resetKey={panel}>{body}</PanelErrorBoundary>
