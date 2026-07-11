@@ -75,7 +75,8 @@ groups → role mapping) are configured through `dashglass.yaml` — see
 - `packages/runtime` — plugin registries, query orchestrator and dashboard
   rendering engine.
 - `packages/panels-builtin` — built-in panel plugins: time series, stat,
-  gauge, table, bar, heatmap, status grid, markdown (ECharts).
+  gauge, table, bar, heatmap, status grid, markdown, image and clock
+  (charts render with ECharts).
 - `packages/datasource-prometheus` — Prometheus data source over the
   native HTTP API paths.
 - `packages/promql-editor` — CodeMirror PromQL editor with live

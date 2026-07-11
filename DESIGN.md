@@ -357,6 +357,11 @@ reveals what the contract is missing.
 
 ## 10. Features
 
+The original feature plan (v1, then v2+), kept for the rationale behind each
+choice. **What actually exists is tracked in §13** — that matrix is
+authoritative; all of v1 and most of v2+ below has shipped, so read this
+section as intent, not status.
+
 ### v1
 
 - Panel kinds: **timeseries**, **stat** (single value + sparkline),
@@ -380,13 +385,14 @@ reveals what the contract is missing.
   adoption killer feature; nobody recreates 40 dashboards by hand.
 - Dashboard history via `git log` when the dashboards directory is a git
   repo (read-only integration; git itself is the version store).
-- Provisioned/read-only mode with "export patch".
+- Provisioned/read-only mode (the originally-sketched "export patch" was
+  dropped — provisioned instances are edited in git).
 - **Data links / drill-down**: panel links carrying the current variables and
   time range (`$instance`, `$__from`/`$__to`) to another dashboard or an
   external tool.
 - **Repeating panels by variable**: one panel definition rendered once per
   value of a variable (panel repeat done; row/section repeat is the follow-up).
-- Annotations.
+- Annotations (planned — not yet built).
 
 ## 11. Build order
 
@@ -421,7 +427,7 @@ non-goal changes. Legend: ✅ done · 🚧 planned · ⛔ non-goal (§2).
 
 | Area | Feature | Status |
 |---|---|---|
-| Panels | Time series, stat, gauge, table, bar, heatmap, status grid, markdown | ✅ |
+| Panels | Time series, stat, gauge, table, bar, heatmap, status grid, markdown, image, clock | ✅ |
 | Panels | Legend templating (`{{label}}`) and unit formatting | ✅ |
 | Dashboards | PromQL editor (autocomplete + lint) | ✅ |
 | Dashboards | Variables, incl. chaining (dependent lists) | ✅ |
