@@ -1,0 +1,144 @@
+apiVersion: v1
+kind: Dashboard
+metadata:
+  name: demo
+spec:
+  display:
+    name: Fleet overview
+    description: Demo dashboard — panel repeat and drill-down data links
+  duration: 3h
+  refreshInterval: 30s
+  variables:
+    - kind: ListVariable
+      spec:
+        name: instance
+        display:
+          name: Instance
+        allowAllValue: true
+        allowMultiple: true
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            labelName: instance
+  panels:
+    load:
+      kind: Panel
+      spec:
+        display:
+          name: CPU utilisation
+        plugin:
+          kind: GaugeChart
+          spec:
+            unit: percent
+            min: 0
+            max: 100
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: avg(node_cpu_utilisation)
+    memory:
+      kind: Panel
+      spec:
+        display:
+          name: Memory available
+        plugin:
+          kind: StatChart
+          spec:
+            unit: bytes
+            calculation: last
+            sparkline: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: node_memory_MemAvailable_bytes
+    network:
+      kind: Panel
+      spec:
+        display:
+          name: Network throughput
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            unit: bytes
+            legend:
+              position: bottom
+        links:
+          - title: Runbook
+            url: https://example.com/runbook/network
+            targetBlank: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: rate(node_network_receive_bytes_total[5m])
+                  seriesNameFormat: "{{instance}}"
+    cpu:
+      kind: Panel
+      spec:
+        display:
+          name: CPU — $instance
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            unit: percent
+            legend:
+              position: bottom
+        repeat:
+          variable: instance
+        links:
+          - title: Node detail
+            url: /d/node-detail?var-instance=$instance&from=$__from&to=$__to
+          - title: Metrics
+            url: https://example.com/metrics/$instance
+            targetBlank: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: rate(node_cpu_seconds_total{instance="$instance"}[5m])
+                  seriesNameFormat: "{{mode}}"
+  layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Overview
+        items:
+          - x: 0
+            y: 0
+            width: 6
+            height: 7
+            content:
+              $ref: "#/spec/panels/load"
+          - x: 6
+            y: 0
+            width: 6
+            height: 7
+            content:
+              $ref: "#/spec/panels/memory"
+          - x: 12
+            y: 0
+            width: 12
+            height: 7
+            content:
+              $ref: "#/spec/panels/network"
+    - kind: Grid
+      spec:
+        display:
+          title: Per-node CPU (repeated by $instance)
+        items:
+          - x: 0
+            y: 0
+            width: 8
+            height: 7
+            content:
+              $ref: "#/spec/panels/cpu"
