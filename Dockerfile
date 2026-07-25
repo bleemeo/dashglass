@@ -13,6 +13,7 @@ RUN pnpm --filter dashglass build
 
 # Stage 2: build the Go binary with the SPA embedded.
 FROM golang:1.26-alpine AS go-builder
+ARG VERSION=dev
 WORKDIR /src/backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
@@ -20,7 +21,7 @@ COPY backend/ ./
 # Replace the tracked placeholder with the real build output.
 RUN rm -rf internal/ui/dist
 COPY --from=web-builder /src/apps/dashglass/dist internal/ui/dist
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /dashglass .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /dashglass .
 
 # Stage 3: minimal runtime image. git + ssh power the dashboard history
 # and remote sync features (absent binaries just disable them).
