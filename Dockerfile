@@ -1,11 +1,14 @@
 # Stage 1: build the SPA (workspace packages are consumed as TS source,
 # so the whole monorepo is needed for the app build).
 FROM node:24-alpine AS web-builder
-RUN npm install -g pnpm@11
 WORKDIR /src
+# Install the exact pnpm version pinned in package.json (packageManager):
+# any other version tries to self-download the pinned one, which fails in
+# the --offline install below.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN npm install -g "pnpm@$(node -p "require('./package.json').packageManager.split('@')[1].split('+')[0]")"
 # Fetch dependencies from the lockfile alone so this layer is cached
 # across source-only changes.
-COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm fetch
 COPY . .
 RUN pnpm install --frozen-lockfile --offline
