@@ -32,25 +32,37 @@ version, review and deploy through git.
 
 ## Quickstart
 
-With Docker Compose (includes a demo Prometheus scraping itself, so the
-sample dashboards have data out of the box):
+Run the published image against your own Prometheus:
 
 ```sh
-git clone https://github.com/bleemeo/dashglass && cd dashglass
-docker compose up
+docker run -p 8080:8080 -v "$(pwd)/dashboards:/dashboards" \
+  ghcr.io/bleemeo/dashglass -prometheus-url http://your-prometheus:9090
 # open http://localhost:8080
 ```
+
+Dashboards are plain YAML files in the mounted directory — put it under
+git and you have GitOps. Images are tagged `latest` and per release
+(CalVer, e.g. `ghcr.io/bleemeo/dashglass:2026.07.25.120000`).
 
 Starting from an empty instance? The home screen offers ready-made
 example dashboards (built only from metrics Prometheus exposes about
 itself, so they show real data immediately) — create one in a click, or
 import from Grafana.
 
-Or as a single binary against your own Prometheus:
+Prefer a single binary? Prebuilt binaries for Linux, macOS and Windows
+are attached to each [release](https://github.com/bleemeo/dashglass/releases):
 
 ```sh
-pnpm install && pnpm build-binary
 ./dashglass -prometheus-url http://localhost:9090 -dashboards-dir ./dashboards
+```
+
+No Prometheus at hand? The repository ships a Docker Compose demo with a
+Prometheus scraping itself, so the sample dashboards have data out of
+the box:
+
+```sh
+git clone https://github.com/bleemeo/dashglass && cd dashglass
+docker compose up
 ```
 
 ### First run and authentication

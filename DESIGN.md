@@ -450,6 +450,7 @@ non-goal changes. Legend: ✅ done · 🚧 planned · ⛔ non-goal (§2).
 | Auth | LDAP | 🚧 |
 | Auth | Per-dashboard ACLs, teams, multi-tenancy | ⛔ |
 | Ops | Single Go binary (embedded SPA), Docker packaging | ✅ |
+| Ops | Release pipeline (CalVer tags, prebuilt binaries, GHCR images) | ✅ |
 | Ops | Runtime admin config (datasource, git remote) | ✅ |
 | Alerting | Alerting, notifications, incident management | ⛔ |
 | Plugins | Runtime-loadable third-party plugins (build-time only) | ⛔ |

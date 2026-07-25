@@ -1,6 +1,10 @@
 services:
   dashglass:
+    image: ghcr.io/bleemeo/dashglass
+    # `docker compose up` pulls the published image. To run from this
+    # checkout instead, `docker compose up --build`.
     build: .
+    pull_policy: missing
     command:
       - -prometheus-url=http://prometheus:9090
       - -dashboards-dir=/dashboards
