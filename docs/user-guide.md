@@ -4,6 +4,9 @@ How to build and operate dashboards. For the design and architecture, see
 [DESIGN.md](../DESIGN.md); for the canonical list of what exists, see
 [DESIGN.md §13](../DESIGN.md#13-feature-status).
 
+![A Dashglass dashboard: gauge, stat and time-series panels, a panel repeated
+across every $instance, and drill-down links in the panel headers.](screenshot-light.png)
+
 - [Dashboards and panels](#dashboards-and-panels)
 - [Variables](#variables)
 - [Repeating panels](#repeating-panels)
@@ -104,7 +107,8 @@ value for multi-select), so a dashboard link is shareable with its filters.
 
 Repeat renders **one panel definition once per value of a variable** — define
 a panel once, get a tile per instance, and the layout grows on its own as the
-underlying set changes.
+underlying set changes. The *Per-node CPU* row in the screenshot at the top of
+this guide is a single panel repeated across `$instance`.
 
 Configure it in the panel editor under **Repeat → Repeat by variable** (pick
 the variable; optionally choose a direction), or in the file:
@@ -151,7 +155,8 @@ produces and what the reflow is tuned for.
 
 Data links turn a panel into a jumping-off point: they appear in the panel
 header and carry the **current context** — dashboard variables and the
-selected time range — into the target URL.
+selected time range — into the target URL. The *Runbook*, *Node detail* and
+*Metrics* links in the screenshot's panel headers are data links.
 
 Configure them in the panel editor under **Links** (title + URL, and whether
 to open in a new tab), or in the file:
