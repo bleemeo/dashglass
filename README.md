@@ -140,6 +140,11 @@ schemas (`pnpm generate-schema` in `packages/model`); regenerate it after
 changing the model. `./dashglass lint [paths...]` validates dashboard files
 (used in CI).
 
+## Logo
+
+The Dashglass mark is available as [SVG](./docs/logo.svg) and
+[PNG](./docs/logo.png) for integrations, articles and link collections.
+
 ## License
 
 Dashglass is licensed under the [Apache License 2.0](LICENSE).

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- The Dashglass brand mark: a rounded "pane of glass" tile with a gauge
+       inside — dashboard + glass. Keep in sync with the favicon in
+       apps/dashglass/index.html and BrandMark in
+       apps/dashglass/src/components/icons.tsx. -->
+  <rect x="2" y="2" width="20" height="20" rx="5" fill="#2a78d6"/>
+  <path d="M8.46 15.54 A5 5 0 1 1 15.54 15.54" stroke="#fff" stroke-opacity=".4" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M8.46 15.54 A5 5 0 1 1 16.33 9.5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <circle cx="16.33" cy="9.5" r="1.4" fill="#fff"/>
+</svg>
