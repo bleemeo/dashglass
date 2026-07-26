@@ -186,6 +186,10 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 			"set auth.proxy.trusted_proxies unless the backend is only reachable through the proxy")
 	}
 
+	if oidcConfig.InsecureSkipVerify {
+		logger.Warn("auth.oidc.insecure_skip_verify is on: the provider's TLS certificate " +
+			"is NOT verified; anyone on the network path can impersonate the issuer")
+	}
 	ctxDiscover, cancelDiscover := context.WithTimeout(context.Background(), 15*time.Second)
 	oidcAuth, err := auth.NewOIDCAuthenticator(ctxDiscover, oidcConfig)
 	cancelDiscover()

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -29,6 +30,11 @@ type OIDCConfig struct {
 	// then "email", then "sub").
 	UsernameClaim string      `yaml:"username_claim"`
 	RoleMapping   RoleMapping `yaml:"role_mapping"`
+	// InsecureSkipVerify disables TLS certificate verification for every
+	// call to the provider (discovery, JWKS, token endpoint). Only for
+	// issuers with self-signed or otherwise unverifiable certificates —
+	// it lets anyone on the network path impersonate the provider.
+	InsecureSkipVerify bool `yaml:"insecure_skip_verify"`
 }
 
 // OIDCAuthenticator drives the authorization-code flow and maps the
@@ -40,6 +46,9 @@ type OIDCAuthenticator struct {
 	oauth        oauth2.Config
 	groupsClaim  string
 	usernameKeys []string
+	// httpClient overrides the client used to reach the provider
+	// (insecure_skip_verify); nil means the default client.
+	httpClient *http.Client
 }
 
 // NewOIDCAuthenticator discovers the provider and builds the flow; returns
@@ -50,6 +59,15 @@ func NewOIDCAuthenticator(ctx context.Context, config OIDCConfig) (*OIDCAuthenti
 	}
 	if config.ClientID == "" || config.RedirectURL == "" {
 		return nil, fmt.Errorf("auth.oidc: issuer, client_id and redirect_url are required")
+	}
+	var httpClient *http.Client
+	if config.InsecureSkipVerify {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		httpClient = &http.Client{Transport: transport}
+		// go-oidc and oauth2 both take their HTTP client from the
+		// context; the provider keeps it for later JWKS fetches.
+		ctx = oidc.ClientContext(ctx, httpClient)
 	}
 	provider, err := oidc.NewProvider(ctx, config.Issuer)
 	if err != nil {
@@ -65,11 +83,12 @@ func NewOIDCAuthenticator(ctx context.Context, config OIDCConfig) (*OIDCAuthenti
 	}
 	usernameKeys := []string{config.UsernameClaim, "preferred_username", "email", "sub"}
 	return &OIDCAuthenticator{
-		config:      config,
-		provider:    provider,
-		verifier:    provider.Verifier(&oidc.Config{ClientID: config.ClientID}),
-		groupsClaim: groupsClaim,
+		config:       config,
+		provider:     provider,
+		verifier:     provider.Verifier(&oidc.Config{ClientID: config.ClientID}),
+		groupsClaim:  groupsClaim,
 		usernameKeys: usernameKeys,
+		httpClient:   httpClient,
 		oauth: oauth2.Config{
 			ClientID:     config.ClientID,
 			ClientSecret: config.ClientSecret,
@@ -109,6 +128,9 @@ func (a *OIDCAuthenticator) Start() (authURL string, flow OIDCFlow) {
 // Complete exchanges the code, verifies the ID token against the stored
 // flow, maps groups to a role and returns the user (or an error to deny).
 func (a *OIDCAuthenticator) Complete(ctx context.Context, r *http.Request, flow OIDCFlow) (User, error) {
+	if a.httpClient != nil {
+		ctx = oidc.ClientContext(ctx, a.httpClient)
+	}
 	if r.URL.Query().Get("state") != flow.State {
 		return User{}, fmt.Errorf("state mismatch")
 	}

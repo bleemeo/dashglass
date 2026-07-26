@@ -308,6 +308,12 @@ Default scopes are `openid profile email groups`; the username is taken from
 `preferred_username`, then `email`, then `sub`. A user whose groups match no
 rule is denied (never silently defaulted to viewer).
 
+If the provider's certificate cannot be verified (self-signed, or missing
+SANs — Go rejects certificates that only carry the legacy Common Name),
+`insecure_skip_verify: true` disables TLS verification towards the provider.
+This lets anyone on the network path impersonate the issuer, so treat it as
+a stopgap and prefer fixing the certificate.
+
 #### Reverse proxy
 
 If an authenticating proxy already fronts Dashglass (Authelia, Authentik,

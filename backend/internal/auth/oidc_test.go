@@ -51,6 +51,16 @@ type mockIssuer struct {
 }
 
 func newMockIssuer(t *testing.T) *mockIssuer {
+	return newMockIssuerServer(t, httptest.NewServer)
+}
+
+// newMockIssuerTLS serves the same issuer over TLS with httptest's
+// self-signed certificate (exercises insecure_skip_verify).
+func newMockIssuerTLS(t *testing.T) *mockIssuer {
+	return newMockIssuerServer(t, httptest.NewTLSServer)
+}
+
+func newMockIssuerServer(t *testing.T, start func(http.Handler) *httptest.Server) *mockIssuer {
 	t.Helper()
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -67,10 +77,10 @@ func newMockIssuer(t *testing.T) *mockIssuer {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, _ *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{
-			"issuer":                 m.server.URL,
-			"authorization_endpoint": m.server.URL + "/auth",
-			"token_endpoint":         m.server.URL + "/token",
-			"jwks_uri":               m.server.URL + "/jwks",
+			"issuer":                                m.server.URL,
+			"authorization_endpoint":                m.server.URL + "/auth",
+			"token_endpoint":                        m.server.URL + "/token",
+			"jwks_uri":                              m.server.URL + "/jwks",
 			"id_token_signing_alg_values_supported": []string{"RS256"},
 		})
 	})
@@ -89,7 +99,7 @@ func newMockIssuer(t *testing.T) *mockIssuer {
 			"id_token":     m.currentToken,
 		})
 	})
-	m.server = httptest.NewServer(mux)
+	m.server = start(mux)
 	t.Cleanup(m.server.Close)
 	return m
 }
@@ -141,6 +151,45 @@ func TestOIDCCompleteHappyPath(t *testing.T) {
 	}
 	if user.Username != "lionel" || user.Role != RoleAdmin {
 		t.Fatalf("user = %+v, want lionel/admin", user)
+	}
+}
+
+func TestOIDCInsecureSkipVerify(t *testing.T) {
+	issuer := newMockIssuerTLS(t)
+	const clientID = "dashglass"
+	base := OIDCConfig{
+		Issuer:      issuer.server.URL,
+		ClientID:    clientID,
+		RedirectURL: "http://dashglass.local/api/auth/oidc/callback",
+		RoleMapping: RoleMapping{Viewer: []string{"*"}},
+	}
+
+	// Self-signed issuer certificate → discovery is refused by default.
+	if _, err := NewOIDCAuthenticator(context.Background(), base); err == nil {
+		t.Fatal("discovery against a self-signed issuer should fail without insecure_skip_verify")
+	}
+
+	config := base
+	config.InsecureSkipVerify = true
+	authn, err := NewOIDCAuthenticator(context.Background(), config)
+	if err != nil {
+		t.Fatalf("NewOIDCAuthenticator: %v", err)
+	}
+
+	// The whole flow — token exchange and JWKS fetch — must skip
+	// verification too, not just discovery.
+	_, flow := authn.Start()
+	issuer.currentToken = issuer.mintToken(t, clientID, flow.Nonce, map[string]any{
+		"preferred_username": "lionel",
+		"groups":             []any{"staff"},
+	})
+	callback := httptest.NewRequest("GET", "/api/auth/oidc/callback?code=abc&state="+url.QueryEscape(flow.State), nil)
+	user, err := authn.Complete(context.Background(), callback, flow)
+	if err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+	if user.Username != "lionel" || user.Role != RoleViewer {
+		t.Fatalf("user = %+v, want lionel/viewer", user)
 	}
 }
 

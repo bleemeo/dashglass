@@ -76,6 +76,10 @@ auth:
   #   client_secret: ${OIDC_CLIENT_SECRET}
   #   redirect_url: https://dashglass.example.com/api/auth/oidc/callback
   #   groups_claim: groups          # optional (default "groups")
+  #   # Skip TLS certificate verification towards the provider (self-signed
+  #   # or SAN-less certificates). Insecure: anyone on the network path can
+  #   # impersonate the issuer — prefer fixing the certificate.
+  #   insecure_skip_verify: true
   #   role_mapping:
   #     admin: [dashglass-admins]
   #     viewer: ["*"]
