@@ -121,6 +121,17 @@ describe("gauge", () => {
     );
   });
 
+  it("clamps out-of-range values so the arc never over-fills", () => {
+    const over = buildGaugeOption(3_000_000_000, {}, lightChartTheme) as {
+      series: { data: { value: number }[] }[];
+    };
+    expect(over.series[0]?.data[0]?.value).toBe(100);
+    const under = buildGaugeOption(-5, {}, lightChartTheme) as {
+      series: { data: { value: number }[] }[];
+    };
+    expect(under.series[0]?.data[0]?.value).toBe(0);
+  });
+
   it("marks threshold zones on the background track", () => {
     const stops = gaugeTrackStops(spec, lightChartTheme)!;
     // Zones: good up to 70%, warning up to 90%, critical to the end —

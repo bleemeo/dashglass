@@ -33,6 +33,19 @@ function toFixed(value: number, decimals: number | undefined): string {
   return value.toFixed(decimals ?? autoDecimals(value));
 }
 
+/**
+ * toFixed, but abbreviated past 10000 (12345678 → "12.3 M"): full digit
+ * strings overflow stat tiles and gauge overlays. Used by the unit-less
+ * and fixed-suffix formats; a huge "percent" is a mis-scaled query, but
+ * it must still render bounded.
+ */
+function fixedOrScaled(value: number, decimals: number | undefined): string {
+  if (Math.abs(value) >= 10000) {
+    return scaled(value, 1000, SI_SUFFIXES, decimals);
+  }
+  return toFixed(value, decimals);
+}
+
 function scaled(
   value: number,
   base: number,
@@ -85,9 +98,9 @@ export function formatValue(
     case "short":
       return scaled(value, 1000, SI_SUFFIXES, decimals);
     case "percent":
-      return `${toFixed(value, decimals)}%`;
+      return `${fixedOrScaled(value, decimals)}%`;
     case "percentunit":
-      return `${toFixed(value * 100, decimals)}%`;
+      return `${fixedOrScaled(value * 100, decimals)}%`;
     case "bytes":
       return scaled(value, 1024, BYTE_SUFFIXES, decimals);
     case "bytesps":
@@ -104,9 +117,9 @@ export function formatValue(
     case "hertz":
       return scaled(value, 1000, HERTZ_SUFFIXES, decimals);
     case "celsius":
-      return `${toFixed(value, decimals)} °C`;
+      return `${fixedOrScaled(value, decimals)} °C`;
     case "none":
-      return toFixed(value, decimals);
+      return fixedOrScaled(value, decimals);
   }
 }
 

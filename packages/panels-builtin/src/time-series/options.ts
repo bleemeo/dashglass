@@ -125,7 +125,9 @@ export function buildTimeSeriesOption(
       type: "time",
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: theme.ink.muted, fontSize: 11 },
+      // hideOverlap: narrow panels would otherwise render colliding
+      // time labels (ECharts only auto-thins, it does not drop them).
+      axisLabel: { color: theme.ink.muted, fontSize: 11, hideOverlap: true },
     },
     yAxis: {
       type: "value",

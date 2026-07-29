@@ -10,6 +10,13 @@ describe("formatValue", () => {
     expect(formatValue(3)).toBe("3");
   });
 
+  it("abbreviates large unit-less values so they fit stat tiles", () => {
+    expect(formatValue(3_023_232_323)).toBe("3.02 G");
+    expect(formatValue(12_345_678)).toBe("12.3 M");
+    expect(formatValue(-45_000)).toBe("-45 k");
+    expect(formatValue(9999)).toBe("9999");
+  });
+
   it("formats SI short values", () => {
     expect(formatValue(1500, "short")).toBe("1.50 k");
     expect(formatValue(2_500_000, "short")).toBe("2.50 M");
@@ -27,6 +34,12 @@ describe("formatValue", () => {
   it("formats percentages", () => {
     expect(formatValue(42.5, "percent")).toBe("42.5%");
     expect(formatValue(0.425, "percentunit")).toBe("42.5%");
+  });
+
+  it("keeps mis-scaled percentages bounded", () => {
+    // A query that yields bytes into a percent panel must not overflow
+    // the tile with raw digits.
+    expect(formatValue(4_898_583_000, "percent")).toBe("4.90 G%");
   });
 
   it("formats durations picking a readable unit", () => {

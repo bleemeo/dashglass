@@ -104,7 +104,10 @@ export function buildGaugeOption(
           formatter: (tick: number) =>
             tick === min || tick === max ? formatValue(tick, unit) : "",
         },
-        data: [{ value: value ?? min }],
+        // Clamp into [min, max]: an out-of-range value would draw a
+        // (visually broken) over-full arc; the overflow is signalled by
+        // the caption in GaugeChart instead.
+        data: [{ value: Math.min(Math.max(value ?? min, min), max) }],
         // The value is rendered as a responsive HTML overlay (see
         // GaugeChart) so it scales with the tile; canvas text can't.
         detail: { show: false },
