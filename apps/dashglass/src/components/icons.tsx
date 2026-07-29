@@ -112,6 +112,17 @@ export function PlusIcon() {
   );
 }
 
+/** Horizontal ellipsis: per-item overflow menu. */
+export function MoreIcon() {
+  return (
+    <svg {...common} aria-hidden>
+      <circle cx="5" cy="12" r="0.75" fill="currentColor" />
+      <circle cx="12" cy="12" r="0.75" fill="currentColor" />
+      <circle cx="19" cy="12" r="0.75" fill="currentColor" />
+    </svg>
+  );
+}
+
 /** Clock with a counter-clockwise arrow: version history. */
 export function HistoryIcon() {
   return (

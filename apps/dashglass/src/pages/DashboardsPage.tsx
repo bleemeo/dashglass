@@ -11,6 +11,8 @@ import {
   Input,
   InputGroup,
   Link as ChakraLink,
+  Menu,
+  Portal,
   SimpleGrid,
   Table,
   Text,
@@ -32,7 +34,7 @@ import { getDashboardFile, putDashboard } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { NewDashboardDialog } from "../components/NewDashboardDialog";
 import { RenameDashboardDialog } from "../components/RenameDashboardDialog";
-import { DashboardsIcon, PlusIcon } from "../components/icons";
+import { DashboardsIcon, MoreIcon, PlusIcon } from "../components/icons";
 import { toaster } from "../components/toaster";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useKeyShortcut } from "../hooks/useShortcuts";
@@ -188,6 +190,51 @@ function ViewToggle({
   );
 }
 
+/**
+ * Per-dashboard overflow menu (⋯): keeps Rename and especially the
+ * destructive Delete out of the always-visible surface of every card/row.
+ */
+function DashboardActionsMenu({
+  name,
+  onRename,
+  onDelete,
+}: {
+  name: string;
+  onRename: (name: string) => void;
+  onDelete: (name: string) => void;
+}) {
+  return (
+    <Menu.Root>
+      <Menu.Trigger asChild>
+        <IconButton
+          size="2xs"
+          variant="ghost"
+          color="fg.muted"
+          aria-label={`Actions for ${name}`}
+        >
+          <MoreIcon />
+        </IconButton>
+      </Menu.Trigger>
+      <Portal>
+        <Menu.Positioner>
+          <Menu.Content minWidth="140px">
+            <Menu.Item value="rename" onClick={() => onRename(name)}>
+              Rename
+            </Menu.Item>
+            <Menu.Item
+              value="delete"
+              color="fg.error"
+              onClick={() => onDelete(name)}
+            >
+              Delete
+            </Menu.Item>
+          </Menu.Content>
+        </Menu.Positioner>
+      </Portal>
+    </Menu.Root>
+  );
+}
+
 function DashboardCard({
   dashboard,
   readonly,
@@ -260,23 +307,11 @@ function DashboardCard({
           {dashboard.modified ? ` · ${relativeTime(dashboard.modified)}` : ""}
         </Text>
         {readonly ? null : (
-          <Flex>
-            <Button
-              size="2xs"
-              variant="ghost"
-              onClick={() => onRename(dashboard.name)}
-            >
-              Rename
-            </Button>
-            <Button
-              size="2xs"
-              variant="ghost"
-              colorPalette="red"
-              onClick={() => onDelete(dashboard.name)}
-            >
-              Delete
-            </Button>
-          </Flex>
+          <DashboardActionsMenu
+            name={dashboard.name}
+            onRename={onRename}
+            onDelete={onDelete}
+          />
         )}
       </Flex>
     </Flex>
@@ -628,23 +663,11 @@ export function DashboardsPage() {
                 </Table.Cell>
                 <Table.Cell textAlign="right">
                   {readonly ? null : (
-                    <>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        onClick={() => setRenaming(dashboard.name)}
-                      >
-                        Rename
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        colorPalette="red"
-                        onClick={() => setDeleting(dashboard.name)}
-                      >
-                        Delete
-                      </Button>
-                    </>
+                    <DashboardActionsMenu
+                      name={dashboard.name}
+                      onRename={setRenaming}
+                      onDelete={setDeleting}
+                    />
                   )}
                 </Table.Cell>
               </Table.Row>,
