@@ -114,10 +114,40 @@ export function isNotFound(error: unknown): boolean {
   return error instanceof APIError && error.status === 404;
 }
 
+// Marks that this browser had an authenticated session at some point, so
+// the login redirect can honestly distinguish "session expired" from
+// "never signed in" (first visit to a protected instance).
+const HAD_SESSION_KEY = "dashglass-had-session";
+
+function rememberSession(): void {
+  try {
+    localStorage.setItem(HAD_SESSION_KEY, "true");
+  } catch {
+    /* storage unavailable (private mode) — the message just stays generic */
+  }
+}
+
+function forgetSession(): void {
+  try {
+    localStorage.removeItem(HAD_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function hadSession(): boolean {
+  try {
+    return localStorage.getItem(HAD_SESSION_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 async function errorFrom(response: Response): Promise<APIError> {
   // A 401 means the session is gone: land on the login page (except when
   // already there — the login POST handles its own errors), carrying the
-  // current location so signing back in returns to it.
+  // current location so signing back in returns to it. Only claim an
+  // expired session when this browser actually had one.
   if (
     response.status === 401 &&
     !window.location.pathname.startsWith("/login")
@@ -125,7 +155,8 @@ async function errorFrom(response: Response): Promise<APIError> {
     const next = encodeURIComponent(
       window.location.pathname + window.location.search,
     );
-    window.location.assign(`/login?reason=expired&next=${next}`);
+    const reason = hadSession() ? "reason=expired&" : "";
+    window.location.assign(`/login?${reason}next=${next}`);
   }
   const body = (await response.json().catch(() => ({}))) as {
     error?: string;
@@ -145,7 +176,11 @@ export async function fetchAuthMe(): Promise<AuthMe> {
   if (!response.ok) {
     throw await errorFrom(response);
   }
-  return response.json() as Promise<AuthMe>;
+  const me = (await response.json()) as AuthMe;
+  if (me.authenticated) {
+    rememberSession();
+  }
+  return me;
 }
 
 export async function login(username: string, password: string): Promise<void> {
@@ -157,6 +192,7 @@ export async function login(username: string, password: string): Promise<void> {
   if (!response.ok) {
     throw await errorFrom(response);
   }
+  rememberSession();
 }
 
 export async function logout(): Promise<void> {
@@ -164,6 +200,8 @@ export async function logout(): Promise<void> {
   if (!response.ok && response.status !== 401) {
     throw await errorFrom(response);
   }
+  // Deliberate sign-out: a later 401 is not an expiry.
+  forgetSession();
 }
 
 /** Revokes every session of the current local user (bumps its version). */
@@ -172,6 +210,7 @@ export async function logoutEverywhere(): Promise<void> {
   if (!response.ok && response.status !== 401) {
     throw await errorFrom(response);
   }
+  forgetSession();
 }
 
 /** Self-service password change; the session stays alive (fresh cookie). */
