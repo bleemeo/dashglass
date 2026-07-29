@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Box, Button, Flex, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Input, Text } from "@chakra-ui/react";
+import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 
 import type { Panel, Duration } from "@dashglass/model";
@@ -89,6 +90,78 @@ function QueryChip({ query, onRun }: { query: string; onRun: (q: string) => void
         {query}
       </Box>
     </Button>
+  );
+}
+
+// How many metric chips to render at once; the filter narrows the rest.
+const METRICS_SHOWN = 60;
+
+function useMetricNames() {
+  return useQuery({
+    queryKey: ["explore", "metric-names"],
+    staleTime: 60_000,
+    queryFn: async (): Promise<string[]> => {
+      const response = await fetch("/api/v1/label/__name__/values");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const body = (await response.json()) as { data?: string[] };
+      return body.data ?? [];
+    },
+  });
+}
+
+/**
+ * Browsable metric names (the `__name__` label values), so Explore is
+ * usable without knowing the metric names by heart. A metric name is a
+ * valid query: clicking a chip runs it.
+ */
+function MetricsBrowser({ onRun }: { onRun: (query: string) => void }) {
+  const [filter, setFilter] = useState("");
+  const metrics = useMetricNames();
+  const all = metrics.data ?? [];
+  // Silently absent while loading or without a reachable datasource: the
+  // examples above keep the page usable.
+  if (all.length === 0) {
+    return null;
+  }
+  const needle = filter.trim().toLowerCase();
+  const matching = needle
+    ? all.filter((name) => name.toLowerCase().includes(needle))
+    : all;
+  const shown = matching.slice(0, METRICS_SHOWN);
+  const hidden = matching.length - shown.length;
+  return (
+    <Box>
+      <Flex alignItems="center" justifyContent="space-between" marginBottom={2}>
+        <Text fontSize="sm" fontWeight="medium">
+          Metrics
+        </Text>
+        <Input
+          size="xs"
+          maxWidth="220px"
+          placeholder="Filter metrics…"
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+        />
+      </Flex>
+      {shown.length > 0 ? (
+        <Flex wrap="wrap" gap={2}>
+          {shown.map((name) => (
+            <QueryChip key={name} query={name} onRun={onRun} />
+          ))}
+        </Flex>
+      ) : (
+        <Text fontSize="sm" color="fg.muted">
+          No metric matches the filter.
+        </Text>
+      )}
+      {hidden > 0 ? (
+        <Text fontSize="xs" color="fg.muted" marginTop={2}>
+          +{hidden} more — narrow with the filter.
+        </Text>
+      ) : null}
+    </Box>
   );
 }
 
@@ -255,6 +328,7 @@ export function ExplorePage() {
                   </Flex>
                 </Box>
               ) : null}
+              <MetricsBrowser onRun={runQuery} />
             </Flex>
           )}
         </Flex>
