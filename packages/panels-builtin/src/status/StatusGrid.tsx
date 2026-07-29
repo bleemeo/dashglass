@@ -92,6 +92,10 @@ export function StatusGrid({ spec, data }: PanelProps) {
         {summary.map((entry) => (
           <span
             key={entry.status}
+            // "✕ 2" alone is cryptic — spell the status out on hover and
+            // for assistive tech.
+            title={`${entry.count} ${entry.status}`}
+            aria-label={`${entry.count} ${entry.status}`}
             style={{
               display: "inline-flex",
               alignItems: "center",
