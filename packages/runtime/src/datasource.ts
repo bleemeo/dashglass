@@ -126,9 +126,15 @@ export function formatSeriesName(
   metric: PromMetric,
 ): string {
   if (format) {
-    return format.replace(/\{\{\s*([^}\s]+)\s*\}\}/g, (_, label: string) => {
-      return metric[label] ?? "";
-    });
+    const formatted = format.replace(
+      /\{\{\s*([^}\s]+)\s*\}\}/g,
+      (_, label: string) => metric[label] ?? "",
+    );
+    // A template whose labels are all absent can render empty; fall back
+    // to the default name instead of an unlabeled legend entry.
+    if (formatted.trim() !== "") {
+      return formatted;
+    }
   }
   const { __name__: metricName = "", ...labels } = metric;
   const pairs = Object.entries(labels)

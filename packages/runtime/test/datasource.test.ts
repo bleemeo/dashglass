@@ -53,6 +53,13 @@ describe("formatSeriesName", () => {
     );
     expect(formatSeriesName(undefined, { __name__: "up" })).toBe("up");
   });
+
+  it("falls back to the default name when the template resolves empty", () => {
+    expect(formatSeriesName("{{mode}}", metric)).toBe(
+      'node_load1{instance="web-1", job="node"}',
+    );
+    expect(formatSeriesName("  {{mode}} ", { __name__: "up" })).toBe("up");
+  });
 });
 
 describe("toTimeSeries", () => {
