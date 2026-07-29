@@ -10,6 +10,33 @@ import { createServer } from "node:http";
 
 const PORT = Number(process.argv[2] ?? 9091);
 const INSTANCES = ["web-1", "web-2", "web-3"];
+const METRIC_NAMES = [
+  "up",
+  "node_load1",
+  "node_load5",
+  "node_load15",
+  "node_cpu_seconds_total",
+  "node_memory_MemAvailable_bytes",
+  "node_memory_MemTotal_bytes",
+  "node_filesystem_avail_bytes",
+  "node_network_receive_bytes_total",
+  "node_network_transmit_bytes_total",
+  "cpu_used",
+  "mem_used_perc",
+  "disk_used_perc",
+  "io_read_bytes",
+  "io_write_bytes",
+  "net_bits_recv",
+  "net_bits_sent",
+  "system_load1",
+  "uptime",
+  "users_logged",
+  "process_total",
+  "container_cpu_used",
+  "container_mem_used_perc",
+  "container_health_status",
+  "service_status",
+];
 
 // --- deterministic pseudo-randomness (seeded by a string) -----------------
 function hash(string) {
@@ -34,7 +61,9 @@ function pinnedInstance(query) {
   return match ? match[1] : null;
 }
 function metricName(query) {
-  const match = query.match(/[a-zA-Z_:][a-zA-Z0-9_:]*/);
+  // Skip the __name__ matcher token itself ({__name__=~"cpu_…"}), so the
+  // demo series get named after the actual metric.
+  const match = query.replace(/__name__/g, "").match(/[a-zA-Z_:][a-zA-Z0-9_:]*/);
   return match ? match[0] : "series";
 }
 
@@ -42,9 +71,12 @@ function metricName(query) {
 // so bytes look like bytes, a percentage stays under 100, and a load
 // average looks like a load average.
 function scaleFor(metric) {
+  // Percentages first: "mem_used_perc" must scale like a percentage,
+  // not like the bytes its "mem" prefix suggests.
+  if (/rate|cpu|util|percent|perc\b|_perc/i.test(metric))
+    return { base: 42, amp: 30, cap: 100 };
   if (/bytes|mem/i.test(metric)) return { base: 4.2e9, amp: 1.1e9, cap: 8e9 };
   if (/load/i.test(metric)) return { base: 1.4, amp: 0.9, cap: 6 };
-  if (/rate|cpu|util|percent/i.test(metric)) return { base: 42, amp: 30, cap: 100 };
   return { base: 55, amp: 25, cap: 100 };
 }
 
@@ -158,6 +190,9 @@ const server = createServer((req, res) => {
     if (name === "instance") return ok(res, INSTANCES);
     if (name === "job") return ok(res, ["node", "dashglass"]);
     if (name === "mode") return ok(res, ["user", "system", "idle"]);
+    // A plausible metric list, so the Explore metrics browser has
+    // something to show in demos and screenshots.
+    if (name === "__name__") return ok(res, METRIC_NAMES);
     return ok(res, []);
   }
   if (path === "/api/v1/series") {
