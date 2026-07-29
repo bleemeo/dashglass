@@ -91,10 +91,16 @@ const config = defineConfig({
       minWidth: "0",
     },
     // Panel title as a button (fullscreen view); inherits the title look.
+    // Ellipsis is repeated here: the h3's text-overflow cannot reach into
+    // an atomic inline child, so a long title would clip hard without it.
     ".dashglass-panel-expand": {
       font: "inherit",
       color: "inherit",
       cursor: "pointer",
+      maxWidth: "100%",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
       _hover: { textDecoration: "underline" },
     },
     // Data links (drill-down) shown at the right of the panel header.

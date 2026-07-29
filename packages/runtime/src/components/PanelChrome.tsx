@@ -120,12 +120,14 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
       data-panel-key={panelKey}
     >
       <header className="dashglass-panel-header">
-        <h3 className="dashglass-panel-title">
+        {/* The title attribute carries the full text: narrow tiles
+            ellipsize it, and the tooltip is the only way to read it. */}
+        <h3 className="dashglass-panel-title" title={title ?? undefined}>
           {onExpand ? (
             <button
               type="button"
               className="dashglass-panel-expand"
-              title="View fullscreen"
+              aria-label={title ? `${title} — view fullscreen` : "View fullscreen"}
               onClick={onExpand}
             >
               {title}
