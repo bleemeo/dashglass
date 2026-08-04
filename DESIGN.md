@@ -443,6 +443,7 @@ non-goal changes. Legend: ✅ done · 🚧 planned · ⛔ non-goal (§2).
 | Storage | Git history (log/diff/restore), commit-on-save, remote sync | ✅ |
 | Storage | Provisioned / `-readonly` mode | ✅ |
 | Data | Prometheus via read-only proxy | ✅ |
+| Data | Datasource auth: basic/bearer, custom headers, custom CA, mTLS | ✅ |
 | Data | Non-Prometheus sources (SQL, Loki, traces) | ⛔ |
 | Import | Grafana JSON and grafana.com import | ✅ |
 | Auth | Local users + 3 roles + admin UI | ✅ |

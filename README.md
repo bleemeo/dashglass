@@ -27,8 +27,9 @@ version, review and deploy through git.
   from grafana.com, with honest per-panel warnings.
 - **Batteries where it counts** — local users with three roles, plus
   reverse-proxy and OIDC authentication; the Prometheus data source and git
-  remote are configurable at runtime from the admin UI; light & dark themes;
-  keyboard shortcuts and a kiosk mode for wall screens.
+  remote are configurable at runtime from the admin UI (basic/bearer auth,
+  custom headers for Mimir/Cortex tenancy, custom CA and mTLS); light & dark
+  themes; keyboard shortcuts and a kiosk mode for wall screens.
 
 ## Quickstart
 

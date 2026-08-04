@@ -13,6 +13,7 @@ across every $instance, and drill-down links in the panel headers.](screenshot-l
 - [Data links (drill-down)](#data-links-drill-down)
 - [Time range and refresh](#time-range-and-refresh)
 - [GitOps and history](#gitops-and-history)
+- [The Prometheus connection](#the-prometheus-connection)
 - [Authentication](#authentication)
 - [Importing from Grafana](#importing-from-grafana)
 
@@ -239,6 +240,40 @@ a git work tree; otherwise the History features are hidden).
   makes the API refuse writes and the UI drop every edit affordance — the
   dashboards are managed entirely by editing the files in git. Even admins
   cannot save in this mode.
+
+## The Prometheus connection
+
+The browser never talks to Prometheus: every query goes through the
+backend's read-only proxy, and the connection settings (including all
+credentials) stay server-side. Point Dashglass at Prometheus with
+`-prometheus-url` / `DASHGLASS_PROMETHEUS_URL` / `prometheus.url` in
+`dashglass.yaml` — provisioning it this way locks the admin UI — or
+configure it at runtime from **Admin → Datasource**.
+
+Authentication towards Prometheus: **basic auth** (native Prometheus
+`web.config.yml`, or a reverse proxy in front) or a **bearer token**.
+Beyond credentials:
+
+- **Extra headers** are sent with every upstream request — the
+  Mimir/Cortex tenancy header (`X-Scope-OrgID: tenant-1`), or a custom
+  `Authorization` scheme with the auth mode left on "none".
+- **CA certificate (PEM)** verifies a self-signed or private-CA
+  Prometheus endpoint properly (it replaces the system trust store for
+  this connection).
+- **Client certificate + key (PEM)** enable **mTLS**, Prometheus's
+  native `client_auth_type: RequireAndVerifyClientCert`.
+- **Skip TLS verification** is the last resort when the certificate
+  cannot be fixed — anyone on the network path can then impersonate the
+  datasource, so prefer the CA field.
+
+In `dashglass.yaml` the TLS material is provisioned as file paths
+(`prometheus.ca_file`, `client_cert_file`, `client_key_file`,
+`insecure_skip_verify`, plus `headers`) — see
+[dashglass.example.yaml](../dashglass.example.yaml). Configured from the
+admin UI, certificates are pasted as PEM and persisted server-side
+(`settings.yaml`, mode 0600); the client key is write-only and never
+shown again. **Test connection** probes the full stack — TLS, headers
+and credentials — before saving.
 
 ## Authentication
 

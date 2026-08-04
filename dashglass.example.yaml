@@ -8,6 +8,17 @@ listen: ":8080"
 
 prometheus:
   url: ${PROMETHEUS_URL}
+  # Extra headers sent with every upstream request — e.g. Mimir/Cortex
+  # tenancy, or a custom auth scheme with no auth mode configured.
+  # headers:
+  #   X-Scope-OrgID: tenant-1
+  # TLS towards Prometheus. ca_file replaces the system trust store for
+  # this connection (self-signed / private CA); the client pair enables
+  # mTLS; insecure_skip_verify is the last resort — prefer ca_file.
+  # ca_file: /etc/dashglass/prometheus-ca.pem
+  # client_cert_file: /etc/dashglass/client.pem
+  # client_key_file: /etc/dashglass/client-key.pem
+  # insecure_skip_verify: true
 
 dashboards:
   dir: ./dashboards

@@ -294,16 +294,26 @@ export interface AdminDatasource {
   url?: string;
   auth?: "none" | "basic" | "bearer";
   username?: string;
+  headers?: Record<string, string>;
+  caCert?: string;
+  clientCert?: string;
+  clientKeySet?: boolean;
+  insecureSkipVerify?: boolean;
 }
 
-/** Datasource edit/test payload; password/token are write-only (empty =
- * keep the stored secret). */
+/** Datasource edit/test payload; password/token/clientKey are write-only
+ * (empty = keep the stored secret). */
 export interface DatasourceInput {
   url: string;
   auth: "none" | "basic" | "bearer";
   username?: string;
   password?: string;
   token?: string;
+  headers?: Record<string, string>;
+  caCert?: string;
+  clientCert?: string;
+  clientKey?: string;
+  insecureSkipVerify?: boolean;
 }
 
 export async function adminGetDatasource(): Promise<AdminDatasource> {

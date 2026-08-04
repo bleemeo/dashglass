@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   Badge,
   Button,
+  Checkbox,
   CloseButton,
   Dialog,
   Field,
@@ -471,6 +472,29 @@ function ConfigTab() {
 
 /** Editable Prometheus connection; locked when provisioned by the
  * deployment (flag/env/file), per the same philosophy as -readonly. */
+/** "Name: value" lines ↔ header map (the form's textarea encoding). */
+function formatHeaders(headers?: Record<string, string>): string {
+  return Object.entries(headers ?? {})
+    .map(([name, value]) => `${name}: ${value}`)
+    .join("\n");
+}
+
+function parseHeaders(text: string): Record<string, string> {
+  const headers: Record<string, string> = {};
+  for (const line of text.split("\n")) {
+    const at = line.indexOf(":");
+    if (at <= 0) {
+      continue;
+    }
+    const name = line.slice(0, at).trim();
+    const value = line.slice(at + 1).trim();
+    if (name && value) {
+      headers[name] = value;
+    }
+  }
+  return headers;
+}
+
 function DatasourceForm({ view }: { view: AdminDatasource }) {
   const queryClient = useQueryClient();
   const [url, setUrl] = useState(view.url ?? "");
@@ -478,6 +502,11 @@ function DatasourceForm({ view }: { view: AdminDatasource }) {
   const [username, setUsername] = useState(view.username ?? "");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
+  const [headersText, setHeadersText] = useState(formatHeaders(view.headers));
+  const [caCert, setCaCert] = useState(view.caCert ?? "");
+  const [clientCert, setClientCert] = useState(view.clientCert ?? "");
+  const [clientKey, setClientKey] = useState("");
+  const [skipVerify, setSkipVerify] = useState(view.insecureSkipVerify ?? false);
   const [test, setTest] = useState<{ reachable: boolean; error?: string } | null>(
     null,
   );
@@ -487,6 +516,13 @@ function DatasourceForm({ view }: { view: AdminDatasource }) {
     auth,
     ...(auth === "basic" ? { username, password } : {}),
     ...(auth === "bearer" ? { token } : {}),
+    headers: parseHeaders(headersText),
+    caCert: caCert.trim(),
+    clientCert: clientCert.trim(),
+    // Never send a key without its cert: the state can be stale after
+    // the (conditionally rendered) key field unmounts.
+    clientKey: clientCert.trim() === "" ? "" : clientKey,
+    insecureSkipVerify: skipVerify,
   });
 
   const testConnection = useMutation({
@@ -582,6 +618,92 @@ function DatasourceForm({ view }: { view: AdminDatasource }) {
           />
         </Field.Root>
       ) : null}
+      <Text fontSize="sm" fontWeight="medium" marginTop={2}>
+        Advanced — headers & TLS
+      </Text>
+      <Field.Root>
+        <Field.Label>Extra headers</Field.Label>
+        <Textarea
+          size="sm"
+          rows={2}
+          fontFamily="mono"
+          placeholder={"X-Scope-OrgID: tenant-1"}
+          value={headersText}
+          onChange={(event) => setHeadersText(event.target.value)}
+        />
+        <Field.HelperText>
+          One "Name: value" per line, sent with every Prometheus request
+          (Mimir/Cortex tenancy, custom auth schemes…). An Authorization
+          value is a credential: it shows as "(secret)" once saved; leave
+          that as-is to keep it.
+        </Field.HelperText>
+      </Field.Root>
+      <Field.Root>
+        <Field.Label>CA certificate (PEM)</Field.Label>
+        <Textarea
+          size="sm"
+          rows={3}
+          fontFamily="mono"
+          placeholder="-----BEGIN CERTIFICATE-----"
+          value={caCert}
+          onChange={(event) => setCaCert(event.target.value)}
+        />
+        <Field.HelperText>
+          Replaces the system trust store for this connection — for
+          self-signed or private-CA Prometheus endpoints.
+        </Field.HelperText>
+      </Field.Root>
+      <Field.Root>
+        <Field.Label>Client certificate (PEM, mTLS)</Field.Label>
+        <Textarea
+          size="sm"
+          rows={3}
+          fontFamily="mono"
+          placeholder="-----BEGIN CERTIFICATE-----"
+          value={clientCert}
+          onChange={(event) => {
+            setClientCert(event.target.value);
+            // The key belongs to the cert: clearing the cert discards
+            // any pasted key, so a stale key can never be submitted.
+            if (event.target.value.trim() === "") {
+              setClientKey("");
+            }
+          }}
+        />
+      </Field.Root>
+      {clientCert.trim() !== "" ? (
+        <Field.Root>
+          <Field.Label>Client key (PEM)</Field.Label>
+          <Textarea
+            size="sm"
+            rows={3}
+            fontFamily="mono"
+            placeholder={
+              view.clientKeySet &&
+              clientCert.trim() === (view.clientCert ?? "").trim()
+                ? "(unchanged)"
+                : "-----BEGIN PRIVATE KEY-----"
+            }
+            value={clientKey}
+            onChange={(event) => setClientKey(event.target.value)}
+          />
+          <Field.HelperText>
+            Stored server-side, never shown again.
+          </Field.HelperText>
+        </Field.Root>
+      ) : null}
+      <Checkbox.Root
+        size="sm"
+        checked={skipVerify}
+        onCheckedChange={(details) => setSkipVerify(details.checked === true)}
+      >
+        <Checkbox.HiddenInput />
+        <Checkbox.Control />
+        <Checkbox.Label>
+          Skip TLS certificate verification (insecure — prefer a CA
+          certificate)
+        </Checkbox.Label>
+      </Checkbox.Root>
       <Flex gap={2} alignItems="center">
         <Button
           size="sm"
