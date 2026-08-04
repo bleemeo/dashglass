@@ -28,16 +28,16 @@ import (
 const maxDashboardSize = 2 << 20
 
 type Server struct {
-	store      *store.Store
-	hub        *watch.Hub
-	readonly   bool
-	version    string
-	proxy      http.Handler
-	grafanaCom *grafanaComClient
-	auth       *auth.Store
-	proxyAuth  *auth.ProxyAuthenticator
-	oidc       *auth.OIDCAuthenticator
-	throttle   *auth.Throttle
+	store        *store.Store
+	hub          *watch.Hub
+	readonly     bool
+	version      string
+	proxy        http.Handler
+	grafanaCom   *grafanaComClient
+	auth         *auth.Store
+	proxyAuth    *auth.ProxyAuthenticator
+	oidc         *auth.OIDCAuthenticator
+	throttle     *auth.Throttle
 	settings     []Setting
 	logger       *slog.Logger
 	history      *history.Service // nil = dashboards dir is not a git work tree
@@ -65,6 +65,12 @@ type Options struct {
 	PrometheusURL *url.URL
 	// PrometheusBearer is the initial bearer token (state-file sourced).
 	PrometheusBearer string
+	// PrometheusHeaders are extra headers sent with every upstream
+	// request (e.g. X-Scope-OrgID for Mimir/Cortex tenancy).
+	PrometheusHeaders map[string]string
+	// PrometheusTLS carries the upstream TLS options (custom CA, mTLS
+	// client certificate, or disabled verification).
+	PrometheusTLS PromTLS
 	// PrometheusProvisioned marks the URL as flag/env/file-owned: the
 	// datasource admin API then refuses runtime edits.
 	PrometheusProvisioned bool
@@ -103,21 +109,21 @@ type Options struct {
 	GitProvisioned bool
 }
 
-func New(options Options) *Server {
+func New(options Options) (*Server, error) {
 	server := &Server{
-		store:    options.Store,
-		hub:      options.Hub,
-		readonly: options.Readonly,
-		version:   options.Version,
-		auth:      options.Auth,
-		proxyAuth: options.ProxyAuth,
-		oidc:      options.OIDC,
-		throttle:     auth.NewThrottle(),
-		settings:     options.Settings,
-		logger:       options.Logger,
-		history:      options.History,
-		commitOnSave: options.CommitOnSave && options.History != nil,
-		syncer:       options.Syncer,
+		store:          options.Store,
+		hub:            options.Hub,
+		readonly:       options.Readonly,
+		version:        options.Version,
+		auth:           options.Auth,
+		proxyAuth:      options.ProxyAuth,
+		oidc:           options.OIDC,
+		throttle:       auth.NewThrottle(),
+		settings:       options.Settings,
+		logger:         options.Logger,
+		history:        options.History,
+		commitOnSave:   options.CommitOnSave && options.History != nil,
+		syncer:         options.Syncer,
 		gitProvisioned: options.GitProvisioned,
 	}
 	if server.logger == nil {
@@ -126,16 +132,31 @@ func New(options Options) *Server {
 	server.promProvisioned = options.PrometheusProvisioned
 	server.stateFile = options.StateFile
 	if options.PrometheusURL != nil {
-		server.prom.Store(&promTarget{
-			url:    options.PrometheusURL,
-			bearer: options.PrometheusBearer,
-		})
+		target, err := newPromTarget(
+			options.PrometheusURL,
+			options.PrometheusBearer,
+			options.PrometheusHeaders,
+			options.PrometheusTLS,
+		)
+		switch {
+		case err == nil:
+			server.prom.Store(target)
+		case options.PrometheusProvisioned:
+			// Deployment-owned config: fail fast, the operator fixes it.
+			return nil, err
+		default:
+			// State-file config (admin-edited): a server that boots
+			// unconfigured can be fixed from the admin UI; a server that
+			// refuses to boot cannot.
+			server.logger.Warn("ignoring the stored Prometheus connection "+
+				"(fix it in Admin → Datasource)", "error", err)
+		}
 	}
 	server.proxy = newPrometheusProxy(server.prom.Load)
 	if options.GrafanaComURL != "" {
 		server.grafanaCom = newGrafanaComClient(options.GrafanaComURL)
 	}
-	return server
+	return server, nil
 }
 
 // Routes registers the API on a mux (the caller adds the SPA handler).
@@ -382,7 +403,8 @@ func probePrometheus(ctx context.Context, target *promTarget) (bool, string) {
 		return false, err.Error()
 	}
 	target.authorize(req)
-	response, err := http.DefaultClient.Do(req)
+	client := &http.Client{Transport: target.transport}
+	response, err := client.Do(req)
 	if err != nil {
 		return false, "cannot reach Prometheus: " + err.Error()
 	}

@@ -36,6 +36,14 @@ type PrometheusState struct {
 	BasicUsername string `yaml:"basic_username,omitempty"`
 	BasicPassword string `yaml:"basic_password,omitempty"`
 	BearerToken   string `yaml:"bearer_token,omitempty"`
+	// Extra headers sent with every upstream request.
+	Headers map[string]string `yaml:"headers,omitempty"`
+	// TLS material is stored inline as PEM (the file is 0600, next to
+	// auth.yaml): a CA bundle to trust and/or an mTLS client pair.
+	CACert             string `yaml:"ca_cert,omitempty"`
+	ClientCert         string `yaml:"client_cert,omitempty"`
+	ClientKey          string `yaml:"client_key,omitempty"`
+	InsecureSkipVerify bool   `yaml:"insecure_skip_verify,omitempty"`
 }
 
 // StatePath derives the state-file location from the auth file: both are

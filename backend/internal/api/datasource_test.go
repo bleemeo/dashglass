@@ -188,3 +188,131 @@ func TestDatasourceTest(t *testing.T) {
 		t.Fatalf("bad URL test status = %d, want 400", response.StatusCode)
 	}
 }
+
+func TestDatasourceHeadersAndTLSRoundTrip(t *testing.T) {
+	var lastTenant string
+	upstream := httptest.NewServer(http.HandlerFunc(
+		func(writer http.ResponseWriter, request *http.Request) {
+			lastTenant = request.Header.Get("X-Scope-OrgID")
+			writer.Write([]byte(`{"status":"success"}`))
+		}))
+	t.Cleanup(upstream.Close)
+	stateFile := filepath.Join(t.TempDir(), "settings.yaml")
+	server := newTestServer(t, Options{StateFile: stateFile})
+
+	certPEM, keyPEM := selfSignedPair(t)
+	body, err := json.Marshal(map[string]any{
+		"url":                upstream.URL,
+		"auth":               "none",
+		"headers":            map[string]string{"X-Scope-OrgID": "tenant-42"},
+		"caCert":             string(certPEM),
+		"clientCert":         string(certPEM),
+		"clientKey":          string(keyPEM),
+		"insecureSkipVerify": true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := doRequest(t, http.MethodPut, server.URL+"/api/admin/datasource",
+		"application/json", string(body))
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("PUT status = %d", response.StatusCode)
+	}
+
+	// The proxy forwards the tenancy header.
+	doRequest(t, http.MethodGet, server.URL+"/api/v1/query?query=1", "", "")
+	if lastTenant != "tenant-42" {
+		t.Fatalf("upstream X-Scope-OrgID = %q, want tenant-42", lastTenant)
+	}
+
+	// The view exposes everything except the client key.
+	view := getDatasource(t, server.URL)
+	if view["insecureSkipVerify"] != true || view["clientKeySet"] != true {
+		t.Fatalf("view = %v", view)
+	}
+	// PEMs are whitespace-trimmed on intake (canonical stored form).
+	if view["clientCert"] != strings.TrimSpace(string(certPEM)) {
+		t.Fatal("client certificate not returned by the view")
+	}
+	if _, leaked := view["clientKey"]; leaked {
+		t.Fatal("the client key must never be returned")
+	}
+
+	// Everything is persisted for the next restart.
+	state, err := config.LoadState(stateFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.Prometheus.Headers["X-Scope-OrgID"] != "tenant-42" ||
+		state.Prometheus.ClientKey != strings.TrimSpace(string(keyPEM)) ||
+		!state.Prometheus.InsecureSkipVerify {
+		t.Fatalf("state not persisted: %+v", state.Prometheus)
+	}
+
+	// Editing with an unchanged cert and an empty key keeps the stored key.
+	edited, _ := json.Marshal(map[string]any{
+		"url":        upstream.URL,
+		"auth":       "none",
+		"clientCert": string(certPEM),
+		"clientKey":  "",
+	})
+	response = doRequest(t, http.MethodPut, server.URL+"/api/admin/datasource",
+		"application/json", string(edited))
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("re-PUT status = %d", response.StatusCode)
+	}
+	state, err = config.LoadState(stateFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.Prometheus.ClientKey != strings.TrimSpace(string(keyPEM)) {
+		t.Fatal("stored client key lost on edit")
+	}
+	// Headers were omitted from the edit body: they are authoritative
+	// fields, so they are now cleared.
+	if len(state.Prometheus.Headers) != 0 {
+		t.Fatalf("headers should be cleared, got %v", state.Prometheus.Headers)
+	}
+}
+
+func TestDatasourceMasksAuthorizationHeader(t *testing.T) {
+	upstream, lastAuth := fakePrometheus(t)
+	stateFile := filepath.Join(t.TempDir(), "settings.yaml")
+	server := newTestServer(t, Options{StateFile: stateFile})
+
+	// Configure a custom Authorization scheme as an extra header.
+	response := doRequest(t, http.MethodPut, server.URL+"/api/admin/datasource",
+		"application/json",
+		`{"url":"`+upstream.URL+`","auth":"none","headers":{"Authorization":"ApiKey s3cret"}}`)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("PUT status = %d", response.StatusCode)
+	}
+
+	// The view masks the value; it never round-trips to browsers.
+	view := getDatasource(t, server.URL)
+	headers, _ := view["headers"].(map[string]any)
+	if headers["Authorization"] != "(secret)" {
+		t.Fatalf("Authorization not masked in the view: %v", headers)
+	}
+
+	// Echoing the mask back (what the form does) keeps the stored value.
+	response = doRequest(t, http.MethodPut, server.URL+"/api/admin/datasource",
+		"application/json",
+		`{"url":"`+upstream.URL+`","auth":"none","headers":{"Authorization":"(secret)"}}`)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("re-PUT status = %d", response.StatusCode)
+	}
+	doRequest(t, http.MethodGet, server.URL+"/api/v1/query?query=1", "", "")
+	if *lastAuth != "ApiKey s3cret" {
+		t.Fatalf("upstream Authorization = %q, want the kept secret", *lastAuth)
+	}
+
+	// The mask with nothing stored is refused, not saved literally.
+	fresh := newTestServer(t, Options{StateFile: filepath.Join(t.TempDir(), "s.yaml")})
+	response = doRequest(t, http.MethodPut, fresh.URL+"/api/admin/datasource",
+		"application/json",
+		`{"url":"`+upstream.URL+`","auth":"none","headers":{"Authorization":"(secret)"}}`)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("mask without a stored value: status = %d, want 400", response.StatusCode)
+	}
+}

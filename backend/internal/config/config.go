@@ -14,10 +14,8 @@ import (
 )
 
 type Config struct {
-	Listen     string `yaml:"listen"`
-	Prometheus struct {
-		URL string `yaml:"url"`
-	} `yaml:"prometheus"`
+	Listen     string           `yaml:"listen"`
+	Prometheus PrometheusConfig `yaml:"prometheus"`
 	Dashboards struct {
 		Dir      string `yaml:"dir"`
 		Readonly bool   `yaml:"readonly"`
@@ -43,6 +41,23 @@ type Config struct {
 		// Native OpenID Connect login (DESIGN.md §7.4 phase 3).
 		OIDC auth.OIDCConfig `yaml:"oidc"`
 	} `yaml:"auth"`
+}
+
+// PrometheusConfig provisions the datasource from dashglass.yaml.
+type PrometheusConfig struct {
+	URL string `yaml:"url"`
+	// Extra headers sent with every upstream request (e.g.
+	// X-Scope-OrgID for Mimir/Cortex tenancy).
+	Headers map[string]string `yaml:"headers"`
+	// CAFile adds a PEM CA bundle to trust for the upstream TLS
+	// connection (self-signed or private-CA deployments).
+	CAFile string `yaml:"ca_file"`
+	// ClientCertFile/ClientKeyFile enable mTLS towards Prometheus.
+	ClientCertFile string `yaml:"client_cert_file"`
+	ClientKeyFile  string `yaml:"client_key_file"`
+	// InsecureSkipVerify disables upstream TLS verification — last
+	// resort; prefer ca_file.
+	InsecureSkipVerify bool `yaml:"insecure_skip_verify"`
 }
 
 // GitRemoteConfig provisions the git sync remote from dashglass.yaml.

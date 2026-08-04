@@ -126,13 +126,13 @@ func main() {
 			"DASHGLASS_AUTH_FILE", "", false),
 	}
 
-	if err := run(settings, cfg.Auth.Proxy, cfg.Auth.OIDC, cfg.Git.Remote, logger); err != nil {
+	if err := run(settings, cfg.Prometheus, cfg.Auth.Proxy, cfg.Auth.OIDC, cfg.Git.Remote, logger); err != nil {
 		logger.Error("fatal", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig auth.OIDCConfig, gitRemoteConfig config.GitRemoteConfig, logger *slog.Logger) error {
+func run(settings map[string]setting, promConfig config.PrometheusConfig, proxyConfig auth.ProxyConfig, oidcConfig auth.OIDCConfig, gitRemoteConfig config.GitRemoteConfig, logger *slog.Logger) error {
 	dashboardStore, err := store.New(settings["dashboards.dir"].value)
 	if err != nil {
 		return err
@@ -150,12 +150,42 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 	// deployment owns it and the admin UI shows it read-only. Otherwise
 	// the state file may hold one (admin-configured at runtime).
 	promProvisioned := settings["prometheus.url"].value != ""
+	if !promProvisioned && (len(promConfig.Headers) > 0 || promConfig.CAFile != "" ||
+		promConfig.ClientCertFile != "" || promConfig.ClientKeyFile != "" ||
+		promConfig.InsecureSkipVerify) {
+		// Silently dropping provisioned TLS/headers would send queries
+		// without them once an admin sets a URL from the UI.
+		return fmt.Errorf("dashglass.yaml sets prometheus headers/TLS options " +
+			"but no prometheus.url: provision the URL too, or configure the " +
+			"whole datasource from the admin UI")
+	}
 	var target *url.URL
 	promBearer := ""
+	var promHeaders map[string]string
+	var promTLS api.PromTLS
 	if promProvisioned {
 		target, err = url.Parse(settings["prometheus.url"].value)
 		if err != nil || target.Scheme == "" || target.Host == "" {
 			return fmt.Errorf("invalid Prometheus URL %q", settings["prometheus.url"].value)
+		}
+		promHeaders = promConfig.Headers
+		promTLS.InsecureSkipVerify = promConfig.InsecureSkipVerify
+		// TLS material is provisioned as file paths (mounted secrets).
+		for _, item := range []struct {
+			path string
+			into *[]byte
+		}{
+			{promConfig.CAFile, &promTLS.CACert},
+			{promConfig.ClientCertFile, &promTLS.ClientCert},
+			{promConfig.ClientKeyFile, &promTLS.ClientKey},
+		} {
+			if item.path == "" {
+				continue
+			}
+			*item.into, err = os.ReadFile(item.path)
+			if err != nil {
+				return fmt.Errorf("prometheus TLS material: %w", err)
+			}
 		}
 	} else if runtimeState.Prometheus.URL != "" {
 		target, err = url.Parse(runtimeState.Prometheus.URL)
@@ -167,9 +197,20 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 				runtimeState.Prometheus.BasicUsername, runtimeState.Prometheus.BasicPassword)
 		}
 		promBearer = runtimeState.Prometheus.BearerToken
+		promHeaders = runtimeState.Prometheus.Headers
+		promTLS = api.PromTLS{
+			InsecureSkipVerify: runtimeState.Prometheus.InsecureSkipVerify,
+			CACert:             []byte(runtimeState.Prometheus.CACert),
+			ClientCert:         []byte(runtimeState.Prometheus.ClientCert),
+			ClientKey:          []byte(runtimeState.Prometheus.ClientKey),
+		}
 	}
 	if target == nil {
 		logger.Warn("no Prometheus URL configured, metric queries will fail (an admin can set one from the UI)")
+	}
+	if promTLS.InsecureSkipVerify {
+		logger.Warn("prometheus.insecure_skip_verify is on: the datasource's TLS certificate " +
+			"is NOT verified; prefer ca_file with the server's CA")
 	}
 
 	authStore, err := auth.NewStore(settings["auth.file"].value)
@@ -316,11 +357,13 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 	}
 
 	mux := http.NewServeMux()
-	api.New(api.Options{
+	apiServer, err := api.New(api.Options{
 		Store:                 dashboardStore,
 		Hub:                   hub,
 		PrometheusURL:         target,
 		PrometheusBearer:      promBearer,
+		PrometheusHeaders:     promHeaders,
+		PrometheusTLS:         promTLS,
 		PrometheusProvisioned: promProvisioned,
 		StateFile:             stateFile,
 		Readonly:              readonly,
@@ -335,7 +378,11 @@ func run(settings map[string]setting, proxyConfig auth.ProxyConfig, oidcConfig a
 		CommitOnSave:          commitOnSave,
 		Syncer:                syncer,
 		GitProvisioned:        gitProvisioned,
-	}).Routes(mux)
+	})
+	if err != nil {
+		return err
+	}
+	apiServer.Routes(mux)
 	mux.Handle("/", ui.Handler())
 
 	listen := settings["listen"].value

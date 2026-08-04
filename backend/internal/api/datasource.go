@@ -4,21 +4,37 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/bleemeo/dashglass/backend/internal/config"
 )
 
-// datasourceBody is the admin's datasource edit/test payload. Password
-// and token are write-only: an empty value on an unchanged auth mode
-// keeps the stored secret, so the URL can be edited without re-typing
-// credentials.
+// datasourceBody is the admin's datasource edit/test payload. Password,
+// token and client key are write-only: an empty value on an unchanged
+// auth mode keeps the stored secret, so the URL can be edited without
+// re-typing credentials. The other fields are authoritative — sending
+// them empty clears them.
 type datasourceBody struct {
 	URL      string `json:"url"`
 	Auth     string `json:"auth"` // none | basic | bearer
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Token    string `json:"token"`
+	// Extra upstream headers (e.g. X-Scope-OrgID).
+	Headers map[string]string `json:"headers"`
+	// TLS material, as pasted PEM. The client key is write-only: empty
+	// with an unchanged client cert keeps the stored key.
+	CACert             string `json:"caCert"`
+	ClientCert         string `json:"clientCert"`
+	ClientKey          string `json:"clientKey"`
+	InsecureSkipVerify bool   `json:"insecureSkipVerify"`
 }
+
+// secretHeaderMask replaces the Authorization header value in the admin
+// view: a custom auth scheme configured as an extra header is a
+// credential and must not round-trip to browsers. A PUT echoing the
+// mask keeps the stored value, like the other write-only secrets.
+const secretHeaderMask = "(secret)"
 
 // datasourceView is the GET shape; secrets are never returned.
 func (s *Server) datasourceView() map[string]any {
@@ -43,6 +59,27 @@ func (s *Server) datasourceView() map[string]any {
 	default:
 		view["auth"] = "none"
 	}
+	if len(target.headers) > 0 {
+		// The Authorization value is masked — it is a credential.
+		shown := make(map[string]string, len(target.headers))
+		for name, value := range target.headers {
+			if http.CanonicalHeaderKey(name) == "Authorization" {
+				value = secretHeaderMask
+			}
+			shown[name] = value
+		}
+		view["headers"] = shown
+	}
+	// Certificates are public material and are returned so the form can
+	// be edited in place; the client key never leaves the server.
+	if len(target.tls.CACert) > 0 {
+		view["caCert"] = string(target.tls.CACert)
+	}
+	if len(target.tls.ClientCert) > 0 {
+		view["clientCert"] = string(target.tls.ClientCert)
+	}
+	view["clientKeySet"] = len(target.tls.ClientKey) > 0
+	view["insecureSkipVerify"] = target.tls.InsecureSkipVerify
 	return view
 }
 
@@ -56,9 +93,10 @@ func buildTarget(body datasourceBody, previous *promTarget) (*promTarget, error)
 	if parsed.User != nil {
 		return nil, errInvalid("credentials go in the authentication fields, not the URL")
 	}
+
+	bearer := ""
 	switch body.Auth {
 	case "", "none":
-		return &promTarget{url: parsed}, nil
 	case "basic":
 		if body.Username == "" {
 			return nil, errInvalid("basic auth needs a username")
@@ -71,19 +109,78 @@ func buildTarget(body datasourceBody, previous *promTarget) (*promTarget, error)
 			return nil, errInvalid("basic auth needs a password")
 		}
 		parsed.User = url.UserPassword(body.Username, password)
-		return &promTarget{url: parsed}, nil
 	case "bearer":
-		token := body.Token
-		if token == "" && previous != nil {
-			token = previous.bearer
+		bearer = body.Token
+		if bearer == "" && previous != nil {
+			bearer = previous.bearer
 		}
-		if token == "" {
+		if bearer == "" {
 			return nil, errInvalid("bearer auth needs a token")
 		}
-		return &promTarget{url: parsed, bearer: token}, nil
 	default:
 		return nil, errInvalid("auth must be none, basic or bearer")
 	}
+
+	headers := make(map[string]string)
+	for rawName, rawValue := range body.Headers {
+		name, value := strings.TrimSpace(rawName), strings.TrimSpace(rawValue)
+		if name == "" || value == "" {
+			continue
+		}
+		// The masked Authorization value round-trips from the view:
+		// echoing it back keeps the stored credential.
+		if http.CanonicalHeaderKey(name) == "Authorization" && value == secretHeaderMask {
+			stored := ""
+			if previous != nil {
+				stored = authorizationValue(previous.headers)
+			}
+			if stored == "" {
+				return nil, errInvalid("the Authorization header value is masked; enter it again")
+			}
+			value = stored
+		}
+		headers[name] = value
+	}
+
+	caCert := strings.TrimSpace(body.CACert)
+	clientCert := strings.TrimSpace(body.ClientCert)
+	clientKey := strings.TrimSpace(body.ClientKey)
+	tlsOptions := PromTLS{
+		InsecureSkipVerify: body.InsecureSkipVerify,
+		CACert:             []byte(caCert),
+		ClientCert:         []byte(clientCert),
+		ClientKey:          []byte(clientKey),
+	}
+	// The client key is write-only: an unchanged certificate with an
+	// empty key field keeps the stored key. Compare whitespace-trimmed:
+	// a stored PEM's trailing newline must not defeat the rule.
+	if clientCert != "" && clientKey == "" && previous != nil &&
+		strings.TrimSpace(string(previous.tls.ClientCert)) == clientCert {
+		tlsOptions.ClientKey = previous.tls.ClientKey
+	}
+	if len(tlsOptions.ClientCert) > 0 && len(tlsOptions.ClientKey) == 0 {
+		return nil, errInvalid("the client certificate needs its private key")
+	}
+	if len(tlsOptions.ClientKey) > 0 && len(tlsOptions.ClientCert) == 0 {
+		return nil, errInvalid("the client key needs its certificate")
+	}
+
+	target, err := newPromTarget(parsed, bearer, headers, tlsOptions)
+	if err != nil {
+		return nil, errInvalid(err.Error())
+	}
+	return target, nil
+}
+
+// authorizationValue finds the Authorization header regardless of the
+// stored casing (names keep the user's casing).
+func authorizationValue(headers map[string]string) string {
+	for name, value := range headers {
+		if http.CanonicalHeaderKey(name) == "Authorization" {
+			return value
+		}
+	}
+	return ""
 }
 
 type invalidError string
@@ -140,7 +237,7 @@ func (s *Server) adminPutDatasource(writer http.ResponseWriter, request *http.Re
 			writeError(writer, http.StatusInternalServerError, err.Error())
 			return
 		}
-		s.prom.Store(nil)
+		s.prom.Swap(nil).closeIdle()
 		s.logger.Info("datasource cleared", "by", s.usernameOf(request))
 		writeJSON(writer, http.StatusOK, s.datasourceView())
 		return
@@ -156,7 +253,9 @@ func (s *Server) adminPutDatasource(writer http.ResponseWriter, request *http.Re
 		writeError(writer, http.StatusInternalServerError, err.Error())
 		return
 	}
-	s.prom.Store(target)
+	// Swap, then release the replaced target's pooled connections (idle
+	// only — in-flight requests hold their own reference and finish).
+	s.prom.Swap(target).closeIdle()
 	s.logger.Info("datasource configured",
 		"url", target.url.Redacted(), "by", s.usernameOf(request))
 	writeJSON(writer, http.StatusOK, s.datasourceView())
@@ -174,6 +273,8 @@ func (s *Server) adminTestDatasource(writer http.ResponseWriter, request *http.R
 		writeError(writer, http.StatusBadRequest, err.Error())
 		return
 	}
+	// Throwaway target: do not leave its probe connection pooled.
+	defer target.closeIdle()
 	reachable, reason := probePrometheus(request.Context(), target)
 	response := map[string]any{"reachable": reachable}
 	if reason != "" {
@@ -193,5 +294,12 @@ func prometheusStateOf(target *promTarget) config.PrometheusState {
 		state.BasicPassword, _ = user.Password()
 	}
 	state.BearerToken = target.bearer
+	if len(target.headers) > 0 {
+		state.Headers = target.headers
+	}
+	state.CACert = string(target.tls.CACert)
+	state.ClientCert = string(target.tls.ClientCert)
+	state.ClientKey = string(target.tls.ClientKey)
+	state.InsecureSkipVerify = target.tls.InsecureSkipVerify
 	return state
 }

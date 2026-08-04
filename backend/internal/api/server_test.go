@@ -35,7 +35,11 @@ func newTestServer(t *testing.T, options Options) *httptest.Server {
 		options.Hub = watch.NewHub()
 	}
 	mux := http.NewServeMux()
-	New(options).Routes(mux)
+	apiServer, err := New(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	apiServer.Routes(mux)
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	return server

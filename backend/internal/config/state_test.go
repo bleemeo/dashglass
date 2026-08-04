@@ -2,6 +2,7 @@ package config
 
 import (
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -20,6 +21,8 @@ func TestStateRoundTrip(t *testing.T) {
 	state.Prometheus.URL = "http://prom:9090"
 	state.Prometheus.BasicUsername = "user"
 	state.Prometheus.BasicPassword = "secret"
+	state.Prometheus.Headers = map[string]string{"X-Scope-OrgID": "tenant-1"}
+	state.Prometheus.CACert = "-----BEGIN CERTIFICATE-----\nnot-a-real-one\n-----END CERTIFICATE-----\n"
 	if err := SaveState(path, state); err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +30,7 @@ func TestStateRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded != state {
+	if !reflect.DeepEqual(loaded, state) {
 		t.Fatalf("round trip mismatch: %+v != %+v", loaded, state)
 	}
 }
