@@ -43,7 +43,8 @@ docker run -p 8080:8080 -v "$(pwd)/dashboards:/dashboards" \
 
 Dashboards are plain YAML files in the mounted directory — put it under
 git and you have GitOps. Images are tagged `latest` and per release
-(CalVer, e.g. `ghcr.io/bleemeo/dashglass:2026.07.25.120000`).
+(CalVer, e.g. `ghcr.io/bleemeo/dashglass:2026.07.25.120000`); a moving
+`snapshot` tag tracks the main branch (unsupported, may break).
 
 Starting from an empty instance? The home screen offers ready-made
 example dashboards (built only from metrics Prometheus exposes about

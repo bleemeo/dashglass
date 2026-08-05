@@ -5,6 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+# Default to read-only; the jobs that publish elevate themselves
+# explicitly. Fork PRs are further capped read-only by GitHub itself,
+# whatever this file says.
+permissions:
+  contents: read
+
+# Superseded runs are cancelled; on main this also prevents an older
+# commit's snapshot image from overwriting a newer one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     name: Tests, typecheck, lint
@@ -46,11 +58,72 @@ jobs:
           git checkout -- backend/internal/ui/dist/index.html
 
   docker:
-    name: Docker image smoke test
+    name: Docker image smoke test + snapshot
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v5
       - name: Build image
         run: docker build -t dashglass-ci .
       - name: Smoke test (non-root container, auth surface)
         run: bash scripts/docker-smoke.sh dashglass-ci 8899
+
+      # Snapshot publication — pushes to main only, and only after the
+      # smoke test above passed. `snapshot` is a moving dev tag (may
+      # break); `main-<sha>` pins the exact commit. Releases own `latest`.
+      - name: Compute snapshot version
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: snapshot
+        run: echo "version=main-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        if: steps.snapshot.outputs.version != ''
+        uses: docker/setup-qemu-action@v4
+      - name: Set up Buildx
+        if: steps.snapshot.outputs.version != ''
+        uses: docker/setup-buildx-action@v4
+      - name: Log in to GHCR
+        if: steps.snapshot.outputs.version != ''
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the snapshot image
+        if: steps.snapshot.outputs.version != ''
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            VERSION=${{ steps.snapshot.outputs.version }}
+          push: true
+          tags: |
+            ghcr.io/bleemeo/dashglass:snapshot
+            ghcr.io/bleemeo/dashglass:${{ steps.snapshot.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  snapshot-cleanup:
+    name: Prune old snapshot images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: docker
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      # Multi-arch-aware pruning: only the pinnable main-<sha> tags are
+      # eligible, the newest 10 are kept, and the moving/release tags
+      # (snapshot, latest, CalVer = 2*) are excluded with top priority so
+      # a release image can never be collected here.
+      - name: Keep the last 10 main-<sha> tags, drop untagged leftovers
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          package: dashglass
+          delete-tags: main-*
+          keep-n-tagged: 10
+          exclude-tags: snapshot,latest,2*
+          delete-untagged: true
