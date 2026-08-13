@@ -44,7 +44,10 @@ function testDashboard(): Dashboard {
         cpu: {
           kind: "Panel",
           spec: {
-            display: { name: "CPU usage" },
+            display: {
+              name: "CPU usage",
+              description: "Busy time on $instance, excluding iowait",
+            },
             plugin: { kind: "TestChart" },
             queries: [
               {
@@ -140,6 +143,18 @@ describe("DashboardRenderer", () => {
       await screen.findByText('up{instance="web-1"}: 1'),
     ).toBeDefined();
     expect(seenQueries).toEqual(['up{instance="web-1"}']);
+
+    // The description surfaces as a tooltip marker, with variables
+    // interpolated like the title. Panels without one get no marker.
+    const marker = screen.getByLabelText(
+      "Description: Busy time on web-1, excluding iowait",
+    );
+    expect(marker.getAttribute("title")).toBe(
+      "Busy time on web-1, excluding iowait",
+    );
+    expect(document.querySelectorAll(".dashglass-panel-description")).toHaveLength(
+      1,
+    );
 
     // Unknown (e.g. proprietary) panel kinds degrade gracefully.
     expect(

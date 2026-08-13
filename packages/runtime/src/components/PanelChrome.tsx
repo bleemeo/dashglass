@@ -44,6 +44,13 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
   // label itself with its instance value (name: "CPU — $instance").
   const rawTitle = panel.spec.display?.name;
   const title = rawTitle ? interpolate(rawTitle, values) : rawTitle;
+  // The description is authored in the panel editor and only surfaces here,
+  // as a hover/focus tooltip on an info marker. Interpolated like the title
+  // so a repeated panel can describe its own instance.
+  const rawDescription = panel.spec.display?.description?.trim();
+  const description = rawDescription
+    ? interpolate(rawDescription, values)
+    : undefined;
 
   // Data links: variables plus the time-range tokens $__from / $__to (epoch
   // milliseconds) are interpolated into each URL, so a link can carry the
@@ -120,6 +127,42 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
       data-panel-key={panelKey}
     >
       <header className="dashglass-panel-header">
+        {description ? (
+          // Leading marker: the title is an ellipsizing flex child, so the
+          // icon cannot live inside it without being clipped away.
+          <span
+            className="dashglass-panel-description"
+            role="img"
+            tabIndex={0}
+            title={description}
+            aria-label={`Description: ${description}`}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              width="12"
+              height="12"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <circle
+                cx="8"
+                cy="8"
+                r="7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <path
+                d="M8 7v4.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+              <circle cx="8" cy="4.6" r="0.9" fill="currentColor" />
+            </svg>
+          </span>
+        ) : null}
         {/* The title attribute carries the full text: narrow tiles
             ellipsize it, and the tooltip is the only way to read it. */}
         <h3 className="dashglass-panel-title" title={title ?? undefined}>

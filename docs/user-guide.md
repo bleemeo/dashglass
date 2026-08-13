@@ -46,7 +46,9 @@ metrics Prometheus exposes about itself, so they show data on any install.
   editor can't express yet you can always write here.
 
 **The panel editor** (the drawer in the visual editor) has: **Title**,
-**Description**, **Type**; the type-specific options (below); **Queries**
+**Description** (shown on the dashboard as an ⓘ marker in the panel header,
+with the text as its tooltip; variables are interpolated in it), **Type**;
+the type-specific options (below); **Queries**
 (a PromQL expression plus a **Legend format** like `{{instance}} —
 {{mountpoint}}`); **[Links](#data-links-drill-down)**; and
 **[Repeat](#repeating-panels)**.

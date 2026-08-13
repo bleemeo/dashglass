@@ -103,6 +103,26 @@ const config = defineConfig({
       whiteSpace: "nowrap",
       _hover: { textDecoration: "underline" },
     },
+    // Info marker carrying the panel description as a tooltip.
+    ".dashglass-panel-description": {
+      display: "inline-flex",
+      alignItems: "center",
+      flexShrink: "0",
+      color: "fg.muted",
+      cursor: "help",
+      // The header aligns on the text baseline; an icon-only flex box has
+      // none, so nudge it onto the title's.
+      position: "relative",
+      top: "0.1em",
+      _hover: { color: "fg" },
+      _focusVisible: {
+        color: "fg",
+        borderRadius: "sm",
+        outline: "2px solid",
+        outlineColor: "brand.fg",
+        outlineOffset: "2px",
+      },
+    },
     // Data links (drill-down) shown at the right of the panel header.
     ".dashglass-panel-links": {
       display: "flex",
