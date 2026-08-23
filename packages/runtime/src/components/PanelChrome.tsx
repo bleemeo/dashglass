@@ -1,4 +1,4 @@
-import { Suspense, type CSSProperties } from "react";
+import { Suspense, type CSSProperties, type ReactNode } from "react";
 
 import type { Panel } from "@dashglass/model";
 
@@ -27,9 +27,20 @@ export interface PanelChromeProps {
   panel: Panel;
   /** When set, the panel title becomes a button (e.g. expand fullscreen). */
   onExpand?: (() => void) | undefined;
+  /**
+   * Host-supplied controls (typically an overflow menu) rendered at the
+   * right of the header. The chrome only places them: what a panel action
+   * *is* — a route, the clipboard — belongs to the host, not the runtime.
+   */
+  actions?: ReactNode;
 }
 
-export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
+export function PanelChrome({
+  panelKey,
+  panel,
+  onExpand,
+  actions,
+}: PanelChromeProps) {
   const { registries } = useRuntime();
   const { resolved, setRange } = useTimeRange();
   const { values } = useVariables();
@@ -198,6 +209,9 @@ export function PanelChrome({ panelKey, panel, onExpand }: PanelChromeProps) {
               );
             })}
           </nav>
+        ) : null}
+        {actions ? (
+          <div className="dashglass-panel-actions">{actions}</div>
         ) : null}
       </header>
       <div className="dashglass-panel-body" style={bodyStyle}>

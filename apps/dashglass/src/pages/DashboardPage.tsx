@@ -21,6 +21,7 @@ import {
 } from "../api/hooks";
 import { DashboardNotFound } from "../components/DashboardNotFound";
 import { HistoryDrawer } from "../components/HistoryDrawer";
+import { PanelActionsMenu } from "../components/PanelActionsMenu";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useKeyShortcut } from "../hooks/useShortcuts";
 import { TimeRangeControls } from "../components/TimeRangeControls";
@@ -191,23 +192,41 @@ function DashboardView({ dashboard, name }: { dashboard: Dashboard; name: string
               />
             ) : null}
             {viewedKey && viewedPanel ? (
-              <Box flex={1} minHeight={0} position="relative">
-                <PanelChrome panelKey={viewedKey} panel={viewedPanel} />
-                <CloseButton
-                  size="sm"
-                  variant="subtle"
-                  position="absolute"
-                  top={1}
-                  right={1}
-                  aria-label="Close fullscreen"
-                  title="Close fullscreen (Esc)"
-                  onClick={() => setViewedPanel(null)}
+              <Box flex={1} minHeight={0}>
+                {/* Close sits in the header action row rather than floating
+                    over it: absolute positioning covered the ⋯ trigger. */}
+                <PanelChrome
+                  panelKey={viewedKey}
+                  panel={viewedPanel}
+                  actions={
+                    <>
+                      <PanelActionsMenu
+                        panelKey={viewedKey}
+                        panel={viewedPanel}
+                      />
+                      <CloseButton
+                        size="2xs"
+                        variant="ghost"
+                        color="fg.muted"
+                        aria-label="Close fullscreen"
+                        title="Close fullscreen (Esc)"
+                        onClick={() => setViewedPanel(null)}
+                      />
+                    </>
+                  }
                 />
               </Box>
             ) : (
               <DashboardGrid
                 dashboard={dashboard}
                 onPanelExpand={setViewedPanel}
+                renderPanelActions={({ panelKey, panel }) => (
+                  <PanelActionsMenu
+                    panelKey={panelKey}
+                    panel={panel}
+                    onExpand={() => setViewedPanel(panelKey)}
+                  />
+                )}
               />
             )}
           </Flex>

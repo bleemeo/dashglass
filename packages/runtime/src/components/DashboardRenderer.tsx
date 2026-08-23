@@ -1,9 +1,10 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import {
   panelKeyFromRef,
   type Dashboard,
   type GridLayout,
+  type Panel,
 } from "@dashglass/model";
 
 import { PinnedVariablesProvider, useVariables, VariablesProvider } from "../context";
@@ -51,10 +52,12 @@ function GridSection({
   layout,
   dashboard,
   onPanelExpand,
+  renderPanelActions,
 }: {
   layout: GridLayout;
   dashboard: Dashboard;
   onPanelExpand?: ((panelKey: string) => void) | undefined;
+  renderPanelActions?: PanelActionsRenderer | undefined;
 }) {
   const { values, options } = useVariables();
   const title = layout.spec.display?.title;
@@ -100,6 +103,10 @@ function GridSection({
                   ? () => onPanelExpand(placed.panelKey)
                   : undefined
               }
+              actions={renderPanelActions?.({
+                panelKey: placed.panelKey,
+                panel,
+              })}
             />
           );
           return (
@@ -129,10 +136,23 @@ function GridSection({
   );
 }
 
+/**
+ * Builds the per-panel header controls. The node it returns is mounted
+ * inside the panel's own provider scope, so components in it may use the
+ * runtime hooks and see the panel's variable values (a repeated instance
+ * sees its pinned value, not the whole selection).
+ */
+export type PanelActionsRenderer = (context: {
+  panelKey: string;
+  panel: Panel;
+}) => ReactNode;
+
 export interface DashboardRendererProps {
   dashboard: Dashboard;
   /** When set, panel titles become buttons (e.g. fullscreen view). */
   onPanelExpand?: ((panelKey: string) => void) | undefined;
+  /** Per-panel header controls, e.g. an overflow menu. */
+  renderPanelActions?: PanelActionsRenderer | undefined;
 }
 
 /**
@@ -144,6 +164,7 @@ export interface DashboardRendererProps {
 export function DashboardGrid({
   dashboard,
   onPanelExpand,
+  renderPanelActions,
 }: DashboardRendererProps) {
   return (
     <div className="dashglass-dashboard">
@@ -153,6 +174,7 @@ export function DashboardGrid({
           layout={layout}
           dashboard={dashboard}
           onPanelExpand={onPanelExpand}
+          renderPanelActions={renderPanelActions}
         />
       ))}
     </div>

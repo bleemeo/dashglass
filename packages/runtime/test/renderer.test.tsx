@@ -1,13 +1,17 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { Dashboard } from "@dashglass/model";
+import type { Dashboard, Panel } from "@dashglass/model";
 
 import {
+  DashboardGrid,
   DashboardRenderer,
   RuntimeProvider,
   TimeRangeProvider,
+  VariablesProvider,
   createRegistries,
+  panelPromQL,
+  useVariables,
   type PanelProps,
   type PromResponse,
   type PrometheusDataSource,
@@ -360,5 +364,104 @@ describe("panel data links", () => {
     expect(link.getAttribute("href")).toMatch(
       /^\/d\/host\?i=web-1&from=\d+$/,
     );
+  });
+});
+
+describe("panel actions", () => {
+  it("renders host controls in the header, scoped to the repeat instance", async () => {
+    const registries = createRegistries();
+    registries.panels.register({ kind: "TestChart", component: () => null });
+    registries.variableSources.register({
+      kind: "TestVariableSource",
+      loadValues: async () => ["web-1", "web-2"],
+    });
+
+    const dashboard: Dashboard = {
+      apiVersion: "v1",
+      kind: "Dashboard",
+      metadata: { name: "actions" },
+      spec: {
+        variables: [
+          {
+            kind: "ListVariable",
+            spec: {
+              name: "instance",
+              allowAllValue: true,
+              plugin: { kind: "TestVariableSource" },
+            },
+          },
+        ],
+        panels: {
+          cpu: {
+            kind: "Panel",
+            spec: {
+              plugin: { kind: "TestChart" },
+              repeat: { variable: "instance" },
+              queries: [
+                {
+                  kind: "TimeSeriesQuery",
+                  spec: {
+                    plugin: {
+                      kind: "PrometheusTimeSeriesQuery",
+                      spec: { query: 'up{instance="$instance"}' },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+        layouts: [
+          {
+            kind: "Grid",
+            spec: {
+              items: [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 12,
+                  height: 8,
+                  content: { $ref: "#/spec/panels/cpu" },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    // A host action needs the panel's *resolved* query — the contract the
+    // renderer promises: the node is mounted inside the panel's provider
+    // scope, so it sees the pinned repeat value, not the whole selection.
+    function QueryLabel({ panel }: { panel: Panel }) {
+      const { values } = useVariables();
+      return <span>action: {panelPromQL(panel, values).join(",")}</span>;
+    }
+
+    render(
+      <RuntimeProvider
+        datasource={readingDatasource([])}
+        registries={registries}
+      >
+        <TimeRangeProvider>
+          <VariablesProvider variables={dashboard.spec.variables}>
+            <DashboardGrid
+              dashboard={dashboard}
+              renderPanelActions={({ panel }) => <QueryLabel panel={panel} />}
+            />
+          </VariablesProvider>
+        </TimeRangeProvider>
+      </RuntimeProvider>,
+    );
+
+    expect(
+      await screen.findByText('action: up{instance="web-1"}'),
+    ).toBeDefined();
+    expect(screen.getByText('action: up{instance="web-2"}')).toBeDefined();
+    expect(
+      document.querySelectorAll(
+        ".dashglass-panel-header .dashglass-panel-actions",
+      ),
+    ).toHaveLength(2);
   });
 });

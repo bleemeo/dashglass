@@ -216,6 +216,17 @@ reset.
 **Fullscreen a panel** by clicking its title ("View fullscreen"); it opens in
 place (`?viewPanel=<key>`), with **Esc** or **Back to dashboard** to leave.
 
+**The panel menu** (**⋯**, on hover in the panel header) acts on the
+*resolved* query — variables and the repeat instance already applied:
+
+- **View fullscreen** — same as clicking the title, and the only way in for
+  an untitled panel.
+- **Explore query** — opens the expression in **Explore** with the panel's
+  time range, to iterate on it without touching the dashboard. One entry per
+  query when the panel has several; ⌘/middle-click opens a new tab.
+- **Copy PromQL** — the expression to the clipboard, for a terminal or an
+  alerting rule.
+
 **Kiosk mode** (toolbar button, or `?kiosk=1`) hides the nav, banners, and the
 whole toolbar for wall displays — press **Esc** to exit. Pair it with a Clock
 panel and auto-refresh for a NOC screen.

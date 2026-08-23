@@ -43,6 +43,17 @@ export function rangeToParams(params: URLSearchParams, range: TimeRange): void {
   }
 }
 
+/**
+ * Link to an Explore session on one expression, carrying the time range
+ * the panel was showing — the same params ExplorePage reads at mount.
+ */
+export function exploreHref(expr: string, range: TimeRange): string {
+  const params = new URLSearchParams();
+  params.set("expr", expr);
+  rangeToParams(params, range);
+  return `/explore?${params.toString()}`;
+}
+
 export function variablesFromParams(params: URLSearchParams): VariableValues {
   const values: VariableValues = {};
   for (const key of new Set(params.keys())) {

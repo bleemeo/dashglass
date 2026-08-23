@@ -20,12 +20,19 @@ interface PreparedQuery {
   seriesNameFormat: string | undefined;
 }
 
-function prepareQueries(
-  panel: Panel,
-  values: VariableValues,
-  range: { start: Date; end: Date },
-): PreparedQuery[] {
-  const prepared: PreparedQuery[] = [];
+interface PromQuery {
+  promql: string;
+  minStep: number | undefined;
+  seriesNameFormat: string | undefined;
+}
+
+/**
+ * The panel's runnable Prometheus queries, in spec order: other query
+ * kinds and empty expressions are skipped, exactly as the orchestrator
+ * path does. Expressions are raw — variables are not interpolated yet.
+ */
+function promQueries(panel: Panel): PromQuery[] {
+  const queries: PromQuery[] = [];
   for (const query of panel.spec.queries ?? []) {
     const plugin = query.spec.plugin;
     if (plugin.kind !== PROMETHEUS_QUERY_KIND) {
@@ -36,24 +43,43 @@ function prepareQueries(
       continue;
     }
     const minStep = plugin.spec?.["minStep"];
-    prepared.push({
-      spec: {
-        query: interpolate(promql, values),
-        start: range.start,
-        end: range.end,
-        step: stepForRange(
-          range,
-          undefined,
-          typeof minStep === "number" ? minStep : undefined,
-        ),
-      },
+    queries.push({
+      promql,
+      minStep: typeof minStep === "number" ? minStep : undefined,
       seriesNameFormat:
         typeof plugin.spec?.["seriesNameFormat"] === "string"
           ? plugin.spec["seriesNameFormat"]
           : undefined,
     });
   }
-  return prepared;
+  return queries;
+}
+
+/**
+ * A panel's PromQL expressions with the current variable values applied —
+ * what the panel is really asking Prometheus. Hosts use it for actions
+ * that hand a query to another surface (open it in Explore, copy it);
+ * pass the panel-scoped values (`useVariables()`) so a repeated panel
+ * yields its own instance's expressions.
+ */
+export function panelPromQL(panel: Panel, values: VariableValues): string[] {
+  return promQueries(panel).map((query) => interpolate(query.promql, values));
+}
+
+function prepareQueries(
+  panel: Panel,
+  values: VariableValues,
+  range: { start: Date; end: Date },
+): PreparedQuery[] {
+  return promQueries(panel).map((query) => ({
+    spec: {
+      query: interpolate(query.promql, values),
+      start: range.start,
+      end: range.end,
+      step: stepForRange(range, undefined, query.minStep),
+    },
+    seriesNameFormat: query.seriesNameFormat,
+  }));
 }
 
 /**

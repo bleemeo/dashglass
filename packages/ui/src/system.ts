@@ -137,6 +137,29 @@ const config = defineConfig({
       cursor: "pointer",
       _hover: { textDecoration: "underline" },
     },
+    // Host controls at the right of the panel header (overflow menu,
+    // fullscreen close). A control opts into the quiet treatment with
+    // `data-hover-reveal`: hidden until the panel is hovered, the row
+    // takes focus, or the menu is open — so a wall of panels stays free
+    // of chrome. Controls without the attribute (a close button, which
+    // must be findable) stay visible. Touch has no hover to reveal with.
+    ".dashglass-panel-actions": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "1",
+      flexShrink: "0",
+      // The header aligns on the text baseline; an icon-only button has
+      // none, so nudge it onto the title's.
+      position: "relative",
+      top: "0.15em",
+      "& [data-hover-reveal]": { opacity: 0, transition: "opacity 0.15s" },
+      "&:focus-within [data-hover-reveal], & [data-hover-reveal][data-state='open']":
+        { opacity: 1 },
+      "@media (hover: none)": { "& [data-hover-reveal]": { opacity: 1 } },
+    },
+    ".dashglass-panel:hover .dashglass-panel-actions [data-hover-reveal]": {
+      opacity: 1,
+    },
     ".dashglass-panel-unknown, .dashglass-panel-error": {
       padding: "3",
       fontSize: "sm",

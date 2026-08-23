@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { parseGrafanaComID } from "./NewDashboardDialog";
-import { rangeFromParams, variablesFromParams } from "./URLStateSync";
+import {
+  exploreHref,
+  rangeFromParams,
+  variablesFromParams,
+} from "./URLStateSync";
 
 describe("rangeFromParams", () => {
   it("parses a relative range", () => {
@@ -37,6 +41,20 @@ describe("variablesFromParams", () => {
 
   it("ignores non-var params", () => {
     expect(variablesFromParams(new URLSearchParams("from=now-1h"))).toEqual({});
+  });
+});
+
+describe("exploreHref", () => {
+  it("carries the expression and a relative range", () => {
+    expect(exploreHref('up{job="a"}', { pastDuration: "6h" })).toBe(
+      "/explore?expr=up%7Bjob%3D%22a%22%7D&from=now-6h",
+    );
+  });
+
+  it("carries an absolute range as millisecond bounds", () => {
+    expect(
+      exploreHref("up", { start: new Date(1000), end: new Date(5000) }),
+    ).toBe("/explore?expr=up&from=1000&to=5000");
   });
 });
 

@@ -63,7 +63,11 @@ export {
   type VariablesContextValue,
   type VariablesProviderProps,
 } from "./context";
-export { PROMETHEUS_QUERY_KIND, usePanelData } from "./panel-data";
+export {
+  PROMETHEUS_QUERY_KIND,
+  panelPromQL,
+  usePanelData,
+} from "./panel-data";
 export { PanelChrome, type PanelChromeProps } from "./components/PanelChrome";
 export { PanelErrorBoundary } from "./components/PanelErrorBoundary";
 export {
@@ -74,4 +78,5 @@ export {
   GRID_ROW_HEIGHT,
   defaultTimeRange,
   type DashboardRendererProps,
+  type PanelActionsRenderer,
 } from "./components/DashboardRenderer";
