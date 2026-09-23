@@ -15,21 +15,21 @@
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
-    "@codemirror/state": "^6.6.0",
-    "@codemirror/view": "^6.43.1",
-    "@prometheus-io/codemirror-promql": "^0.311.3",
-    "@uiw/react-codemirror": "^4.25.10"
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.13",
+    "@prometheus-io/codemirror-promql": "^0.313.3",
+    "@uiw/react-codemirror": "^4.25.11"
   },
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   }
 }
