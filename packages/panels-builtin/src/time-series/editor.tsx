@@ -62,6 +62,11 @@ export function TimeSeriesEditor({
         value={spec.max}
         onChange={(max) => onChange(withSpecValue(rawSpec, "max", max))}
       />
+      <CheckboxField
+        label="Auto-scale Y (do not force zero)"
+        checked={spec.scale ?? false}
+        onChange={(scale) => onChange(withSpecValue(rawSpec, "scale", scale))}
+      />
     </div>
   );
 }

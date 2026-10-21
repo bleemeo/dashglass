@@ -19,6 +19,7 @@ export const timeSeriesSpecSchema = z.object({
   unit: unitSchema.optional(),
   min: z.number().optional(),
   max: z.number().optional(),
+  scale: z.boolean().optional(),
 });
 
 export type TimeSeriesSpec = z.infer<typeof timeSeriesSpecSchema>;
@@ -133,6 +134,7 @@ export function buildTimeSeriesOption(
       type: "value",
       min: spec.min,
       max: spec.max,
+      scale: spec.scale ?? false,
       axisLabel: {
         color: theme.ink.muted,
         fontSize: 11,
