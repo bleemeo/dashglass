@@ -69,6 +69,22 @@ describe("buildTimeSeriesOption", () => {
     expect(option.series[0]?.stack).toBe("total");
     expect(option.series[0]?.areaStyle).toBeDefined();
   });
+
+  it("auto-scales the Y axis only when requested", () => {
+    const off = buildTimeSeriesOption(
+      [series("a", [20, 21])],
+      {},
+      lightChartTheme,
+    ) as { yAxis: { scale: boolean } };
+    expect(off.yAxis.scale).toBe(false);
+
+    const on = buildTimeSeriesOption(
+      [series("a", [20, 21])],
+      { scale: true },
+      lightChartTheme,
+    ) as { yAxis: { scale: boolean } };
+    expect(on.yAxis.scale).toBe(true);
+  });
 });
 
 describe("calculate", () => {

@@ -429,6 +429,7 @@ non-goal changes. Legend: ✅ done · 🚧 planned · ⛔ non-goal (§2).
 |---|---|---|
 | Panels | Time series, stat, gauge, table, bar, heatmap, status grid, markdown, image, clock | ✅ |
 | Panels | Legend templating (`{{label}}`) and unit formatting | ✅ |
+| Panels | Time-series Y auto-scale (`scale`, opt-in) | ✅ |
 | Dashboards | PromQL editor (autocomplete + lint) | ✅ |
 | Dashboards | Variables, incl. chaining (dependent lists) | ✅ |
 | Dashboards | Time range picker, auto-refresh, zoom/brush | ✅ |

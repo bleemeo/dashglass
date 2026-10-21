@@ -59,9 +59,13 @@ Common options: **Unit** (short, percent, bytes, bytes/s, seconds, …) and, on
 value panels, **Thresholds** (ordered value → status of `warning` / `serious`
 / `critical`; below the first threshold is "good").
 
+**Auto-scale Y** (time series) makes the axis follow the data instead of
+forcing 0 as the lower bound — a 19–21 °C series otherwise uses only the top
+sliver of the panel. `min`/`max`, when set, still pin that end of the axis.
+
 | Type | Use for | Key options |
 |---|---|---|
-| **Time series** | metrics over time | unit; legend `bottom`/`right`/`hidden`; stack; fill area; Y min/max |
+| **Time series** | metrics over time | unit; legend `bottom`/`right`/`hidden`; stack; fill area; Y min/max; auto-scale Y |
 | **Stat** | one big number + sparkline | unit; calculation `last`/`mean`/`min`/`max`/`sum`; decimals; sparkline; thresholds |
 | **Gauge** | a value within a range | unit; min (0) / max (100); thresholds (color the arc) |
 | **Table** | series as rows | unit; thresholds (cell color + in-cell bar) |
